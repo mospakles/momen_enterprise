@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+:root {
+  /* Momen design tokens */
+  --font-display: "Fraunces Variable", "Fraunces", serif;
+  --font-body: "Manrope Variable", "Manrope", sans-serif;
+
+  --color-ivory: #F7F4EC;
+  --color-ivory-deep: #EFE9DC;
+  --color-ink: #1C1A16;
+  --color-charcoal: #2E2B25;
+  --color-stone: #B7AC98;
+  --color-stone-light: #DCD5C6;
+  --color-brass: #A3803E;
+  --color-brass-light: #C7A465;
+  --color-clay: #8A6F4E;
+  --color-line: #D8D0BE;
+  --color-error: #A5432F;
+
+  /* Sophisticated masculine palette — used sparingly as accents (badges,
+     collection tags, category art direction), never as the whole page. */
+  --color-navy: #1B2233;
+  --color-olive: #5C5B41;
+  --color-deep-brown: #4A3524;
+  --color-taupe: #8A7B68;
+  --color-burgundy: #5B2230;
+}
+
+@theme inline {
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+
+  --color-ivory: var(--color-ivory);
+  --color-ivory-deep: var(--color-ivory-deep);
+  --color-ink: var(--color-ink);
+  --color-charcoal: var(--color-charcoal);
+  --color-stone: var(--color-stone);
+  --color-stone-light: var(--color-stone-light);
+  --color-brass: var(--color-brass);
+  --color-brass-light: var(--color-brass-light);
+  --color-clay: var(--color-clay);
+  --color-line: var(--color-line);
+  --color-error: var(--color-error);
+
+  --color-navy: var(--color-navy);
+  --color-olive: var(--color-olive);
+  --color-deep-brown: var(--color-deep-brown);
+  --color-taupe: var(--color-taupe);
+  --color-burgundy: var(--color-burgundy);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--color-ivory);
+    color: var(--color-ink);
+    font-family: var(--font-body), sans-serif;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), serif;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  .eyebrow {
+    font-family: var(--font-body), sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-clay);
+  }
+  .hairline {
+    border-top: 1px solid var(--color-line);
+  }
+  .fade-up {
+    animation: fadeUp 0.7s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .shimmer {
+    background: linear-gradient(90deg, var(--color-ivory-deep) 25%, var(--color-stone-light) 37%, var(--color-ivory-deep) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+  }
+}
+
+::selection {
+  background: var(--color-brass-light);
+  color: var(--color-ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-ivory);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-stone);
+  border-radius: 999px;
+}

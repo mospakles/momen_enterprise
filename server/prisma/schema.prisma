@@ -1,0 +1,1187 @@
+// ───────────────────────────────────────────────────────────────────────────
+// Momen backend — Prisma schema.
+// Covers the full build sequence: Auth & Users, Products & Catalog, Orders,
+// Measurement Profiles, Production, Payments, Delivery, Promotions, CMS,
+// Notifications, Audit Log. Reviews/Wishlist are included because Product
+// and Customer both relate to them.
+// ───────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════ Auth & Users ═══════════════════════════
+
+enum PermissionResource {
+  dashboard
+  orders
+  products
+  collections
+  inventory
+  customers
+  measurements
+  payments
+  refunds
+  production
+  delivery
+  promotions
+  reviews
+  content
+  notifications
+  analytics
+  reports
+  settings
+  admin_users
+  audit_logs
+}
+
+enum PermissionAction {
+  view
+  create
+  edit
+  delete
+  approve
+  export
+  refund
+  publish
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String
+  isSystem    Boolean          @default(false)
+  permissions RolePermission[]
+  adminUsers  AdminUser[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model RolePermission {
+  id       String             @id @default(cuid())
+  roleId   String
+  role     Role               @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  resource PermissionResource
+  action   PermissionAction
+
+  @@unique([roleId, resource, action])
+}
+
+enum AdminUserStatus {
+  active
+  disabled
+  invited
+}
+
+model AdminUser {
+  id                    String               @id @default(cuid())
+  name                  String
+  email                 String               @unique
+  avatarUrl             String?
+  passwordHash          String
+  roleId                String
+  role                  Role                 @relation(fields: [roleId], references: [id])
+  status                AdminUserStatus      @default(invited)
+  twoFactorEnabled      Boolean              @default(false)
+  twoFactorSecret       String?
+  lastLoginAt           DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  refreshTokens         AdminRefreshToken[]
+  passwordResets        AdminPasswordReset[]
+  auditLogs             AuditLogEntry[]
+  customerNotesAuthored CustomerNote[]
+}
+
+model AdminRefreshToken {
+  id          String    @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model AdminPasswordReset {
+  id          String    @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+enum CustomerStatus {
+  active
+  vip
+  disabled
+}
+
+model Customer {
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique
+  phone          String?
+  passwordHash   String? // null => guest / social-only account
+  status         CustomerStatus @default(active)
+  marketingOptIn Boolean        @default(false)
+  tags           String[]
+  lastLoginAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  addresses           CustomerAddress[]
+  notes               CustomerNote[]
+  socialAccounts      CustomerSocialAccount[]
+  refreshTokens       CustomerRefreshToken[]
+  passwordResets      CustomerPasswordReset[]
+  measurementProfiles MeasurementProfile[]
+  orders              Order[]
+  wishlistItems       WishlistItem[]
+  reviews             Review[]
+}
+
+model CustomerAddress {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  fullName   String
+  country    String
+  state      String
+  city       String
+  address    String
+  apartment  String?
+  postalCode String
+  phone      String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Backs the admin-only Customer CRM notes. Order internal/customer notes are
+// a separate model (OrderNote) because their audience/visibility rules differ.
+model CustomerNote {
+  id         String     @id @default(cuid())
+  customerId String
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     AdminUser? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorName String
+  message    String
+  createdAt  DateTime   @default(now())
+}
+
+model CustomerSocialAccount {
+  id                String   @id @default(cuid())
+  customerId        String
+  customer          Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  provider          String // "google" | "apple" | ...
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+}
+
+model CustomerRefreshToken {
+  id         String    @id @default(cuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model CustomerPasswordReset {
+  id         String    @id @default(cuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+// ═══════════════════════════ Products & Catalog ═══════════════════════════
+
+enum ProductionType {
+  ready_to_wear   @map("ready-to-wear")
+  made_to_measure @map("made-to-measure")
+}
+
+enum ProductType {
+  ready_to_wear   @map("ready-to-wear")
+  made_to_measure @map("made-to-measure")
+  customizable
+  accessory
+}
+
+enum Gender {
+  men
+  unisex
+}
+
+enum SizingMode {
+  standard
+  made_to_measure @map("made-to-measure")
+  both
+  one_size        @map("one-size")
+}
+
+enum Garment {
+  top
+  trouser
+  set
+  agbada
+  accessory
+}
+
+enum PublishStatus {
+  draft
+  scheduled
+  published
+  archived
+}
+
+enum MeasurementUnit {
+  cm
+  inch @map("in")
+}
+
+model Category {
+  id                   String                @id @default(cuid())
+  slug                 String                @unique
+  name                 String
+  description          String?
+  image                String?
+  parentId             String?
+  parent               Category?             @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children             Category[]            @relation("CategoryTree")
+  sortOrder            Int                   @default(0)
+  publishStatus        PublishStatus         @default(draft)
+  seo                  Json?
+  products             Product[]
+  measurementFieldDefs MeasurementFieldDef[] @relation("CategoryMeasurementFields")
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+}
+
+model Collection {
+  id              String              @id @default(cuid())
+  slug            String              @unique
+  name            String
+  description     String
+  image           String
+  heroVideo       String?
+  tag             String?
+  publishStatus   PublishStatus       @default(draft)
+  expressEligible Boolean             @default(false)
+  sortOrder       Int                 @default(0)
+  seo             Json?
+  products        ProductCollection[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+model ProductCollection {
+  productId    String
+  collectionId String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, collectionId])
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  name     String       @unique
+  products ProductTag[]
+}
+
+model ProductTag {
+  productId String
+  tagId     String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+}
+
+model SizeOption {
+  id        String        @id @default(cuid())
+  label     String        @unique
+  sortOrder Int           @default(0)
+  active    Boolean       @default(true)
+  products  ProductSize[]
+}
+
+model ProductSize {
+  id           String      @id @default(cuid())
+  productId    String
+  product      Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sizeOptionId String?
+  sizeOption   SizeOption? @relation(fields: [sizeOptionId], references: [id], onDelete: SetNull)
+  label        String // free-text fallback / denormalized copy of sizeOption.label
+  sortOrder    Int         @default(0)
+}
+
+model ColorSwatch {
+  id        String @id @default(cuid())
+  name      String
+  hex       String
+  sortOrder Int    @default(0)
+}
+
+model ProductColorVariant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  hex       String
+  sortOrder Int     @default(0)
+}
+
+model Fabric {
+  id             String          @id @default(cuid())
+  name           String
+  category       String
+  image          String
+  description    String
+  additionalCost Decimal         @default(0) @db.Decimal(12, 2)
+  available      Boolean         @default(true)
+  sortOrder      Int             @default(0)
+  products       ProductFabric[]
+}
+
+model ProductFabric {
+  productId String
+  fabricId  String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  fabric    Fabric  @relation(fields: [fabricId], references: [id], onDelete: Cascade)
+
+  @@id([productId, fabricId])
+}
+
+model CustomizationGroup {
+  id          String                 @id @default(cuid())
+  name        String
+  description String?
+  choices     CustomizationChoice[]
+  products    ProductCustomization[]
+}
+
+model CustomizationChoice {
+  id             String             @id @default(cuid())
+  groupId        String
+  group          CustomizationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  label          String
+  description    String?
+  image          String?
+  additionalCost Decimal            @default(0) @db.Decimal(12, 2)
+  available      Boolean            @default(true)
+  sortOrder      Int                @default(0)
+}
+
+model ProductCustomization {
+  productId String
+  groupId   String
+  product   Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  group     CustomizationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  enabled   Boolean            @default(true)
+  required  Boolean            @default(false)
+
+  @@id([productId, groupId])
+}
+
+model Product {
+  id               String                @id @default(cuid())
+  slug             String                @unique
+  name             String
+  sku              String                @unique
+  categoryId       String
+  category         Category              @relation(fields: [categoryId], references: [id])
+  collections      ProductCollection[]
+  tags             ProductTag[]
+  price            Decimal               @db.Decimal(12, 2)
+  compareAtPrice   Decimal?              @db.Decimal(12, 2)
+  salePrice        Decimal?              @db.Decimal(12, 2)
+  currency         String                @default("NGN")
+  images           String[]
+  hoverImage       String?
+  videos           String[]
+  colorVariants    ProductColorVariant[]
+  sizes            ProductSize[]
+  productionType   ProductionType
+  productType      ProductType
+  gender           Gender
+  sizingMode       SizingMode
+  garment          Garment
+  fabrics          ProductFabric[]
+  description      String
+  shortDescription String?
+  details          String[]
+  careInstructions String[]
+
+  productionDaysStandardMin Int
+  productionDaysStandardMax Int
+  productionDaysExpressMin  Int
+  productionDaysExpressMax  Int
+
+  isNew       Boolean @default(false)
+  isFeatured  Boolean @default(false)
+  isSignature Boolean @default(false)
+
+  stockQuantity     Int @default(0)
+  reservedQuantity  Int @default(0)
+  lowStockThreshold Int @default(0)
+  // No stored `stock` status column by design — derived on read from
+  // stockQuantity/reservedQuantity/lowStockThreshold/sizingMode so it can't
+  // drift from the numbers that actually drive it.
+
+  publishStatus   PublishStatus @default(draft)
+  publishAt       DateTime?
+  expressEligible Boolean       @default(false)
+
+  customizable               Boolean  @default(false)
+  referenceImagesAllowed     Boolean  @default(false)
+  specialInstructionsAllowed Boolean  @default(false)
+  crossSellCategorySlugs     String[]
+  sizeChart                  String?
+  seo                        Json?
+
+  customizations       ProductCustomization[]
+  measurementFieldDefs MeasurementFieldDef[]  @relation("ProductMeasurementFields")
+  orderLineItems       OrderLineItem[]
+  reviews              Review[]
+  wishlistItems        WishlistItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([publishStatus])
+  @@index([categoryId])
+}
+
+// ═══════════════════════════ Measurements ═══════════════════════════
+
+model MeasurementFieldDef {
+  key            String          @id // e.g. "chest" — matches frontend MeasurementField string
+  label          String
+  description    String?
+  instructions   String?
+  commonMistakes String?
+  illustration   String?
+  videoUrl       String?
+  unit           MeasurementUnit @default(cm)
+  required       Boolean         @default(false)
+  garments       Garment[]
+  sortOrder      Int             @default(0)
+  minCm          Float?
+  maxCm          Float?
+  products       Product[]       @relation("ProductMeasurementFields")
+  categories     Category[]      @relation("CategoryMeasurementFields")
+}
+
+model MeasurementProfile {
+  id         String          @id @default(cuid())
+  customerId String?
+  customer   Customer?       @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  label      String
+  unit       MeasurementUnit
+  values     Json // Partial<Record<measurementFieldKey, number>>
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  history        MeasurementProfileHistory[]
+  orderLineItems OrderLineItem[]
+}
+
+model MeasurementProfileHistory {
+  id            String             @id @default(cuid())
+  profileId     String
+  profile       MeasurementProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  values        Json
+  unit          MeasurementUnit
+  changedAt     DateTime           @default(now())
+  changedById   String?
+  changedByName String
+}
+
+// ═══════════════════════════ Orders ═══════════════════════════
+
+enum OrderStatus {
+  order_placed               @map("Order Placed")
+  payment_confirmed          @map("Payment Confirmed")
+  customization_review       @map("Customization Review")
+  awaiting_measurements      @map("Awaiting Measurements")
+  measurements_confirmed     @map("Measurements Confirmed")
+  production_queue           @map("Production Queue")
+  in_production              @map("In Production")
+  quality_check              @map("Quality Check")
+  ready_for_dispatch         @map("Ready for Dispatch")
+  shipped                    @map("Shipped")
+  delivered                  @map("Delivered")
+  payment_failed             @map("Payment Failed")
+  cancelled                  @map("Cancelled")
+  refund_requested           @map("Refund Requested")
+  refunded                   @map("Refunded")
+  partially_refunded         @map("Partially Refunded")
+  on_hold                    @map("On Hold")
+  awaiting_customer_response @map("Awaiting Customer Response")
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+  partially_refunded
+}
+
+enum PaymentMethod {
+  card
+  transfer
+  gift_card @map("gift-card")
+  cod
+}
+
+enum ProductionSpeed {
+  standard
+  express
+}
+
+enum OrderChannel {
+  web
+  admin
+  phone
+}
+
+enum CustomizationApprovalStatus {
+  not_applicable
+  submitted
+  under_review
+  approved
+  awaiting_customer_confirmation
+  confirmed
+  clarification_requested
+  rejected
+}
+
+enum NoteAudience {
+  internal
+  customer
+}
+
+model Order {
+  // Human-readable code IS the primary key (e.g. "MOM-482913"), generated
+  // app-side with a collision check — matches today's frontend exactly, no
+  // separate internal id vs order-number split.
+  id            String    @id
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerEmail String
+
+  status          OrderStatus    @default(order_placed)
+  paymentStatus   PaymentStatus  @default(pending)
+  paymentMethod   PaymentMethod?
+  paymentProvider String?
+  transactionId   String?
+
+  subtotal    Decimal @db.Decimal(12, 2)
+  deliveryFee Decimal @default(0) @db.Decimal(12, 2)
+  expressFee  Decimal @default(0) @db.Decimal(12, 2)
+  discount    Decimal @default(0) @db.Decimal(12, 2)
+  couponCode  String?
+  total       Decimal @db.Decimal(12, 2)
+
+  productionSpeed     ProductionSpeed @default(standard)
+  estimatedCompletion DateTime?
+  estimatedDelivery   DateTime?
+
+  addressSnapshot Json // Address shape, captured at order time
+
+  channel             OrderChannel                @default(web)
+  customizationStatus CustomizationApprovalStatus @default(not_applicable)
+
+  cancelledAt     DateTime?
+  cancelledReason String?
+
+  productionPriority               Int              @default(40)
+  productionStartDate              DateTime?
+  productionExpectedCompletionDate DateTime?
+  productionActualCompletionDate   DateTime?
+  assignedStaffId                  String?
+  assignedStaff                    ProductionStaff? @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
+
+  items            OrderLineItem[]
+  timeline         OrderTimelineEntry[]
+  notes            OrderNote[]
+  transactions     PaymentTransaction[]
+  refunds          Refund[]
+  couponRedemption CouponRedemption?
+  giftCardUses     GiftCardTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+}
+
+model OrderLineItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  // Snapshot fields — survive later product price/name/image edits or deletion.
+  productName  String
+  productSlug  String
+  productImage String?
+  sku          String
+  unitPrice    Decimal @db.Decimal(12, 2)
+
+  size     String
+  color    String
+  quantity Int
+
+  customizations    Json? // groupId -> choiceId
+  customizationCost Decimal @default(0) @db.Decimal(12, 2)
+  customOrder       Json? // CustomOrderDetails snapshot (fabric, colours, refs, notes)
+
+  measurementMode      String // "profile" | "manual" | "pending"
+  measurementProfileId String?
+  measurementProfile   MeasurementProfile? @relation(fields: [measurementProfileId], references: [id], onDelete: SetNull)
+  measurementValues    Json? // immutable snapshot used for production
+  measurementUnit      MeasurementUnit?
+}
+
+model OrderTimelineEntry {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  stage     OrderStatus
+  date      DateTime
+  message   String?
+  complete  Boolean     @default(false)
+  actorId   String?
+  actorName String?
+  sortOrder Int
+}
+
+model OrderNote {
+  id         String       @id @default(cuid())
+  orderId    String
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  audience   NoteAudience
+  authorId   String?
+  authorName String
+  message    String
+  createdAt  DateTime     @default(now())
+}
+
+// ═══ Reviews & Wishlist (needed for Product/Customer relations above) ═══
+
+enum ReviewStatus {
+  pending
+  approved
+  rejected
+}
+
+model Review {
+  id              String       @id @default(cuid())
+  productId       String
+  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerId      String?
+  customer        Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName    String
+  customerEmail   String
+  rating          Int
+  title           String?
+  body            String
+  images          String[]
+  status          ReviewStatus @default(pending)
+  featured        Boolean      @default(false)
+  responseMessage String?
+  respondedAt     DateTime?
+  createdAt       DateTime     @default(now())
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, productId])
+}
+
+// ═══════════════════════════ Production ═══════════════════════════
+// No dedicated "production queue" table — the queue is a read model derived
+// from Order's production* fields (see production/production-queue). Staff
+// and timeline rules are the two things that genuinely need their own tables.
+
+enum ProductionStaffStatus {
+  active
+  on_leave @map("on-leave")
+  inactive
+}
+
+model ProductionStaff {
+  id              String                @id @default(cuid())
+  name            String
+  role            String // e.g. "Cutter", "Tailor", "Quality Control" — free text, not an enum
+  email           String
+  capacityPerWeek Int
+  status          ProductionStaffStatus @default(active)
+  assignedOrders  Order[]
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+}
+
+enum TimelineRuleScope {
+  global
+  product
+  collection
+  garment
+  country
+}
+
+/// Configurable standard/express production timelines per product/
+/// collection/garment/country — resolved most-specific-first at order
+/// creation time (see production/timeline-resolver.service.ts). Falls back
+/// to the product's own stored `productionDays*` fields when no rule matches
+/// (including when this table is empty), so a product's baseline estimate
+/// never depends on rules existing at all.
+model ProductionTimelineRule {
+  id              String            @id @default(cuid())
+  scope           TimelineRuleScope
+  scopeRef        String? // product slug / collection slug / Garment value / country name — null iff scope is "global"
+  standardDaysMin Int
+  standardDaysMax Int
+  expressDaysMin  Int
+  expressDaysMax  Int
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([scope, scopeRef])
+}
+
+// ═══════════════════════════ Payments ═══════════════════════════
+
+enum PaymentProvider {
+  paystack
+  flutterwave
+  stripe
+  bank_transfer @map("bank-transfer")
+}
+
+/// Admin-configured provider settings — enable/disable, test vs live mode,
+/// webhook status. Secret/public keys are stored so the admin UI can show
+/// them masked, but the API layer never returns the raw values (see
+/// payments/payment-provider-config.service.ts) and the actual provider
+/// calls in this codebase read credentials from environment variables, not
+/// this table — see the payments module README section for why.
+model PaymentProviderConfig {
+  id                String          @id @default(cuid())
+  provider          PaymentProvider @unique
+  enabled           Boolean         @default(false)
+  mode              String          @default("test") // "test" | "live"
+  currencies        String[]
+  publicKey         String?
+  secretKey         String?
+  webhookUrl        String?
+  webhookConfigured Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+/// One row per attempt against a provider — an order can have several
+/// (a failed charge retried, a later refund). Never stores card data, only
+/// the provider's own reference. `rawPayload` keeps the verified webhook
+/// body for audit/debugging.
+model PaymentTransaction {
+  id          String          @id @default(cuid())
+  orderId     String
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider    PaymentProvider
+  providerRef String // provider's transaction/reference id
+  amount      Decimal         @db.Decimal(12, 2)
+  currency    String          @default("NGN")
+  status      PaymentStatus
+  rawPayload  Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([provider, providerRef])
+  @@index([orderId])
+}
+
+enum RefundStatus {
+  requested
+  approved
+  rejected
+  processed
+}
+
+enum RefundType {
+  full
+  partial
+}
+
+model Refund {
+  id                String       @id @default(cuid())
+  orderId           String
+  order             Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount            Decimal      @db.Decimal(12, 2)
+  type              RefundType
+  reason            String
+  status            RefundStatus @default(requested)
+  requestedById     String?
+  requestedByName   String
+  requestedAt       DateTime     @default(now())
+  processedById     String?
+  processedByName   String?
+  processedAt       DateTime?
+  internalNotes     String?
+  providerRefundRef String? // set once actually processed against the provider
+
+  @@index([orderId])
+}
+
+// ═══════════════════════════ Delivery ═══════════════════════════
+
+/// Matched against an order's destination country at checkout (see
+/// delivery/delivery-zones.service.ts's resolver) to compute deliveryFee/
+/// expressFee and the shipping leg of estimatedDelivery server-side —
+/// closing the gap where OrdersService used to trust those as client input.
+model DeliveryZone {
+  id                    String   @id @default(cuid())
+  name                  String
+  countries             String[]
+  standardFee           Decimal  @db.Decimal(12, 2)
+  expressFee            Decimal  @default(0) @db.Decimal(12, 2)
+  freeDeliveryThreshold Decimal? @db.Decimal(12, 2)
+  standardDaysMin       Int
+  standardDaysMax       Int
+  expressDaysMin        Int
+  expressDaysMax        Int
+  expressAvailable      Boolean  @default(false)
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// ═══════════════════════════ Promotions ═══════════════════════════
+
+enum DiscountType {
+  percentage
+  fixed
+}
+
+enum PromotionScope {
+  all
+  product
+  collection
+  first_order @map("first-order")
+  customer
+}
+
+model Coupon {
+  id               String         @id @default(cuid())
+  code             String         @unique
+  type             DiscountType
+  value            Decimal        @db.Decimal(12, 2)
+  scope            PromotionScope
+  scopeRefs        String[] // product ids / collection slugs / customer ids, depending on scope
+  minOrderValue    Decimal?       @db.Decimal(12, 2)
+  usageLimit       Int?
+  usageCount       Int            @default(0)
+  perCustomerLimit Int?
+  startsAt         DateTime?
+  expiresAt        DateTime?
+  active           Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  redemptions CouponRedemption[]
+}
+
+/// One row per order a coupon was actually applied to — `usageCount` on
+/// Coupon is a denormalized counter kept in step with this table
+/// transactionally; this table is what enforces `perCustomerLimit` and
+/// gives an auditable per-order discount history, since `Coupon.value` can
+/// change after the fact but the discount actually applied on an order must not.
+model CouponRedemption {
+  id         String   @id @default(cuid())
+  couponId   String
+  coupon     Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customerId String?
+  amount     Decimal  @db.Decimal(12, 2)
+  createdAt  DateTime @default(now())
+}
+
+enum GiftCardStatus {
+  active
+  redeemed
+  expired
+  disabled
+}
+
+model GiftCard {
+  id           String         @id @default(cuid())
+  code         String         @unique
+  initialValue Decimal        @db.Decimal(12, 2)
+  balance      Decimal        @db.Decimal(12, 2)
+  currency     String         @default("NGN")
+  issuedTo     String?
+  purchasedBy  String?
+  status       GiftCardStatus @default(active)
+  expiresAt    DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  history GiftCardTransaction[]
+}
+
+/// Signed ledger, not just a balance mutation — `amount` is negative for a
+/// redemption, positive for an issue/top-up, so `balance` is always
+/// reconstructable/auditable from `history`, not just trusted as a mutable field.
+model GiftCardTransaction {
+  id         String   @id @default(cuid())
+  giftCardId String
+  giftCard   GiftCard @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
+  amount     Decimal  @db.Decimal(12, 2)
+  note       String
+  orderId    String?
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+}
+
+// ═══════════════════════════ CMS ═══════════════════════════
+
+enum MediaAssetType {
+  image
+  video
+}
+
+model MediaAsset {
+  id             String         @id @default(cuid())
+  name           String
+  url            String
+  type           MediaAssetType
+  folder         String         @default("uncategorized")
+  size           Int // bytes
+  width          Int?
+  height         Int?
+  alt            String?
+  uploadedById   String?
+  uploadedByName String
+  createdAt      DateTime       @default(now())
+}
+
+model CMSPage {
+  id        String        @id @default(cuid())
+  slug      String        @unique
+  title     String
+  body      String // rich text (HTML-ish) — sanitized at the API boundary, not stored pre-sanitized
+  status    PublishStatus @default(draft)
+  publishAt DateTime?
+  seo       Json?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+enum BannerPlacement {
+  homepage_top   @map("homepage-top")
+  homepage_promo @map("homepage-promo")
+  shop_top       @map("shop-top")
+  sitewide
+}
+
+model Banner {
+  id        String          @id @default(cuid())
+  title     String
+  subtitle  String?
+  image     String
+  ctaLabel  String?
+  ctaHref   String?
+  placement BannerPlacement
+  active    Boolean         @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  sortOrder Int             @default(0)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model Testimonial {
+  id        String  @id @default(cuid())
+  quote     String
+  author    String
+  role      String?
+  image     String?
+  rating    Int?
+  featured  Boolean @default(false)
+  sortOrder Int     @default(0)
+}
+
+model FAQItem {
+  id        String  @id @default(cuid())
+  question  String
+  answer    String
+  category  String
+  sortOrder Int     @default(0)
+  published Boolean @default(false)
+}
+
+model BlogPost {
+  id         String        @id @default(cuid())
+  slug       String        @unique
+  title      String
+  excerpt    String
+  body       String
+  coverImage String
+  author     String
+  status     PublishStatus @default(draft)
+  publishAt  DateTime?
+  tags       String[]
+  seo        Json?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model NavigationItem {
+  id        String           @id @default(cuid())
+  label     String
+  href      String
+  sortOrder Int              @default(0)
+  parentId  String?
+  parent    NavigationItem?  @relation("NavigationTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  NavigationItem[] @relation("NavigationTree")
+}
+
+enum HomepageSectionType {
+  hero
+  featured_categories   @map("featured-categories")
+  featured_collections  @map("featured-collections")
+  featured_products     @map("featured-products")
+  signature
+  made_to_measure_promo @map("made-to-measure-promo")
+  how_it_works          @map("how-it-works")
+  promo_banner          @map("promo-banner")
+  testimonials
+  newsletter
+  brand_story           @map("brand-story")
+}
+
+/// `content` is a free-form string map (headline/subhead/image/cta url/...)
+/// whose actual keys are interpreted per `type` by the frontend section
+/// renderer — kept as Json here rather than one column per possible field
+/// across eleven very different section types.
+model HomepageSection {
+  id        String              @id @default(cuid())
+  type      HomepageSectionType
+  label     String
+  visible   Boolean             @default(true)
+  sortOrder Int                 @default(0)
+  content   Json
+}
+
+// ═══════════════════════════ Notifications ═══════════════════════════
+
+enum NotificationChannel {
+  email
+  in_app @map("in-app")
+  sms
+}
+
+enum NotificationEvent {
+  order_placed
+  payment_successful
+  payment_failed
+  measurements_submitted
+  order_in_production
+  production_completed
+  order_shipped
+  order_delivered
+  refund_processed
+  account_created
+  customization_clarification_requested
+}
+
+model NotificationTrigger {
+  id              String                @id @default(cuid())
+  event           NotificationEvent     @unique
+  label           String
+  description     String
+  channels        NotificationChannel[]
+  enabled         Boolean               @default(true)
+  emailTemplateId String?
+  emailTemplate   EmailTemplate?        @relation(fields: [emailTemplateId], references: [id], onDelete: SetNull)
+}
+
+/// `body` supports `{{variable}}` tokens — `variables` documents which ones
+/// a given template expects, for the admin editor's UI, not enforced at the
+/// DB layer.
+model EmailTemplate {
+  id        String                @id @default(cuid())
+  key       String                @unique
+  name      String
+  subject   String
+  body      String
+  variables String[]
+  updatedAt DateTime              @updatedAt
+  triggers  NotificationTrigger[]
+}
+
+enum NotificationStatus {
+  sent
+  failed
+  queued
+}
+
+model NotificationLogEntry {
+  id        String              @id @default(cuid())
+  triggerId String?
+  channel   NotificationChannel
+  recipient String
+  subject   String
+  status    NotificationStatus
+  createdAt DateTime            @default(now())
+
+  @@index([triggerId])
+}
+
+// ═══════════════════════════ Audit Log ═══════════════════════════
+
+model AuditLogEntry {
+  id         String              @id @default(cuid())
+  actorId    String?
+  actor      AdminUser?          @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorName  String
+  action     String
+  resource   PermissionResource?
+  resourceId String?
+  summary    String
+  before     Json?
+  after      Json?
+  ip         String?
+  device     String?
+  createdAt  DateTime            @default(now())
+
+  @@index([resource, resourceId])
+}

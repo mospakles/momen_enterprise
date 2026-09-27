@@ -1,0 +1,8 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+/generated/prisma
+
+# Local media uploads — see cms/media/media-storage.config.ts
+/uploads
