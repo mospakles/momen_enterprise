@@ -45,9 +45,8 @@ export default function AdminSystemHealthPage() {
       <Card className="mt-6">
         <p className="eyebrow mb-2">About This Environment</p>
         <p className="text-sm text-ink/60">
-          This is a demo environment — data is stored in your browser&rsquo;s local storage rather than a live database, and
-          the checks above are illustrative. In production, this page would poll real infrastructure endpoints (API uptime,
-          webhook delivery, queue depth, background job health) on an interval.
+          These checks are reported by the platform API and reflect database connectivity plus configured payment and
+          email services. Refresh the page after changing infrastructure credentials or provider configuration.
         </p>
       </Card>
     </div>

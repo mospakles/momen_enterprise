@@ -12,6 +12,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { generateOpaqueToken, hashToken } from '../../common/utils/token.util';
 import type { CustomerSignupDto } from './dto/signup.dto';
 import type { SocialLoginDto } from './dto/social-login.dto';
+import type {
+  CreateCustomerAddressDto,
+  UpdateCustomerAddressDto,
+} from './dto/address.dto';
+import { EmailSenderService } from '../../notifications/email-sender.service';
 
 export interface TokenPair {
   accessToken: string;
@@ -25,6 +30,7 @@ export class CustomerAuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly events: EventEmitter2,
+    private readonly emailSender: EmailSenderService,
   ) {}
 
   private async issueTokenPair(customerId: string): Promise<TokenPair> {
@@ -182,8 +188,12 @@ export class CustomerAuthService {
         expiresAt: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
-    // TODO: hand `token` to the Notifications module to email a reset link
-    // once that module exists, instead of discarding it here.
+    const frontendUrl = this.config.get('FRONTEND_URL') ?? 'http://localhost:3000';
+    await this.emailSender.send(
+      customer.email,
+      'Reset your Momen password',
+      `Use this secure link within one hour to reset your password: ${frontendUrl}/reset-password?token=${encodeURIComponent(token)}`,
+    );
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
@@ -223,9 +233,102 @@ export class CustomerAuthService {
         throw new ConflictException('Email already in use');
       patch.email = patch.email.toLowerCase();
     }
-    return this.prisma.customer.update({
+    await this.prisma.customer.update({
       where: { id: customerId },
       data: patch,
     });
+    return this.getProfile(customerId);
+  }
+
+  async getProfile(customerId: string) {
+    const customer = await this.prisma.customer.findUniqueOrThrow({
+      where: { id: customerId },
+      include: { addresses: { orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }] } },
+    });
+    const { passwordHash: _passwordHash, ...safe } = customer;
+    return { ...safe, notes: [], avatar: undefined };
+  }
+
+  async changePassword(
+    customerId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const customer = await this.prisma.customer.findUniqueOrThrow({
+      where: { id: customerId },
+    });
+    if (
+      !customer.passwordHash ||
+      !(await bcrypt.compare(currentPassword, customer.passwordHash))
+    ) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.$transaction([
+      this.prisma.customer.update({
+        where: { id: customerId },
+        data: { passwordHash },
+      }),
+      this.prisma.customerRefreshToken.updateMany({
+        where: { customerId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+  }
+
+  async addAddress(customerId: string, dto: CreateCustomerAddressDto) {
+    return this.prisma.$transaction(async (tx) => {
+      const count = await tx.customerAddress.count({ where: { customerId } });
+      const makeDefault = dto.isDefault || count === 0;
+      if (makeDefault) {
+        await tx.customerAddress.updateMany({
+          where: { customerId },
+          data: { isDefault: false },
+        });
+      }
+      return tx.customerAddress.create({
+        data: { ...dto, isDefault: makeDefault, customerId },
+      });
+    });
+  }
+
+  async updateAddress(
+    customerId: string,
+    id: string,
+    dto: UpdateCustomerAddressDto,
+  ) {
+    const owned = await this.prisma.customerAddress.findFirst({
+      where: { id, customerId },
+    });
+    if (!owned) throw new ForbiddenException('Address not found');
+    return this.prisma.$transaction(async (tx) => {
+      if (dto.isDefault) {
+        await tx.customerAddress.updateMany({
+          where: { customerId, id: { not: id } },
+          data: { isDefault: false },
+        });
+      }
+      return tx.customerAddress.update({ where: { id }, data: dto });
+    });
+  }
+
+  async removeAddress(customerId: string, id: string): Promise<void> {
+    const owned = await this.prisma.customerAddress.findFirst({
+      where: { id, customerId },
+    });
+    if (!owned) throw new ForbiddenException('Address not found');
+    await this.prisma.customerAddress.delete({ where: { id } });
+    if (owned.isDefault) {
+      const replacement = await this.prisma.customerAddress.findFirst({
+        where: { customerId },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (replacement) {
+        await this.prisma.customerAddress.update({
+          where: { id: replacement.id },
+          data: { isDefault: true },
+        });
+      }
+    }
   }
 }

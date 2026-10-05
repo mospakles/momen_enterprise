@@ -126,35 +126,21 @@ function ZoneModal({ zone, onCancel, onSave, onDelete }: { zone: DeliveryZone | 
 }
 
 function ExpressSettings() {
-  const { productionSettings, setProductionSettings, deliveryZones } = useAdminStore();
-  const { can } = useAdminAuth();
-  const audit = useAudit();
-  const [form, setForm] = useState(productionSettings);
+  const { productionTimelineRules, deliveryZones } = useAdminStore();
+  const globalRule = productionTimelineRules.find((rule) => rule.scope === "global");
   const expressZones = deliveryZones.filter((z) => z.expressAvailable);
 
   return (
     <div className="max-w-xl space-y-6">
       <Card>
         <p className="eyebrow mb-4">Global Production Defaults</p>
-        <div className="grid grid-cols-2 gap-4">
-          <NumberField label="Standard Min Days" value={form.standardDays[0]} onChange={(v) => setForm({ ...form, standardDays: [v, form.standardDays[1]] })} />
-          <NumberField label="Standard Max Days" value={form.standardDays[1]} onChange={(v) => setForm({ ...form, standardDays: [form.standardDays[0], v] })} />
-          <NumberField label="Express Min Days" value={form.expressDays[0]} onChange={(v) => setForm({ ...form, expressDays: [v, form.expressDays[1]] })} />
-          <NumberField label="Express Max Days" value={form.expressDays[1]} onChange={(v) => setForm({ ...form, expressDays: [form.expressDays[0], v] })} />
-          <NumberField label="Standard Delivery Fee (₦)" value={form.standardFee} onChange={(v) => setForm({ ...form, standardFee: v })} />
-          <NumberField label="Express Production Fee (₦)" value={form.expressFee} onChange={(v) => setForm({ ...form, expressFee: v })} />
-        </div>
-        {can("delivery", "edit") && (
-          <Button
-            className="mt-4"
-            onClick={() => {
-              setProductionSettings(form);
-              audit("production_settings.updated", "delivery", "Updated global production & express settings.", {});
-            }}
-          >
-            Save Defaults
-          </Button>
-        )}
+        {globalRule ? (
+          <div className="space-y-2 text-sm text-ink/70">
+            <p>Standard production: {globalRule.standardDays[0]}–{globalRule.standardDays[1]} days</p>
+            <p>Express production: {globalRule.expressDays[0]}–{globalRule.expressDays[1]} days</p>
+            <p className="text-xs text-ink/45">Edit this rule from Production → Timeline Rules. Delivery fees remain specific to each zone.</p>
+          </div>
+        ) : <p className="text-sm text-ink/45">No global production timeline rule is configured.</p>}
       </Card>
 
       <Card>

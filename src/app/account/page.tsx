@@ -13,6 +13,7 @@ import { formatDate, formatNaira } from "@/lib/format";
 import type { Address } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/lib/toast";
+import { apiRequest } from "@/lib/api";
 
 const TABS = ["Overview", "My Orders", "My Measurements", "Saved Addresses", "Wishlist", "Profile", "Payment"] as const;
 
@@ -55,8 +56,8 @@ function AccountContent() {
       email={currentUser.email}
       phone={currentUser.phone}
       addresses={currentUser.addresses}
-      onLogout={() => {
-        logout();
+      onLogout={async () => {
+        await logout();
         router.push("/");
       }}
     />
@@ -73,8 +74,8 @@ function AccountDashboard({
   name: string;
   email: string;
   phone?: string;
-  addresses: Address[];
-  onLogout: () => void;
+  addresses: Array<Address & { id?: string }>;
+  onLogout: () => Promise<void>;
 }) {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<(typeof TABS)[number]>(() => {
@@ -85,16 +86,27 @@ function AccountDashboard({
   const { profiles } = useMeasurements();
   const { wishlist } = useCart();
   const { products } = useAdminStore();
-  const { updateProfile } = useCustomerAuth();
+  const { updateProfile, refreshProfile } = useCustomerAuth();
 
   const wishlistProducts = products.filter((p) => wishlist.includes(p.id));
 
   const [profileDraft, setProfileDraft] = useState({ name, email, phone: phone ?? "" });
 
-  function handleSaveProfile(e: React.FormEvent) {
+  async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
-    updateProfile({ name: profileDraft.name, email: profileDraft.email, phone: profileDraft.phone || undefined });
-    toast("Profile updated", { variant: "success" });
+    const result = await updateProfile({ name: profileDraft.name, email: profileDraft.email, phone: profileDraft.phone || undefined });
+    if (result.ok) toast("Profile updated", { variant: "success" });
+    else toast("Profile was not updated", { description: result.error, variant: "error" });
+  }
+
+  async function deleteAddress(id: string) {
+    try {
+      await apiRequest(`/auth/addresses/${encodeURIComponent(id)}`, { method: "DELETE" });
+      await refreshProfile();
+      toast("Address deleted", { variant: "success" });
+    } catch (error) {
+      toast("Address was not deleted", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   return (
@@ -206,6 +218,11 @@ function AccountDashboard({
                     <p className="text-ink/60">{a.city}, {a.state} {a.postalCode}</p>
                     <p className="text-ink/60">{a.country}</p>
                     <p className="mt-1 text-ink/50">{a.phone}</p>
+                    {a.id && (
+                      <button onClick={() => deleteAddress(a.id!)} className="mt-3 text-xs text-error hover:underline">
+                        Delete address
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -233,20 +250,20 @@ function AccountDashboard({
           )}
 
           {tab === "Profile" && (
-            <form onSubmit={handleSaveProfile} className="max-w-sm space-y-4">
-              <ProfileField label="Full Name" value={profileDraft.name} onChange={(v) => setProfileDraft((d) => ({ ...d, name: v }))} />
-              <ProfileField label="Email" value={profileDraft.email} onChange={(v) => setProfileDraft((d) => ({ ...d, email: v }))} type="email" />
-              <ProfileField label="Phone" value={profileDraft.phone} onChange={(v) => setProfileDraft((d) => ({ ...d, phone: v }))} type="tel" />
-              <Button type="submit" variant="secondary">Save Changes</Button>
-            </form>
+            <div className="max-w-sm space-y-8">
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <ProfileField label="Full Name" value={profileDraft.name} onChange={(v) => setProfileDraft((d) => ({ ...d, name: v }))} />
+                <ProfileField label="Email" value={profileDraft.email} onChange={(v) => setProfileDraft((d) => ({ ...d, email: v }))} type="email" />
+                <ProfileField label="Phone" value={profileDraft.phone} onChange={(v) => setProfileDraft((d) => ({ ...d, phone: v }))} type="tel" />
+                <Button type="submit" variant="secondary">Save Changes</Button>
+              </form>
+              <ChangePasswordForm />
+            </div>
           )}
 
           {tab === "Payment" && (
             <div>
-              <p className="text-sm text-ink/70">No saved payment methods yet.</p>
-              <Button variant="secondary" className="mt-4">
-                Add Payment Method
-              </Button>
+              <p className="text-sm text-ink/70">Payment details are collected only by the selected payment provider at checkout. Momen does not store card details.</p>
             </div>
           )}
         </div>
@@ -286,5 +303,37 @@ function ProfileField({ label, value, onChange, type = "text" }: { label: string
         className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
       />
     </label>
+  );
+}
+
+function ChangePasswordForm() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      await apiRequest("/auth/change-password", { method: "POST", body: { currentPassword, newPassword } });
+      setCurrentPassword("");
+      setNewPassword("");
+      toast("Password updated", { description: "Please sign in again on your other devices.", variant: "success" });
+    } catch (error) {
+      toast("Password was not updated", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="border-t border-line pt-6 space-y-4">
+      <p className="eyebrow">Change Password</p>
+      <ProfileField label="Current Password" value={currentPassword} onChange={setCurrentPassword} type="password" />
+      <ProfileField label="New Password" value={newPassword} onChange={setNewPassword} type="password" />
+      <Button type="submit" variant="secondary" disabled={submitting || newPassword.length < 8}>
+        {submitting ? "Updating…" : "Update Password"}
+      </Button>
+    </form>
   );
 }

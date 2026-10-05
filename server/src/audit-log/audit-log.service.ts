@@ -20,7 +20,7 @@ export class AuditLogService {
   constructor(private readonly prisma: PrismaService) {}
 
   async log(entry: AuditLogEntryInput) {
-    await this.prisma.auditLogEntry.create({
+    return this.prisma.auditLogEntry.create({
       data: {
         actorId: entry.actorId,
         actorName: entry.actorName,

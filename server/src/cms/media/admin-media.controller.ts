@@ -20,6 +20,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedAdminUser } from '../../auth/admin-auth/admin-jwt.strategy';
+import { CreateExternalMediaDto } from './dto/create-external-media.dto';
 
 @ApiTags('admin-media')
 @ApiBearerAuth()
@@ -44,6 +45,15 @@ export class AdminMediaController {
     @CurrentUser() user: AuthenticatedAdminUser,
   ) {
     return this.service.create(file, dto.folder, dto.alt, user.id, user.name);
+  }
+
+  @Post('external')
+  @Permissions('content', 'create')
+  createExternal(
+    @Body() dto: CreateExternalMediaDto,
+    @CurrentUser() user: AuthenticatedAdminUser,
+  ) {
+    return this.service.createExternal(dto, user.id, user.name);
   }
 
   @Delete(':id')

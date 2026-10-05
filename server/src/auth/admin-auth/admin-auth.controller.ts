@@ -1,11 +1,17 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Req,
+  Res,
   UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
+import type { Request, Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AdminAuthService } from './admin-auth.service';
@@ -16,28 +22,74 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AdminJwtAuthGuard } from '../../common/guards/admin-jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedAdminUser } from './admin-jwt.strategy';
+import {
+  accessCookieName,
+  authCookieOptions,
+  readCookie,
+  refreshCookieName,
+} from '../../common/auth-cookies';
 
 @ApiTags('admin-auth')
 @Controller('admin/auth')
 export class AdminAuthController {
-  constructor(private readonly authService: AdminAuthService) {}
+  constructor(
+    private readonly authService: AdminAuthService,
+    private readonly config: ConfigService,
+  ) {}
+
+  private setSession(response: Response, pair: { accessToken: string; refreshToken: string }) {
+    response.cookie(
+      accessCookieName('admin'),
+      pair.accessToken,
+      authCookieOptions(this.config, 'access'),
+    );
+    response.cookie(
+      refreshCookieName('admin'),
+      pair.refreshToken,
+      authCookieOptions(this.config, 'refresh'),
+    );
+  }
 
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
-  login(@Body() dto: AdminLoginDto) {
-    return this.authService.login(dto);
+  async login(
+    @Body() dto: AdminLoginDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    this.setSession(response, await this.authService.login(dto));
+    return { ok: true };
   }
 
   @Post('refresh')
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  refresh(@Body() dto: RefreshTokenDto) {
-    return this.authService.refresh(dto.refreshToken);
+  async refresh(
+    @Body() dto: RefreshTokenDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const token = dto.refreshToken ?? readCookie(request, refreshCookieName('admin'));
+    if (!token) throw new UnauthorizedException('No refresh session');
+    this.setSession(response, await this.authService.refresh(token));
+    return { ok: true };
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async logout(@Body() dto: RefreshTokenDto) {
-    await this.authService.logout(dto.refreshToken);
+  async logout(
+    @Body() dto: RefreshTokenDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const token = dto.refreshToken ?? readCookie(request, refreshCookieName('admin'));
+    if (token) await this.authService.logout(token);
+    response.clearCookie(accessCookieName('admin'), authCookieOptions(this.config, 'access'));
+    response.clearCookie(refreshCookieName('admin'), authCookieOptions(this.config, 'refresh'));
+  }
+
+  @Get('me')
+  @UseGuards(AdminJwtAuthGuard)
+  me(@CurrentUser() user: AuthenticatedAdminUser) {
+    return this.authService.getProfile(user.id);
   }
 
   @Post('password-reset/request')

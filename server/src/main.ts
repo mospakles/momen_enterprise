@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ForbiddenException, ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -22,6 +22,23 @@ async function bootstrap() {
   app.enableCors({
     origin: config.get('CORS_ORIGIN')?.split(',') ?? 'http://localhost:3000',
     credentials: true,
+  });
+  // CORS is not a CSRF control: browsers can still submit some cross-origin
+  // requests. Cookie-authenticated writes must originate from one of the
+  // configured frontend origins. Bearer-token API clients and provider
+  // webhooks do not send these session cookies and remain unaffected.
+  const allowedOrigins = (config.get('CORS_ORIGIN') ?? 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  app.use((request, _response, next) => {
+    const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
+    const hasSessionCookie = request.headers.cookie?.includes('momen_');
+    const origin = request.headers.origin;
+    if (unsafe && hasSessionCookie && origin && !allowedOrigins.includes(origin)) {
+      return next(new ForbiddenException('Cross-origin request rejected'));
+    }
+    next();
   });
   app.useGlobalPipes(
     new ValidationPipe({

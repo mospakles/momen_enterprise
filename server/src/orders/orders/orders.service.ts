@@ -60,6 +60,11 @@ export class OrdersService {
   ) {}
 
   private serialize(order: OrderWithRelations) {
+    const displayStatus = (status: OrderStatus) =>
+      status
+        .split('_')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
     return {
       id: order.id,
       date: order.createdAt.toISOString(),
@@ -99,17 +104,20 @@ export class OrdersService {
       estimatedCompletion: order.estimatedCompletion?.toISOString(),
       estimatedDelivery: order.estimatedDelivery?.toISOString(),
       paymentStatus: order.paymentStatus,
-      paymentMethod: order.paymentMethod ?? undefined,
+      paymentMethod:
+        order.paymentMethod === 'gift_card'
+          ? 'gift-card'
+          : (order.paymentMethod ?? undefined),
       paymentProvider: order.paymentProvider ?? undefined,
       transactionId: order.transactionId ?? undefined,
       address: order.addressSnapshot,
       timeline: order.timeline.map((t) => ({
-        stage: t.stage,
+        stage: displayStatus(t.stage),
         date: t.date.toISOString(),
         message: t.message ?? undefined,
         complete: t.complete,
       })),
-      status: order.status,
+      status: displayStatus(order.status),
       customerId: order.customerId ?? undefined,
       customerEmail: order.customerEmail,
       internalNotes: order.notes
@@ -337,7 +345,7 @@ export class OrdersService {
             ? OrderStatus.payment_confirmed
             : OrderStatus.order_placed,
           paymentStatus: paidViaGiftCard ? 'paid' : 'pending',
-          paymentMethod: paidViaGiftCard ? 'gift_card' : undefined,
+          paymentMethod: paidViaGiftCard ? 'gift_card' : dto.paymentMethod,
           subtotal,
           deliveryFee: deliveryQuote.deliveryFee,
           expressFee: deliveryQuote.expressFee,
@@ -463,6 +471,26 @@ export class OrdersService {
     if (!order || order.customerId !== customerId)
       throw new NotFoundException('Order not found');
     return this.serialize(order);
+  }
+
+  async confirmCustomization(id: string, customerId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order || order.customerId !== customerId)
+      throw new NotFoundException('Order not found');
+    if (
+      order.customizationStatus !==
+      CustomizationApprovalStatus.awaiting_customer_confirmation
+    ) {
+      throw new BadRequestException(
+        'This customization is not awaiting customer confirmation',
+      );
+    }
+    await this.prisma.order.update({
+      where: { id },
+      data: { customizationStatus: CustomizationApprovalStatus.confirmed },
+    });
+    this.events.emit('order.customization_confirmed', { orderId: id });
+    return this.findOwned(id, customerId);
   }
 
   async trackGuestOrder(id: string, email: string) {

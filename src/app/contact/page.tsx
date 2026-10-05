@@ -3,19 +3,24 @@
 import { FormEvent, useState } from "react";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/Button";
+import { apiRequest } from "@/lib/api";
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", topic: "Order Inquiry", message: "" });
   const [sending, setSending] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSending(true);
-    setTimeout(() => {
+    try {
+      await apiRequest("/contact", { method: "POST", body: form });
       setSending(false);
       setForm({ name: "", email: "", topic: "Order Inquiry", message: "" });
       toast("Message sent", { description: "We'll reply within 1–2 business days.", variant: "success" });
-    }, 700);
+    } catch (error) {
+      setSending(false);
+      toast("Message not sent", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   return (

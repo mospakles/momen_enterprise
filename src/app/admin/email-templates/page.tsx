@@ -11,6 +11,7 @@ import { PageHeader, Card, Drawer } from "@/components/admin/ui/primitives";
 import { DataTable, Column } from "@/components/admin/ui/DataTable";
 import { Field, TextareaField } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
+import { apiRequest } from "@/lib/api";
 
 const SAMPLE_VALUES: Record<string, string> = {
   customerName: "Ifeoma Chukwu",
@@ -27,7 +28,7 @@ function render(template: string) {
 }
 
 export default function AdminEmailTemplatesPage() {
-  const { emailTemplates, upsertEmailTemplate, logNotification } = useAdminStore();
+  const { emailTemplates, upsertEmailTemplate } = useAdminStore();
   const { can } = useAdminAuth();
   const audit = useAudit();
   const [editing, setEditing] = useState<EmailTemplate | null>(null);
@@ -54,9 +55,14 @@ export default function AdminEmailTemplatesPage() {
             audit("email_template.updated", "notifications", `Updated email template "${t.name}".`, { resourceId: t.id });
             setEditing(null);
           }}
-          onTestSend={(t) => {
-            logNotification({ triggerId: t.key, channel: "email", recipient: "test@momen.studio", subject: render(t.subject), status: "sent" });
-            toast("Test email sent", { description: "test@momen.studio", variant: "success" });
+          onTestSend={async (t) => {
+            try {
+              const result = await apiRequest<{ ok: boolean }>(`/admin/email-templates/${encodeURIComponent(t.id)}/test`, { method: "POST" });
+              if (!result.ok) throw new Error("Email delivery was rejected by the configured provider.");
+              toast("Test email sent", { description: "Sent to your admin email address.", variant: "success" });
+            } catch (error) {
+              toast("Test email failed", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+            }
           }}
         />
       )}
@@ -74,7 +80,7 @@ function TemplateDrawer({
   template: EmailTemplate;
   onClose: () => void;
   onSave: (t: EmailTemplate) => void;
-  onTestSend: (t: EmailTemplate) => void;
+  onTestSend: (t: EmailTemplate) => Promise<void>;
   canEdit: boolean;
 }) {
   const [form, setForm] = useState(template);

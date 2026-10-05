@@ -61,6 +61,33 @@ export class NotificationsService {
     }
   }
 
+  async sendTest(triggerId: string, recipient: string) {
+    const trigger = await this.prisma.notificationTrigger.findUniqueOrThrow({
+      where: { id: triggerId },
+    });
+    await this.sendEmail(
+      trigger.id,
+      trigger.emailTemplateId,
+      recipient,
+      {},
+    );
+    return { ok: true };
+  }
+
+  async sendTemplateTest(templateId: string, recipient: string) {
+    const template = await this.emailTemplatesService.findOne(templateId);
+    const subject = renderTemplate(template.subject, {});
+    const body = renderTemplate(template.body, {});
+    const result = await this.emailSender.send(recipient, subject, body);
+    await this.notificationLog.log({
+      channel: NotificationChannel.email,
+      recipient,
+      subject,
+      status: result.success ? NotificationStatus.sent : NotificationStatus.failed,
+    });
+    return { ok: result.success };
+  }
+
   private async sendEmail(
     triggerId: string,
     emailTemplateId: string | null,

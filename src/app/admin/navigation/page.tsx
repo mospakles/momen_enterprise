@@ -8,6 +8,8 @@ import type { NavigationItem } from "@/lib/admin/types";
 import { PageHeader, Card, Modal, EmptyState } from "@/components/admin/ui/primitives";
 import { Field } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
+import { apiRequest } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 function genId() {
   return `nav-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -22,26 +24,47 @@ export default function AdminNavigationPage() {
 
   const sorted = [...navigationItems].sort((a, b) => a.sortOrder - b.sortOrder);
 
-  function move(id: string, dir: -1 | 1) {
+  async function move(id: string, dir: -1 | 1) {
     const idx = sorted.findIndex((n) => n.id === id);
     const swapIdx = idx + dir;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
     const a = sorted[idx];
     const b = sorted[swapIdx];
-    setNavigationItems((prev) => prev.map((n) => (n.id === a.id ? { ...n, sortOrder: b.sortOrder } : n.id === b.id ? { ...n, sortOrder: a.sortOrder } : n)));
+    try {
+      const [savedA, savedB] = await Promise.all([
+        apiRequest<NavigationItem>(`/admin/navigation/${encodeURIComponent(a.id)}`, { method: "PUT", body: { label: a.label, href: a.href, sortOrder: b.sortOrder } }),
+        apiRequest<NavigationItem>(`/admin/navigation/${encodeURIComponent(b.id)}`, { method: "PUT", body: { label: b.label, href: b.href, sortOrder: a.sortOrder } }),
+      ]);
+      setNavigationItems((prev) => prev.map((n) => n.id === a.id ? savedA : n.id === b.id ? savedB : n));
+    } catch (error) {
+      toast("Navigation order was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
-  function remove(id: string) {
-    setNavigationItems((prev) => prev.filter((n) => n.id !== id));
-    audit("navigation.item_deleted", "content", "Removed a navigation item.", { resourceId: id });
+  async function remove(id: string) {
+    try {
+      await apiRequest(`/admin/navigation/${encodeURIComponent(id)}`, { method: "DELETE" });
+      setNavigationItems((prev) => prev.filter((n) => n.id !== id));
+      audit("navigation.item_deleted", "content", "Removed a navigation item.", { resourceId: id });
+    } catch (error) {
+      toast("Navigation item was not deleted", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
-  function save(item: NavigationItem) {
+  async function save(item: NavigationItem) {
     const isNew = !navigationItems.some((n) => n.id === item.id);
-    setNavigationItems((prev) => (isNew ? [...prev, item] : prev.map((n) => (n.id === item.id ? item : n))));
-    audit(isNew ? "navigation.item_created" : "navigation.item_updated", "content", `${isNew ? "Added" : "Updated"} navigation item "${item.label}".`, { resourceId: item.id });
-    setEditing(null);
-    setCreating(false);
+    try {
+      const saved = await apiRequest<NavigationItem>(isNew ? "/admin/navigation" : `/admin/navigation/${encodeURIComponent(item.id)}`, {
+        method: isNew ? "POST" : "PUT",
+        body: { label: item.label, href: item.href, sortOrder: item.sortOrder },
+      });
+      setNavigationItems((prev) => (isNew ? [...prev, saved] : prev.map((n) => (n.id === item.id ? saved : n))));
+      audit(isNew ? "navigation.item_created" : "navigation.item_updated", "content", `${isNew ? "Added" : "Updated"} navigation item "${item.label}".`, { resourceId: saved.id });
+      setEditing(null);
+      setCreating(false);
+    } catch (error) {
+      toast("Navigation item was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   return (

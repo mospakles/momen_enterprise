@@ -13,6 +13,8 @@ import { DataTable, Column, exportCsv } from "@/components/admin/ui/DataTable";
 import { FilterBar, SearchInput, FilterSelect, DateRangeFilter, DateRangeKey, rangeFromPreset } from "@/components/admin/ui/FilterBar";
 import { SelectField, Toggle } from "@/components/admin/ui/form";
 import { inRange } from "@/lib/admin/analytics";
+import { apiRequest } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 export default function AdminPaymentsPage() {
   const [tab, setTab] = useState("transactions");
@@ -115,8 +117,31 @@ function Providers() {
   const { can } = useAdminAuth();
   const audit = useAudit();
 
-  function update(id: string, patch: Partial<PaymentProviderConfig>) {
-    setPaymentProviders((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  async function update(id: string, patch: Partial<PaymentProviderConfig>) {
+    const current = paymentProviders.find((provider) => provider.id === id);
+    if (!current) return;
+    const next = { ...current, ...patch };
+    try {
+      const saved = await apiRequest<Record<string, unknown>>("/admin/payment-providers", {
+        method: "PUT",
+        body: {
+          provider: next.provider.toLowerCase().replaceAll(" ", "_"),
+          enabled: next.enabled,
+          mode: next.mode,
+          currencies: next.currencies,
+        },
+      });
+      setPaymentProviders((prev) => prev.map((provider) => provider.id === id ? {
+        ...next,
+        ...saved,
+        provider: next.provider,
+        publicKeyMasked: String(saved.publicKeyMasked ?? next.publicKeyMasked),
+        secretKeyMasked: String(saved.secretKeyMasked ?? next.secretKeyMasked),
+        webhookUrl: String(saved.webhookUrl ?? next.webhookUrl),
+      } : provider));
+    } catch (error) {
+      toast("Payment provider was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   return (

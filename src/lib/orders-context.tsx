@@ -1,218 +1,211 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { CustomizationApprovalStatus, Order, OrderNote, OrderStage, OrderStatus } from "./types";
-import { generateSeedOrders, ORDER_STAGES } from "./admin/seed-orders";
-import { useAdminStore } from "./admin/store";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type { CustomizationApprovalStatus, Order, OrderStatus } from "./types";
+import { ORDER_STAGES } from "./order-stages";
+import { apiRequest } from "./api";
+import { useCustomerAuth } from "./customer-auth-context";
 import { toast } from "./toast";
 
 export { ORDER_STAGES };
 
-function genId(prefix: string) {
-  return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
-}
-
 interface OrdersContextValue {
   orders: Order[];
   addOrder: (order: Order) => void;
-  advanceOrder: (id: string) => void;
   getOrder: (id: string) => Order | undefined;
+  refreshOrders: () => Promise<void>;
   isReady: boolean;
-  // Admin operations — same store, same persistence, so the storefront and
-  // admin dashboard are always looking at one order.
-  updateOrderStatus: (id: string, status: OrderStatus, actor: string) => void;
-  addInternalNote: (id: string, author: string, message: string) => void;
-  addCustomerNote: (id: string, author: string, message: string) => void;
-  cancelOrder: (id: string, reason: string, actor: string) => void;
-  duplicateOrder: (id: string) => string | undefined;
-  assignProduction: (id: string, staffId: string) => void;
-  updateProductionInfo: (id: string, patch: Partial<NonNullable<Order["production"]>>) => void;
-  setPaymentStatus: (id: string, status: Order["paymentStatus"]) => void;
-  updateCustomizationStatus: (id: string, status: CustomizationApprovalStatus, actor: string, note?: string) => void;
+  updateOrderStatus: (id: string, status: OrderStatus, actor: string) => Promise<void>;
+  addInternalNote: (id: string, author: string, message: string) => Promise<void>;
+  addCustomerNote: (id: string, author: string, message: string) => Promise<void>;
+  cancelOrder: (id: string, reason: string, actor: string) => Promise<void>;
+  duplicateOrder: (id: string) => Promise<string | undefined>;
+  assignProduction: (id: string, staffId: string) => Promise<void>;
+  updateProductionInfo: (id: string, patch: Partial<NonNullable<Order["production"]>>) => Promise<void>;
+  setPaymentStatus: (id: string, status: Order["paymentStatus"]) => Promise<void>;
+  updateCustomizationStatus: (
+    id: string,
+    status: CustomizationApprovalStatus,
+    actor: string,
+    note?: string,
+  ) => Promise<void>;
 }
 
 const OrdersContext = createContext<OrdersContextValue | null>(null);
-const KEY = "momen.orders.v1";
+
+function toApiStatus(status: OrderStatus) {
+  return status.toLowerCase().replaceAll(" ", "_");
+}
+
+function errorText(error: unknown) {
+  return error instanceof Error ? error.message : "The order could not be updated.";
+}
 
 export function OrdersProvider({ children }: { children: React.ReactNode }) {
+  const { currentUser } = useCustomerAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isReady, setIsReady] = useState(false);
-  const { logNotification } = useAdminStore();
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating orders from localStorage on mount
-      if (raw) setOrders(JSON.parse(raw));
-      else setOrders(generateSeedOrders());
-    } catch {
-      setOrders(generateSeedOrders());
+  const refreshOrders = useCallback(async () => {
+    const isAdmin = window.location.pathname.startsWith("/admin");
+    if (!isAdmin && !currentUser) {
+      setOrders([]);
+      setIsReady(true);
+      return;
     }
-    setIsReady(true);
-  }, []);
+    try {
+      const path = isAdmin ? "/admin/orders" : "/orders/mine";
+      setOrders(await apiRequest<Order[]>(path));
+    } catch {
+      setOrders([]);
+    } finally {
+      setIsReady(true);
+    }
+  }, [currentUser]);
 
   useEffect(() => {
-    if (isReady) localStorage.setItem(KEY, JSON.stringify(orders));
-  }, [orders, isReady]);
+    void refreshOrders();
+    const reload = () => void refreshOrders();
+    window.addEventListener("momen:auth-changed", reload);
+    return () => window.removeEventListener("momen:auth-changed", reload);
+  }, [refreshOrders]);
 
-  const addOrder = useCallback((order: Order) => {
-    setOrders((prev) => [order, ...prev]);
+  const replaceOrder = useCallback((saved: Order) => {
+    setOrders((previous) => {
+      const exists = previous.some((order) => order.id === saved.id);
+      return exists ? previous.map((order) => (order.id === saved.id ? saved : order)) : [saved, ...previous];
+    });
   }, []);
 
-  const advanceOrder = useCallback((id: string) => {
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id !== id) return o;
-        const idx = o.timeline.findIndex((t) => !t.complete);
-        if (idx === -1) return o;
-        const timeline = o.timeline.map((t, i) => (i === idx ? { ...t, complete: true, date: new Date().toISOString() } : t));
-        return { ...o, timeline, status: timeline[idx].stage };
-      })
-    );
-  }, []);
+  const addOrder = useCallback((order: Order) => replaceOrder(order), [replaceOrder]);
+  const getOrder = useCallback((id: string) => orders.find((order) => order.id === id), [orders]);
 
-  const getOrder = useCallback((id: string) => orders.find((o) => o.id === id), [orders]);
-
-  const updateOrderStatus = useCallback((id: string, status: OrderStatus, actor: string) => {
-    setOrders((prev) =>
-      prev.map((o) => {
-        if (o.id !== id) return o;
-        const stageIdx = o.timeline.findIndex((t) => t.stage === status);
-        const timeline =
-          stageIdx === -1
-            ? o.timeline
-            : o.timeline.map((t, i) => (i <= stageIdx ? { ...t, complete: true } : { ...t, complete: false }));
-        return { ...o, status, timeline };
-      })
-    );
-    toast("Order status updated", { description: `${id} → ${status}`, variant: "success" });
-    void actor;
-  }, []);
-
-  const addInternalNote = useCallback((id: string, author: string, message: string) => {
-    const note: OrderNote = { id: genId("note"), author, message, date: new Date().toISOString() };
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, internalNotes: [note, ...(o.internalNotes ?? [])] } : o)));
-    toast("Internal note added");
-  }, []);
-
-  const addCustomerNote = useCallback((id: string, author: string, message: string) => {
-    const note: OrderNote = { id: genId("note"), author, message, date: new Date().toISOString() };
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, customerNotes: [note, ...(o.customerNotes ?? [])] } : o)));
-    toast("Note sent to customer");
-  }, []);
-
-  const cancelOrder = useCallback((id: string, reason: string, actor: string) => {
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === id
-          ? { ...o, status: "Cancelled" as OrderStatus, cancelledAt: new Date().toISOString(), cancelledReason: reason }
-          : o
-      )
-    );
-    toast("Order cancelled", { description: id, variant: "error" });
-    void actor;
-  }, []);
-
-  const duplicateOrder = useCallback(
-    (id: string) => {
-      const source = orders.find((o) => o.id === id);
-      if (!source) return undefined;
-      const stages: OrderStage[] = source.timeline.map((t) => t.stage);
-      const now = new Date().toISOString();
-      const newId = `MOM-${Math.floor(100000 + Math.random() * 900000)}`;
-      const duplicate: Order = {
-        ...source,
-        id: newId,
-        date: now,
-        status: "Order Placed",
-        paymentStatus: "pending",
-        internalNotes: [],
-        customerNotes: [],
-        cancelledAt: undefined,
-        cancelledReason: undefined,
-        timeline: stages.map((stage, i) => ({ stage, date: now, complete: i === 0 })),
-        production: { priority: source.productionSpeed === "express" ? 90 : 40, notes: [] },
-        channel: "admin",
-      };
-      setOrders((prev) => [duplicate, ...prev]);
-      toast("Order duplicated", { description: newId, variant: "success" });
-      return newId;
+  const mutate = useCallback(
+    async (path: string, options: { method: "POST" | "PATCH"; body?: unknown }, successMessage?: string) => {
+      try {
+        const saved = await apiRequest<Order>(path, options);
+        replaceOrder(saved);
+        if (successMessage) toast(successMessage, { variant: "success" });
+        return saved;
+      } catch (error) {
+        toast("Order update failed", { description: errorText(error), variant: "error" });
+        return undefined;
+      }
     },
-    [orders]
+    [replaceOrder],
   );
 
-  const assignProduction = useCallback((id: string, staffId: string) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, production: { ...(o.production ?? { priority: 40, notes: [] }), assignedStaffId: staffId } } : o))
-    );
-    toast("Production staff assigned");
-  }, []);
+  const updateOrderStatus = useCallback(
+    async (id: string, status: OrderStatus, _actor: string) => {
+      await mutate(`/admin/orders/${encodeURIComponent(id)}/status`, {
+        method: "PATCH",
+        body: { status: toApiStatus(status) },
+      }, "Order status updated");
+    },
+    [mutate],
+  );
 
-  const updateProductionInfo = useCallback((id: string, patch: Partial<NonNullable<Order["production"]>>) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, production: { ...(o.production ?? { priority: 40, notes: [] }), ...patch } } : o))
-    );
-  }, []);
+  const addNote = useCallback(
+    async (id: string, audience: "internal" | "customer", message: string) => {
+      await mutate(`/admin/orders/${encodeURIComponent(id)}/notes`, {
+        method: "POST",
+        body: { audience, message },
+      }, audience === "internal" ? "Internal note added" : "Note sent to customer");
+    },
+    [mutate],
+  );
 
-  const setPaymentStatus = useCallback((id: string, status: Order["paymentStatus"]) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, paymentStatus: status } : o)));
-    toast("Payment status updated");
-  }, []);
+  const addInternalNote = useCallback(
+    async (id: string, _author: string, message: string) => addNote(id, "internal", message),
+    [addNote],
+  );
+  const addCustomerNote = useCallback(
+    async (id: string, _author: string, message: string) => addNote(id, "customer", message),
+    [addNote],
+  );
+
+  const cancelOrder = useCallback(
+    async (id: string, reason: string, _actor: string) => {
+      await mutate(`/admin/orders/${encodeURIComponent(id)}/cancel`, { method: "POST", body: { reason } }, "Order cancelled");
+    },
+    [mutate],
+  );
+
+  const duplicateOrder = useCallback(async (id: string) => {
+    const saved = await mutate(`/admin/orders/${encodeURIComponent(id)}/duplicate`, { method: "POST" }, "Order duplicated");
+    return saved?.id;
+  }, [mutate]);
+
+  const assignProduction = useCallback(
+    async (id: string, staffId: string) => {
+      await mutate(`/admin/orders/${encodeURIComponent(id)}/production`, {
+        method: "PATCH",
+        body: { assignedStaffId: staffId },
+      }, "Production staff assigned");
+    },
+    [mutate],
+  );
+
+  const updateProductionInfo = useCallback(
+    async (id: string, patch: Partial<NonNullable<Order["production"]>>) => {
+      const { assignedStaffId, priority, startDate, expectedCompletionDate, actualCompletionDate } = patch;
+      await mutate(`/admin/orders/${encodeURIComponent(id)}/production`, {
+        method: "PATCH",
+        body: { assignedStaffId, priority, startDate, expectedCompletionDate, actualCompletionDate },
+      });
+    },
+    [mutate],
+  );
+
+  const setPaymentStatus = useCallback(
+    async (id: string, status: Order["paymentStatus"]) => {
+      await mutate(`/admin/orders/${encodeURIComponent(id)}/payment-status`, {
+        method: "PATCH",
+        body: { status },
+      }, "Payment status updated");
+    },
+    [mutate],
+  );
 
   const updateCustomizationStatus = useCallback(
-    (id: string, status: CustomizationApprovalStatus, actor: string, note?: string) => {
-      let orderForNotification: Order | undefined;
-      setOrders((prev) =>
-        prev.map((o) => {
-          if (o.id !== id) return o;
-          const notes = note ? [{ id: genId("note"), author: actor, message: note, date: new Date().toISOString() }, ...(o.internalNotes ?? [])] : o.internalNotes;
-          const updated = { ...o, customizationStatus: status, internalNotes: notes };
-          orderForNotification = updated;
-          return updated;
-        })
+    async (id: string, status: CustomizationApprovalStatus, _actor: string, note?: string) => {
+      const customerConfirm = status === "confirmed" && !window.location.pathname.startsWith("/admin");
+      await mutate(
+        customerConfirm
+          ? `/orders/mine/${encodeURIComponent(id)}/customization-confirm`
+          : `/admin/orders/${encodeURIComponent(id)}/customization-status`,
+        { method: "PATCH", body: customerConfirm ? undefined : { status, note } },
+        "Customization review updated",
       );
-      // The customer must be notified whenever their custom order needs
-      // clarification before production can proceed (Section 9).
-      if (status === "clarification_requested" && orderForNotification) {
-        logNotification({
-          triggerId: "nt-11",
-          channel: "email",
-          recipient: orderForNotification.customerEmail ?? "unknown",
-          subject: `We need a little more detail on ${id}`,
-          status: "sent",
-        });
-      }
-      toast("Customization review updated", { description: status.replace(/_/g, " "), variant: "success" });
     },
-    [logNotification]
+    [mutate],
   );
 
-  return (
-    <OrdersContext.Provider
-      value={{
-        orders,
-        addOrder,
-        advanceOrder,
-        getOrder,
-        isReady,
-        updateOrderStatus,
-        addInternalNote,
-        addCustomerNote,
-        cancelOrder,
-        duplicateOrder,
-        assignProduction,
-        updateProductionInfo,
-        setPaymentStatus,
-        updateCustomizationStatus,
-      }}
-    >
-      {children}
-    </OrdersContext.Provider>
-  );
+  const value = useMemo<OrdersContextValue>(() => ({
+    orders,
+    addOrder,
+    getOrder,
+    refreshOrders,
+    isReady,
+    updateOrderStatus,
+    addInternalNote,
+    addCustomerNote,
+    cancelOrder,
+    duplicateOrder,
+    assignProduction,
+    updateProductionInfo,
+    setPaymentStatus,
+    updateCustomizationStatus,
+  }), [
+    orders, addOrder, getOrder, refreshOrders, isReady, updateOrderStatus, addInternalNote, addCustomerNote,
+    cancelOrder, duplicateOrder, assignProduction, updateProductionInfo, setPaymentStatus, updateCustomizationStatus,
+  ]);
+
+  return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>;
 }
 
 export function useOrders() {
-  const ctx = useContext(OrdersContext);
-  if (!ctx) throw new Error("useOrders must be used within OrdersProvider");
-  return ctx;
+  const context = useContext(OrdersContext);
+  if (!context) throw new Error("useOrders must be used within OrdersProvider");
+  return context;
 }

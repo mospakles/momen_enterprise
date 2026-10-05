@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
@@ -25,24 +25,18 @@ function LoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (isReady && currentUser) {
-    router.replace(next);
-    return null;
-  }
+  useEffect(() => {
+    if (isReady && currentUser) router.replace(next);
+  }, [currentUser, isReady, next, router]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    setTimeout(() => {
-      const result = login(email, password);
-      if (!result.ok) {
-        setError(result.error);
-        setSubmitting(false);
-      } else {
-        router.push(next);
-      }
-    }, 300);
+    const result = await login(email, password);
+    if (!result.ok) setError(result.error);
+    else router.push(next);
+    setSubmitting(false);
   }
 
   return (
@@ -83,19 +77,9 @@ function LoginContent() {
           {submitting ? "Signing in…" : "Sign In"}
         </Button>
 
-        <div className="mt-5 border-t border-line pt-4">
-          <p className="mb-1.5 text-[11px] font-medium text-ink/50">Demo account</p>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail("ifeoma.chukwu@gmail.com");
-              setPassword("momen2026");
-            }}
-            className="text-[11px] text-ink/45 hover:text-brass"
-          >
-            ifeoma.chukwu@gmail.com — password: momen2026
-          </button>
-        </div>
+        <Link href="/forgot-password" className="mt-4 block text-center text-xs text-brass hover:underline">
+          Forgot your password?
+        </Link>
       </form>
 
       <p className="mt-6 text-center text-sm text-ink/60">
@@ -103,11 +87,6 @@ function LoginContent() {
         <Link href={`/signup${next !== "/account" ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-brass hover:underline">
           Create an account
         </Link>
-      </p>
-
-      <p className="mt-8 text-center text-[11px] text-ink/35">
-        Demo authentication only — passwords are stored in plain seed/local data for this prototype and must never be
-        implemented this way in production.
       </p>
     </div>
   );

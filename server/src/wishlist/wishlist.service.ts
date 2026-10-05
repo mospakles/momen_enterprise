@@ -44,4 +44,22 @@ export class WishlistService {
       where: { customerId, productId },
     });
   }
+
+  async aggregate() {
+    const grouped = await this.prisma.wishlistItem.groupBy({
+      by: ['productId'],
+      _count: { _all: true },
+      orderBy: { _count: { productId: 'desc' } },
+    });
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: grouped.map((row) => row.productId) } },
+      select: { id: true, name: true, slug: true },
+    });
+    const byId = new Map(products.map((product) => [product.id, product]));
+    return grouped.map((row) => ({
+      productId: row.productId,
+      product: byId.get(row.productId),
+      count: row._count._all,
+    }));
+  }
 }

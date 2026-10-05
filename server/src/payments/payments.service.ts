@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders/orders.service';
 import { PaystackProvider } from './providers/paystack/paystack.provider';
 import type { PaymentProviderAdapter } from './providers/payment-provider.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PaymentsService {
@@ -18,6 +19,7 @@ export class PaymentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ordersService: OrdersService,
+    private readonly config: ConfigService,
     paystackProvider: PaystackProvider,
   ) {
     // Only Paystack is implemented — everything upstream of this map (the
@@ -69,6 +71,9 @@ export class PaymentsService {
       amount: Number(order.total),
       currency: 'NGN',
       customerEmail: order.customerEmail,
+      callbackUrl:
+        this.config.get<string>('PAYSTACK_CALLBACK_URL') ??
+        `${this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000'}/checkout/payment-callback`,
     });
 
     await this.prisma.paymentTransaction.create({
@@ -190,5 +195,34 @@ export class PaymentsService {
     ) {
       throw new ForbiddenException('Not your order');
     }
+  }
+
+  async findTransactions() {
+    const rows = await this.prisma.paymentTransaction.findMany({
+      include: {
+        order: {
+          select: {
+            customerEmail: true,
+            addressSnapshot: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      orderId: row.orderId,
+      provider: row.provider,
+      providerRef: row.providerRef,
+      amount: Number(row.amount),
+      currency: row.currency,
+      status: row.status,
+      customerEmail: row.order.customerEmail,
+      customerName:
+        (row.order.addressSnapshot as { fullName?: string } | null)?.fullName ??
+        row.order.customerEmail,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }));
   }
 }

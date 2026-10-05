@@ -4,6 +4,7 @@ import { join } from 'path';
 import { MediaAssetType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MEDIA_UPLOAD_DIR } from './media-storage.config';
+import type { CreateExternalMediaDto } from './dto/create-external-media.dto';
 
 @Injectable()
 export class MediaAssetsService {
@@ -47,13 +48,34 @@ export class MediaAssetsService {
     });
   }
 
+  createExternal(
+    dto: CreateExternalMediaDto,
+    uploadedById: string | undefined,
+    uploadedByName: string,
+  ) {
+    return this.prisma.mediaAsset.create({
+      data: {
+        name: dto.name,
+        url: dto.url,
+        type: MediaAssetType.image,
+        folder: dto.folder ?? 'External',
+        size: 0,
+        alt: dto.alt,
+        uploadedById,
+        uploadedByName,
+      },
+    });
+  }
+
   async remove(id: string) {
     const asset = await this.findOne(id);
     await this.prisma.mediaAsset.delete({ where: { id } });
     // Best-effort — an asset row shouldn't become undeletable just because
     // its file already vanished from disk some other way.
-    await unlink(
-      join(MEDIA_UPLOAD_DIR, asset.url.replace('/uploads/', '')),
-    ).catch(() => undefined);
+    if (asset.url.startsWith('/uploads/')) {
+      await unlink(
+        join(MEDIA_UPLOAD_DIR, asset.url.replace('/uploads/', '')),
+      ).catch(() => undefined);
+    }
   }
 }

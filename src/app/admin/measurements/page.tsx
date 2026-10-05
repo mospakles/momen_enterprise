@@ -11,6 +11,8 @@ import { PageHeader, Card, Tabs, Modal, Drawer, EmptyState, ConfirmDialog } from
 import { DataTable, Column } from "@/components/admin/ui/DataTable";
 import { Field, TextareaField, SelectField, Toggle, NumberField } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
+import { apiRequest } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 const GARMENTS: Garment[] = ["top", "trouser", "set", "agbada", "accessory"];
 
@@ -36,17 +38,30 @@ function FieldConfig() {
 
   const sorted = [...measurementFieldDefs].sort((a, b) => a.sortOrder - b.sortOrder);
 
-  function save(f: MeasurementFieldDef) {
+  async function save(f: MeasurementFieldDef) {
     const isNew = !measurementFieldDefs.some((x) => x.key === f.key);
-    setMeasurementFieldDefs((prev) => (isNew ? [...prev, f] : prev.map((x) => (x.key === f.key ? f : x))));
-    audit(isNew ? "measurement_field.created" : "measurement_field.updated", "measurements", `${isNew ? "Created" : "Updated"} measurement field "${f.label}".`, {});
-    setEditing(null);
-    setCreating(false);
+    try {
+      const saved = await apiRequest<MeasurementFieldDef>(isNew ? "/admin/measurement-fields" : `/admin/measurement-fields/${encodeURIComponent(f.key)}`, {
+        method: isNew ? "POST" : "PUT",
+        body: f,
+      });
+      setMeasurementFieldDefs((prev) => (isNew ? [...prev, saved] : prev.map((x) => (x.key === f.key ? saved : x))));
+      audit(isNew ? "measurement_field.created" : "measurement_field.updated", "measurements", `${isNew ? "Created" : "Updated"} measurement field "${f.label}".`, {});
+      setEditing(null);
+      setCreating(false);
+    } catch (error) {
+      toast("Measurement field was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
-  function remove(key: string) {
-    setMeasurementFieldDefs((prev) => prev.filter((f) => f.key !== key));
-    audit("measurement_field.deleted", "measurements", `Deleted measurement field "${key}".`, {});
+  async function remove(key: string) {
+    try {
+      await apiRequest(`/admin/measurement-fields/${encodeURIComponent(key)}`, { method: "DELETE" });
+      setMeasurementFieldDefs((prev) => prev.filter((f) => f.key !== key));
+      audit("measurement_field.deleted", "measurements", `Deleted measurement field "${key}".`, {});
+    } catch (error) {
+      toast("Measurement field was not deleted", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   const columns: Column<MeasurementFieldDef>[] = [

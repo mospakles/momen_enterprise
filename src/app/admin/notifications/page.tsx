@@ -9,6 +9,7 @@ import { toast } from "@/lib/toast";
 import type { NotificationChannel, NotificationTrigger } from "@/lib/admin/types";
 import { PageHeader, Card, StatusPill, Tabs } from "@/components/admin/ui/primitives";
 import { DataTable, Column } from "@/components/admin/ui/DataTable";
+import { apiRequest } from "@/lib/api";
 
 const CHANNELS: NotificationChannel[] = ["email", "in-app", "sms"];
 
@@ -24,27 +25,48 @@ export default function AdminNotificationsPage() {
 }
 
 function Triggers() {
-  const { notificationTriggers, setNotificationTriggers, emailTemplates, logNotification } = useAdminStore();
+  const { notificationTriggers, setNotificationTriggers, emailTemplates } = useAdminStore();
   const { can } = useAdminAuth();
   const audit = useAudit();
 
+  async function saveTrigger(trigger: NotificationTrigger, patch: Partial<NotificationTrigger>) {
+    const next = { ...trigger, ...patch };
+    try {
+      await apiRequest(`/admin/notification-triggers/${encodeURIComponent(trigger.id)}`, {
+        method: "PUT",
+        body: {
+          channels: next.channels.map((channel) => channel === "in-app" ? "in_app" : channel),
+          enabled: next.enabled,
+          emailTemplateId: next.emailTemplateId,
+        },
+      });
+      setNotificationTriggers((prev) => prev.map((item) => item.id === trigger.id ? next : item));
+    } catch (error) {
+      toast("Notification trigger was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
+  }
+
   function toggle(id: string) {
-    setNotificationTriggers((prev) => prev.map((t) => (t.id === id ? { ...t, enabled: !t.enabled } : t)));
     const t = notificationTriggers.find((x) => x.id === id);
+    if (!t) return;
+    void saveTrigger(t, { enabled: !t.enabled });
     audit("notification_trigger.toggled", "notifications", `${t?.enabled ? "Disabled" : "Enabled"} trigger "${t?.label}".`, { resourceId: id });
   }
 
   function toggleChannel(trigger: NotificationTrigger, channel: NotificationChannel) {
-    setNotificationTriggers((prev) =>
-      prev.map((t) =>
-        t.id === trigger.id ? { ...t, channels: t.channels.includes(channel) ? t.channels.filter((c) => c !== channel) : [...t.channels, channel] } : t
-      )
-    );
+    const channels = trigger.channels.includes(channel)
+      ? trigger.channels.filter((item) => item !== channel)
+      : [...trigger.channels, channel];
+    void saveTrigger(trigger, { channels });
   }
 
-  function sendTest(trigger: NotificationTrigger) {
-    logNotification({ triggerId: trigger.id, channel: trigger.channels[0] ?? "email", recipient: "test@momen.studio", subject: trigger.label, status: "sent" });
-    toast("Test notification sent", { description: trigger.label, variant: "success" });
+  async function sendTest(trigger: NotificationTrigger) {
+    try {
+      await apiRequest("/admin/notifications/test", { method: "POST", body: { triggerId: trigger.id } });
+      toast("Test notification sent", { description: "Sent to your admin email address.", variant: "success" });
+    } catch (error) {
+      toast("Test notification failed", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   return (

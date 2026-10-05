@@ -2,23 +2,28 @@
 
 import { FormEvent, useState } from "react";
 import { toast } from "@/lib/toast";
+import { apiRequest } from "@/lib/api";
 
 export default function NewsletterForm({ compact = false }: { compact?: boolean }) {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!email.includes("@")) {
       toast("Enter a valid email", { variant: "error" });
       return;
     }
     setSubmitting(true);
-    setTimeout(() => {
+    try {
+      await apiRequest("/newsletter/subscribe", { method: "POST", body: { email } });
       setSubmitting(false);
       setEmail("");
-      toast("Welcome to the Momen List", { description: "Check your inbox to confirm.", variant: "success" });
-    }, 700);
+      toast("Welcome to the Momen List", { description: "You're subscribed.", variant: "success" });
+    } catch (error) {
+      setSubmitting(false);
+      toast("Could not subscribe", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   return (

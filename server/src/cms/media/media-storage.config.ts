@@ -19,6 +19,13 @@ const ALLOWED_MIME_TYPES = new Set([
   'video/webm',
 ]);
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25MB
+const REFERENCE_IMAGE_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+]);
 
 export const mediaMulterOptions: MulterOptions = {
   storage: diskStorage({
@@ -38,6 +45,19 @@ export const mediaMulterOptions: MulterOptions = {
         new BadRequestException(`Unsupported file type "${file.mimetype}"`),
         false,
       );
+      return;
+    }
+    callback(null, true);
+  },
+};
+
+/** Customer customization references are intentionally image-only and small. */
+export const referenceImageMulterOptions: MulterOptions = {
+  storage: mediaMulterOptions.storage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    if (!REFERENCE_IMAGE_MIME_TYPES.has(file.mimetype)) {
+      callback(new BadRequestException(`Unsupported image type "${file.mimetype}"`), false);
       return;
     }
     callback(null, true);

@@ -115,16 +115,21 @@ async function seedRoles() {
 }
 
 async function seedSuperAdmin() {
-  const email = 'admin@momen.studio';
+  const email = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.SEED_ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw new Error(
+      'SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required to create the initial administrator',
+    );
+  }
   const existing = await prisma.adminUser.findUnique({ where: { email } });
   if (existing) return;
 
-  // Dev-only credential — change immediately outside local development.
-  const passwordHash = await bcrypt.hash('momen-dev-2026', 12);
+  const passwordHash = await bcrypt.hash(password, 12);
   await prisma.adminUser.create({
     data: { name: 'Amaka Eze', email, roleId: 'super-admin', status: 'active', passwordHash },
   });
-  console.log(`Seeded super admin: ${email} / momen-dev-2026`);
+  console.log(`Seeded super admin: ${email}`);
 }
 
 async function seedMeasurementFields() {

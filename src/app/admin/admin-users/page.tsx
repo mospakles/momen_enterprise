@@ -109,7 +109,7 @@ function UserModal({
   onSave: (u: AdminUser) => void;
   onDelete?: () => void;
 }) {
-  const [form, setForm] = useState<AdminUser>(user ?? { id: "", name: "", email: "", roleId: roles[0]?.id ?? "", status: "invited", twoFactorEnabled: false, createdAt: new Date().toISOString(), demoPassword: "momen2026" });
+  const [form, setForm] = useState<AdminUser>(user ?? { id: "", name: "", email: "", roleId: roles[0]?.id ?? "", status: "invited", twoFactorEnabled: false, createdAt: new Date().toISOString() });
   function set<K extends keyof AdminUser>(key: K, value: AdminUser[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }

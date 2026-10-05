@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import { CartItem, CartMeasurement, Product } from "./types";
+import { apiRequest } from "./api";
+import { useCustomerAuth } from "./customer-auth-context";
 import { toast } from "./toast";
 
 interface CartContextValue {
@@ -29,6 +31,7 @@ const CART_KEY = "momen.cart.v1";
 const WISHLIST_KEY = "momen.wishlist.v1";
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { currentUser } = useCustomerAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [isReady, setIsReady] = useState(false);
@@ -54,6 +57,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isReady) localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
   }, [wishlist, isReady]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    let active = true;
+    void apiRequest<Array<{ productId: string }>>("/wishlist")
+      .then(async (rows) => {
+        if (!active) return;
+        const remote = rows.map((row) => row.productId);
+        let local: string[] = [];
+        try {
+          local = JSON.parse(localStorage.getItem(WISHLIST_KEY) ?? "[]") as string[];
+        } catch {
+          local = [];
+        }
+        const missing = local.filter((id) => !remote.includes(id));
+        await Promise.allSettled(missing.map((id) => apiRequest(`/wishlist/${encodeURIComponent(id)}`, { method: "POST" })));
+        if (active) setWishlist([...new Set([...remote, ...local])]);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [currentUser]);
 
   const addItem = useCallback((product: Product, size: string, color: string, quantity = 1) => {
     const id = `${product.id}-${size}-${color}-${Date.now()}`;
@@ -97,10 +123,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const clearCart = useCallback(() => setItems([]), []);
 
   const toggleWishlist = useCallback((productId: string) => {
-    setWishlist((prev) =>
-      prev.includes(productId) ? prev.filter((p) => p !== productId) : [...prev, productId]
-    );
-  }, []);
+    const removing = wishlist.includes(productId);
+    setWishlist((previous) => removing ? previous.filter((id) => id !== productId) : [...previous, productId]);
+    if (currentUser) {
+      void apiRequest(`/wishlist/${encodeURIComponent(productId)}`, {
+        method: removing ? "DELETE" : "POST",
+      }).catch((error) => {
+        setWishlist((current) =>
+          removing ? [...new Set([...current, productId])] : current.filter((id) => id !== productId),
+        );
+        toast("Wishlist update failed", {
+          description: error instanceof Error ? error.message : "Please try again.",
+          variant: "error",
+        });
+      });
+    }
+  }, [currentUser, wishlist]);
 
   const isWishlisted = useCallback((productId: string) => wishlist.includes(productId), [wishlist]);
 

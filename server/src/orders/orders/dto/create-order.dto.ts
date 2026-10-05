@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { MeasurementUnit, ProductionSpeed } from '@prisma/client';
+import {
+  MeasurementUnit,
+  PaymentMethod,
+  ProductionSpeed,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -130,6 +134,10 @@ export class CreateOrderDto {
   @ApiProperty({ enum: ProductionSpeed })
   @IsEnum(ProductionSpeed)
   productionSpeed!: ProductionSpeed;
+
+  @ApiProperty({ enum: [PaymentMethod.card, PaymentMethod.transfer] })
+  @IsEnum(PaymentMethod)
+  paymentMethod!: PaymentMethod;
 
   // deliveryFee/expressFee are no longer accepted from the client at all —
   // OrdersService resolves them itself from DeliveryZonesService, matched

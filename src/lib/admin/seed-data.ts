@@ -134,23 +134,21 @@ export const roles: Role[] = [
 ];
 
 /* ───────────────────────────── Admin users ───────────────────────────── */
-// Demo-only credentials — never do this in production. Structured so wiring
-// real auth means deleting `demoPassword` and pointing login at an API.
 
 export const adminUsers: AdminUser[] = [
-  { id: "au-1", name: "Amaka Eze", email: "amaka@momen.studio", roleId: "super-admin", status: "active", twoFactorEnabled: true, lastLoginAt: daysAgo(0), createdAt: daysAgo(400), demoPassword: "momen2026" },
-  { id: "au-2", name: "Chinedu Okoro", email: "chinedu@momen.studio", roleId: "operations-manager", status: "active", twoFactorEnabled: true, lastLoginAt: daysAgo(1), createdAt: daysAgo(300), demoPassword: "momen2026" },
-  { id: "au-3", name: "Halima Bello", email: "halima@momen.studio", roleId: "product-manager", status: "active", twoFactorEnabled: false, lastLoginAt: daysAgo(2), createdAt: daysAgo(260), demoPassword: "momen2026" },
-  { id: "au-4", name: "Segun Adewale", email: "segun@momen.studio", roleId: "finance", status: "active", twoFactorEnabled: true, lastLoginAt: daysAgo(1), createdAt: daysAgo(220), demoPassword: "momen2026" },
-  { id: "au-5", name: "Nkechi Umeh", email: "nkechi@momen.studio", roleId: "content-manager", status: "active", twoFactorEnabled: false, lastLoginAt: daysAgo(5), createdAt: daysAgo(190), demoPassword: "momen2026" },
-  { id: "au-6", name: "Tolu Fashina", email: "tolu@momen.studio", roleId: "customer-support", status: "active", twoFactorEnabled: false, lastLoginAt: daysAgo(0), createdAt: daysAgo(150), demoPassword: "momen2026" },
-  { id: "au-7", name: "Bashir Yusuf", email: "bashir@momen.studio", roleId: "production-staff", status: "invited", twoFactorEnabled: false, createdAt: daysAgo(10), demoPassword: "momen2026" },
+  { id: "au-1", name: "Amaka Eze", email: "amaka@momen.studio", roleId: "super-admin", status: "active", twoFactorEnabled: true, lastLoginAt: daysAgo(0), createdAt: daysAgo(400) },
+  { id: "au-2", name: "Chinedu Okoro", email: "chinedu@momen.studio", roleId: "operations-manager", status: "active", twoFactorEnabled: true, lastLoginAt: daysAgo(1), createdAt: daysAgo(300) },
+  { id: "au-3", name: "Halima Bello", email: "halima@momen.studio", roleId: "product-manager", status: "active", twoFactorEnabled: false, lastLoginAt: daysAgo(2), createdAt: daysAgo(260) },
+  { id: "au-4", name: "Segun Adewale", email: "segun@momen.studio", roleId: "finance", status: "active", twoFactorEnabled: true, lastLoginAt: daysAgo(1), createdAt: daysAgo(220) },
+  { id: "au-5", name: "Nkechi Umeh", email: "nkechi@momen.studio", roleId: "content-manager", status: "active", twoFactorEnabled: false, lastLoginAt: daysAgo(5), createdAt: daysAgo(190) },
+  { id: "au-6", name: "Tolu Fashina", email: "tolu@momen.studio", roleId: "customer-support", status: "active", twoFactorEnabled: false, lastLoginAt: daysAgo(0), createdAt: daysAgo(150) },
+  { id: "au-7", name: "Bashir Yusuf", email: "bashir@momen.studio", roleId: "production-staff", status: "invited", twoFactorEnabled: false, createdAt: daysAgo(10) },
 ];
 
 /* ───────────────────────────── Customers ───────────────────────────── */
 
 export const customers: Customer[] = [
-  { id: "cus-1", name: "Ifeoma Chukwu", email: "ifeoma.chukwu@gmail.com", phone: "+234 803 555 0142", status: "vip", createdAt: daysAgo(340), addresses: [{ fullName: "Ifeoma Chukwu", country: "Nigeria", state: "Lagos", city: "Lekki", address: "12 Admiralty Way", postalCode: "101245", phone: "+234 803 555 0142" }], tags: ["VIP", "Repeat"], marketingOptIn: true, notes: [{ id: "n1", author: "Tolu Fashina", message: "Prefers WhatsApp updates over email.", date: daysAgo(60) }], demoPassword: "momen2026" },
+  { id: "cus-1", name: "Ifeoma Chukwu", email: "ifeoma.chukwu@gmail.com", phone: "+234 803 555 0142", status: "vip", createdAt: daysAgo(340), addresses: [{ fullName: "Ifeoma Chukwu", country: "Nigeria", state: "Lagos", city: "Lekki", address: "12 Admiralty Way", postalCode: "101245", phone: "+234 803 555 0142" }], tags: ["VIP", "Repeat"], marketingOptIn: true, notes: [{ id: "n1", author: "Tolu Fashina", message: "Prefers WhatsApp updates over email.", date: daysAgo(60) }] },
   { id: "cus-2", name: "David Okonkwo", email: "d.okonkwo@outlook.com", phone: "+234 806 222 9081", status: "active", createdAt: daysAgo(280), addresses: [{ fullName: "David Okonkwo", country: "Nigeria", state: "Abuja (FCT)", city: "Abuja", address: "4 Aso Drive", postalCode: "900211", phone: "+234 806 222 9081" }], tags: [], marketingOptIn: true, notes: [] },
   { id: "cus-3", name: "Amara Nwosu", email: "amara.nwosu@yahoo.com", phone: "+234 701 444 2210", status: "active", createdAt: daysAgo(200), addresses: [{ fullName: "Amara Nwosu", country: "Nigeria", state: "Lagos", city: "Victoria Island", address: "9 Ozumba Mbadiwe Ave", postalCode: "101241", phone: "+234 701 444 2210" }], tags: ["Newsletter"], marketingOptIn: true, notes: [] },
   { id: "cus-4", name: "Grace Adeyemi", email: "grace.adeyemi@gmail.com", phone: "+234 812 900 3345", status: "vip", createdAt: daysAgo(410), addresses: [{ fullName: "Grace Adeyemi", country: "United Kingdom", state: "London", city: "London", address: "22 Baker Street", postalCode: "NW1 5RT", phone: "+44 7700 900123" }], tags: ["VIP", "International"], marketingOptIn: false, notes: [{ id: "n2", author: "Amaka Eze", message: "Sensitive to shipping delays — always confirm timeline before dispatch.", date: daysAgo(120) }] },

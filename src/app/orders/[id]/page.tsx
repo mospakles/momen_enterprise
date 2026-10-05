@@ -1,15 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { useOrders } from "@/lib/orders-context";
 import { formatDate, formatNaira } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
+import { apiRequest } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 export default function OrderTrackingPage() {
   const { id } = useParams<{ id: string }>();
-  const { getOrder, advanceOrder, isReady, updateCustomizationStatus } = useOrders();
+  const { getOrder, isReady, updateCustomizationStatus } = useOrders();
   const order = getOrder(decodeURIComponent(id));
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [requestingRefund, setRequestingRefund] = useState(false);
 
   if (!isReady) return <div className="mx-auto max-w-3xl px-4 py-24" />;
 
@@ -91,13 +97,6 @@ export default function OrderTrackingPage() {
             </li>
           ))}
         </ol>
-
-        <button
-          onClick={() => advanceOrder(order.id)}
-          className="eyebrow mt-2 border border-line px-4 py-2 text-ink/60 hover:border-brass hover:text-brass"
-        >
-          Simulate Next Stage (demo)
-        </button>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -127,6 +126,43 @@ export default function OrderTrackingPage() {
           <p className="font-display text-lg">{formatNaira(order.total)}</p>
         </div>
       </div>
+
+      {(order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded") && (
+        <section className="mt-8 border border-line p-5">
+          <p className="eyebrow mb-1">Need help with this order?</p>
+          <p className="text-sm text-ink/65">You can submit a refund request for our team to review.</p>
+          {!refundOpen ? (
+            <Button variant="secondary" onClick={() => setRefundOpen(true)} className="mt-4">Request a Refund</Button>
+          ) : (
+            <div className="mt-4 space-y-3">
+              <label className="block text-sm text-ink/70">
+                Reason for the request
+                <textarea value={refundReason} onChange={(event) => setRefundReason(event.target.value)} rows={3} className="mt-1.5 w-full border border-line bg-ivory px-3 py-2 text-sm outline-none focus:border-brass" />
+              </label>
+              <div className="flex gap-3">
+                <Button
+                  disabled={!refundReason.trim() || requestingRefund}
+                  onClick={async () => {
+                    setRequestingRefund(true);
+                    try {
+                      await apiRequest(`/orders/mine/${encodeURIComponent(order.id)}/refund-request`, { method: "POST", body: { type: "full", reason: refundReason.trim() } });
+                      toast("Refund request submitted", { description: "Our team will review it shortly.", variant: "success" });
+                      setRefundOpen(false);
+                    } catch (error) {
+                      toast("Refund request failed", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+                    } finally {
+                      setRequestingRefund(false);
+                    }
+                  }}
+                >
+                  {requestingRefund ? "Submitting…" : "Submit Request"}
+                </Button>
+                <Button variant="secondary" onClick={() => setRefundOpen(false)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

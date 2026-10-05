@@ -33,15 +33,7 @@ export default function AdminAnalyticsPage() {
     const express = inWindow.filter((o) => o.productionSpeed === "express").length;
     const expressPct = inWindow.length ? Math.round((express / inWindow.length) * 100) : 0;
 
-    // Traffic/funnel figures are modeled from order volume (no real pageview
-    // tracker wired up) — deterministic so the dashboard is stable, not random.
-    const estimatedSessions = Math.round(inWindow.length * 9.5) + 120;
-    const estimatedCheckoutStarts = Math.round(inWindow.length * 1.6) + 20;
-    const conversionRate = estimatedSessions ? ((inWindow.length / estimatedSessions) * 100).toFixed(1) : "0.0";
-    const cartAbandonment = estimatedCheckoutStarts ? Math.round(((estimatedCheckoutStarts - inWindow.length) / estimatedCheckoutStarts) * 100) : 0;
-    const checkoutAbandonment = Math.max(0, cartAbandonment - 12);
-
-    return { revenue, aov, repeatCustomers, expressPct, estimatedSessions, conversionRate, cartAbandonment, checkoutAbandonment };
+    return { revenue, aov, repeatCustomers, expressPct };
   }, [revenueOrders, inWindow, orders]);
 
   // Momen-specific breakdowns (Section 21) — product mix, custom order
@@ -112,27 +104,12 @@ export default function AdminAnalyticsPage() {
       });
     });
 
-    // Device/source split modeled deterministically from order count.
-    const deviceSplit = [
-      { label: "Mobile", value: Math.round(inWindow.length * 0.58) + 4 },
-      { label: "Desktop", value: Math.round(inWindow.length * 0.34) + 2 },
-      { label: "Tablet", value: Math.round(inWindow.length * 0.08) + 1 },
-    ];
-    const sourceSplit = [
-      { label: "Direct", value: Math.round(inWindow.length * 0.36) + 3 },
-      { label: "Instagram", value: Math.round(inWindow.length * 0.28) + 2 },
-      { label: "Google Search", value: Math.round(inWindow.length * 0.22) + 2 },
-      { label: "Referral", value: Math.round(inWindow.length * 0.14) + 1 },
-    ];
-
     return {
       labels,
       revenueSeries,
       productBars: [...productPerf.entries()].map(([label, v]) => ({ label, value: v.revenue })).sort((a, b) => b.value - a.value).slice(0, 8),
       collectionBars: [...collectionPerf.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 8),
       locationBars: [...locationSales.entries()].map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value).slice(0, 8),
-      deviceSplit,
-      sourceSplit,
     };
   }, [revenueOrders, inWindow, range, catalogCollections]);
 
@@ -171,13 +148,9 @@ export default function AdminAnalyticsPage() {
             <StatCard label="Revenue" value={formatNaira(metrics.revenue)} />
             <StatCard label="Orders" value={inWindow.length} />
             <StatCard label="Average Order Value" value={formatNaira(Math.round(metrics.aov))} />
-            <StatCard label="Conversion Rate" value={`${metrics.conversionRate}%`} />
             <StatCard label="Customers" value={customers.length} />
             <StatCard label="Repeat Customers" value={metrics.repeatCustomers} />
-            <StatCard label="Cart Abandonment" value={`${metrics.cartAbandonment}%`} />
-            <StatCard label="Checkout Abandonment" value={`${metrics.checkoutAbandonment}%`} />
             <StatCard label="Express Order %" value={`${metrics.expressPct}%`} />
-            <StatCard label="Estimated Sessions" value={metrics.estimatedSessions} />
             <StatCard label="Custom Orders" value={merch.customOrderCount} />
             <StatCard label="Custom Order Approval Rate" value={merch.approvalRate === null ? "—" : `${merch.approvalRate}%`} />
           </div>
@@ -199,14 +172,6 @@ export default function AdminAnalyticsPage() {
             <Card>
               <SectionTitle>Sales by Location</SectionTitle>
               <HorizontalBars data={charts.locationBars} formatValue={formatNaira} />
-            </Card>
-            <Card>
-              <SectionTitle>Sales by Device</SectionTitle>
-              <DonutChart data={charts.deviceSplit} />
-            </Card>
-            <Card>
-              <SectionTitle>Sales by Source</SectionTitle>
-              <DonutChart data={charts.sourceSplit} />
             </Card>
           </div>
 

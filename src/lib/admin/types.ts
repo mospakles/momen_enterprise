@@ -54,9 +54,6 @@ export interface AdminUser {
   twoFactorEnabled: boolean;
   lastLoginAt?: string;
   createdAt: string;
-  /** Demo-only: never do this in a real backend. Structured so it's the only
-   * thing to delete when wiring real auth (hashed + server-verified). */
-  demoPassword?: string;
 }
 
 export interface AuditLogEntry {
@@ -89,11 +86,6 @@ export interface Customer {
   tags: string[];
   marketingOptIn: boolean;
   notes: { id: string; author: string; message: string; date: string }[];
-  /** Demo-only storefront login, same shape/caveat as `AdminUser.demoPassword`:
-   * never do this in a real backend. The only thing to delete when wiring
-   * real customer auth (hashed + server-verified, session becomes a signed
-   * cookie/JWT instead of localStorage — see `customer-auth-context.tsx`). */
-  demoPassword?: string;
   lastLoginAt?: string;
 }
 

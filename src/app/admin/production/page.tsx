@@ -12,6 +12,8 @@ import { PageHeader, Card, StatCard, Badge, Tabs, Drawer, StatusPill } from "@/c
 import { DataTable, Column } from "@/components/admin/ui/DataTable";
 import { Field, NumberField, SelectField } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
+import { apiRequest } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 const BOARD_STAGES: OrderStage[] = ["Awaiting Measurements", "Production Queue", "In Production", "Quality Check", "Ready for Dispatch"];
 
@@ -231,10 +233,20 @@ function Staff() {
 
   const withLoad = productionStaff.map((s) => ({ ...s, activeOrders: orders.filter((o) => o.production?.assignedStaffId === s.id && !["Delivered", "Cancelled"].includes(o.status ?? "")).length }));
 
-  function save(s: ProductionStaff) {
-    setProductionStaff((prev) => (prev.some((x) => x.id === s.id) ? prev.map((x) => (x.id === s.id ? s : x)) : [...prev, s]));
-    setEditing(null);
-    setCreating(false);
+  async function save(s: ProductionStaff) {
+    const exists = productionStaff.some((item) => item.id === s.id);
+    try {
+      const saved = await apiRequest<ProductionStaff>(exists ? `/admin/production-staff/${encodeURIComponent(s.id)}` : "/admin/production-staff", {
+        method: exists ? "PUT" : "POST",
+        body: { name: s.name, role: s.role, email: s.email, capacityPerWeek: s.capacityPerWeek, status: s.status === "on-leave" ? "on_leave" : s.status },
+      });
+      const normalized = { ...saved, status: String(saved.status) === "on_leave" ? "on-leave" as const : saved.status };
+      setProductionStaff((prev) => exists ? prev.map((item) => item.id === s.id ? normalized : item) : [...prev, normalized]);
+      setEditing(null);
+      setCreating(false);
+    } catch (error) {
+      toast("Staff member was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   const columns: Column<ProductionStaff>[] = [
@@ -288,11 +300,33 @@ function TimelineRules() {
   const [editing, setEditing] = useState<ProductionTimelineRule | null>(null);
   const [creating, setCreating] = useState(false);
 
-  function save(rule: ProductionTimelineRule) {
-    setProductionTimelineRules((prev) => (prev.some((r) => r.id === rule.id) ? prev.map((r) => (r.id === rule.id ? rule : r)) : [...prev, rule]));
-    audit("production.timeline_rule_saved", "production", `Saved production timeline rule (${rule.scope}${rule.scopeRef ? `: ${rule.scopeRef}` : ""}).`, {});
-    setEditing(null);
-    setCreating(false);
+  async function save(rule: ProductionTimelineRule) {
+    const exists = productionTimelineRules.some((item) => item.id === rule.id);
+    try {
+      const saved = await apiRequest<Record<string, unknown>>(exists ? `/admin/production-timeline-rules/${encodeURIComponent(rule.id)}` : "/admin/production-timeline-rules", {
+        method: exists ? "PUT" : "POST",
+        body: {
+          scope: rule.scope,
+          scopeRef: rule.scope === "global" ? undefined : rule.scopeRef,
+          standardDaysMin: rule.standardDays[0],
+          standardDaysMax: rule.standardDays[1],
+          expressDaysMin: rule.expressDays[0],
+          expressDaysMax: rule.expressDays[1],
+        },
+      });
+      const normalized: ProductionTimelineRule = {
+        id: String(saved.id), scope: saved.scope as ProductionTimelineRule["scope"],
+        scopeRef: saved.scopeRef ? String(saved.scopeRef) : undefined,
+        standardDays: [Number(saved.standardDaysMin), Number(saved.standardDaysMax)],
+        expressDays: [Number(saved.expressDaysMin), Number(saved.expressDaysMax)],
+      };
+      setProductionTimelineRules((prev) => exists ? prev.map((item) => item.id === rule.id ? normalized : item) : [...prev, normalized]);
+      audit("production.timeline_rule_saved", "production", `Saved production timeline rule (${rule.scope}${rule.scopeRef ? `: ${rule.scopeRef}` : ""}).`, {});
+      setEditing(null);
+      setCreating(false);
+    } catch (error) {
+      toast("Timeline rule was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   const columns: Column<ProductionTimelineRule>[] = [

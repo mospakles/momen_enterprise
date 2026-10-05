@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { MeasurementProfilesService } from './measurement-profiles.service';
 import { UpsertMeasurementProfileDto } from './dto/upsert-measurement-profile.dto';
@@ -7,6 +15,20 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedAdminUser } from '../../auth/admin-auth/admin-jwt.strategy';
+
+@ApiTags('admin-measurement-profiles')
+@ApiBearerAuth()
+@UseGuards(AdminJwtAuthGuard, PermissionsGuard)
+@Controller('admin/measurement-profiles')
+export class AdminAllMeasurementProfilesController {
+  constructor(private readonly service: MeasurementProfilesService) {}
+
+  @Get()
+  @Permissions('measurements', 'view')
+  findAll() {
+    return this.service.findAllAdmin();
+  }
+}
 
 /** CRM view — admins can see a customer's measurement history, and (with
  * the `measurements:edit` permission — e.g. Customer Support correcting a
@@ -41,5 +63,18 @@ export class AdminMeasurementProfilesController {
       { id: user.id, name: user.name },
       true,
     );
+  }
+
+  @Delete(':id')
+  @Permissions('measurements', 'delete')
+  remove(
+    @Param('customerId') customerId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedAdminUser,
+  ) {
+    return this.service.removeAsAdmin(id, customerId, {
+      id: user.id,
+      name: user.name,
+    });
   }
 }

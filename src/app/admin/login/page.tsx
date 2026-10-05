@@ -1,34 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAdminAuth } from "@/lib/admin/auth-context";
-import { useAdminStore } from "@/lib/admin/store";
 import { Button } from "@/components/ui/Button";
 
 export default function AdminLoginPage() {
   const { login, currentUser, isReady } = useAdminAuth();
-  const { adminUsers } = useAdminStore();
   const router = useRouter();
-  const [email, setEmail] = useState("amaka@momen.studio");
-  const [password, setPassword] = useState("momen2026");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (isReady && currentUser) {
-    router.replace("/admin");
-  }
+  useEffect(() => {
+    if (isReady && currentUser) router.replace("/admin");
+  }, [currentUser, isReady, router]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    setTimeout(() => {
-      const result = login(email, password);
-      if (!result.ok) setError(result.error);
-      else router.push("/admin");
-      setSubmitting(false);
-    }, 350);
+    const result = await login(email, password, twoFactorCode || undefined);
+    if (!result.ok) setError(result.error);
+    else router.push("/admin");
+    setSubmitting(false);
   }
 
   return (
@@ -54,6 +52,16 @@ export default function AdminLoginPage() {
               />
             </label>
             <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-ink/60">Two-factor code (if enabled)</span>
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
               <span className="text-xs text-ink/60">Password</span>
               <input
                 type="password"
@@ -70,25 +78,11 @@ export default function AdminLoginPage() {
           <Button type="submit" disabled={submitting} className="mt-6 w-full justify-center">
             {submitting ? "Signing in…" : "Sign In"}
           </Button>
+          <Link href="/admin/forgot-password" className="mt-4 block text-center text-xs text-brass hover:underline">
+            Forgot your password?
+          </Link>
 
-          <div className="mt-5 border-t border-line pt-4">
-            <p className="mb-2 text-[11px] font-medium text-ink/50">Demo accounts (password: momen2026)</p>
-            <ul className="space-y-1 text-[11px] text-ink/45">
-              {adminUsers.slice(0, 4).map((u) => (
-                <li key={u.id}>
-                  <button type="button" onClick={() => setEmail(u.email)} className="hover:text-brass">
-                    {u.email} — {u.roleId.replace(/-/g, " ")}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
         </form>
-
-        <p className="mt-5 text-center text-[11px] text-ivory/30">
-          Demo authentication only — passwords are stored in plain seed data for this prototype and must never be
-          implemented this way in production.
-        </p>
       </div>
     </div>
   );

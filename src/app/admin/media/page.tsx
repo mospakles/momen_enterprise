@@ -13,11 +13,11 @@ import { FilterBar, SearchInput, FilterSelect } from "@/components/admin/ui/Filt
 import { Field } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
 
-const MAX_UPLOAD_BYTES = 1.8 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 export default function AdminMediaPage() {
-  const { mediaAssets, addMediaAsset, deleteMediaAsset } = useAdminStore();
-  const { currentUser, can } = useAdminAuth();
+  const { mediaAssets, uploadMediaAsset, addExternalMediaAsset, deleteMediaAsset } = useAdminStore();
+  const { can } = useAdminAuth();
   const audit = useAudit();
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -47,23 +47,11 @@ export default function AdminMediaPage() {
         return;
       }
       if (file.size > MAX_UPLOAD_BYTES) {
-        toast("File too large", { description: `${file.name} exceeds the 1.8MB demo upload limit — use "Add by URL" for larger assets.`, variant: "error" });
+        toast("File too large", { description: `${file.name} exceeds the 25MB upload limit.`, variant: "error" });
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => {
-        addMediaAsset({
-          name: file.name,
-          url: String(reader.result),
-          type: "image",
-          folder: "Uploads",
-          size: file.size,
-          uploadedBy: currentUser?.name ?? "Admin",
-        });
-        audit("media.uploaded", "content", `Uploaded "${file.name}" to the media library.`, {});
-        toast("Uploaded", { description: file.name, variant: "success" });
-      };
-      reader.readAsDataURL(file);
+      uploadMediaAsset(file, "Uploads");
+      audit("media.uploaded", "content", `Uploaded "${file.name}" to the media library.`, {});
     });
   }
 
@@ -156,7 +144,7 @@ export default function AdminMediaPage() {
         <AddByUrlModal
           onCancel={() => setUrlModalOpen(false)}
           onAdd={(name, url, folder) => {
-            addMediaAsset({ name, url, type: "image", folder: folder || "Uploads", size: 0, uploadedBy: currentUser?.name ?? "Admin" });
+            addExternalMediaAsset(name, url, folder || "External");
             audit("media.uploaded", "content", `Added "${name}" to the media library by URL.`, {});
             setUrlModalOpen(false);
           }}

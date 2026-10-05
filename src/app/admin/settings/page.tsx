@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminStore } from "@/lib/admin/store";
 import { useAdminAuth } from "@/lib/admin/auth-context";
@@ -11,6 +11,7 @@ import { PageHeader, Card, SectionTitle, Tabs } from "@/components/admin/ui/prim
 import { Field, NumberField, TagInput, Toggle } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/lib/toast";
+import { apiRequest } from "@/lib/api";
 
 const TABS = [
   { key: "general", label: "General" },
@@ -30,10 +31,17 @@ export default function AdminSettingsPage() {
   const [form, setForm] = useState<SystemSettings>(systemSettings);
   const canEdit = can("settings", "edit");
 
-  function save() {
-    setSystemSettings(form);
-    audit("settings.updated", "settings", `Updated ${TABS.find((t) => t.key === tab)?.label} settings.`, {});
-    toast("Settings saved", { variant: "success" });
+  useEffect(() => setForm(systemSettings), [systemSettings]);
+
+  async function save() {
+    try {
+      const saved = await apiRequest<SystemSettings>("/admin/settings", { method: "PUT", body: { value: form } });
+      setSystemSettings(saved);
+      audit("settings.updated", "settings", `Updated ${TABS.find((t) => t.key === tab)?.label} settings.`, {});
+      toast("Settings saved", { variant: "success" });
+    } catch (error) {
+      toast("Settings were not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   return (

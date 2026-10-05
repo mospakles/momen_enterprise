@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function AdminRefundsPage() {
   const { refunds, requestRefund, updateRefundStatus } = useAdminStore();
-  const { orders, setPaymentStatus, updateOrderStatus } = useOrders();
+  const { orders } = useOrders();
   const { currentUser, can } = useAdminAuth();
   const audit = useAudit();
 
@@ -50,14 +50,9 @@ export default function AdminRefundsPage() {
   function process(refund: Refund, next: RefundStatus) {
     updateRefundStatus(refund.id, next, currentUser?.name ?? "Admin");
     audit("refund.status_updated", "refunds", `${next[0].toUpperCase()}${next.slice(1)} refund for ${refund.orderId}.`, { resourceId: refund.id });
-    if (next === "processed") {
-      const order = orderFor(refund);
-      if (order) {
-        const isFull = refund.type === "full" || refund.amount >= order.total;
-        setPaymentStatus(order.id, isFull ? "refunded" : "partially_refunded");
-        updateOrderStatus(order.id, isFull ? "Refunded" : "Partially Refunded", currentUser?.name ?? "Admin");
-      }
-    }
+    // The refund endpoint is the canonical payment/order transition. Keeping
+    // the UI read-only here avoids fabricating a refund state before the
+    // provider-facing workflow has completed.
   }
 
   const open = refunds.find((r) => r.id === openId);

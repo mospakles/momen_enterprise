@@ -8,6 +8,8 @@ import type { HomepageSection } from "@/lib/admin/types";
 import { PageHeader, Card, Modal, Badge } from "@/components/admin/ui/primitives";
 import { Field, SelectField, TextareaField } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
+import { apiRequest } from "@/lib/api";
+import { toast } from "@/lib/toast";
 
 const FIELD_LABELS: Record<string, string> = {
   headline: "Headline",
@@ -28,25 +30,42 @@ export default function AdminHomepagePage() {
 
   const sorted = [...homepageSections].sort((a, b) => a.sortOrder - b.sortOrder);
 
-  function move(id: string, dir: -1 | 1) {
+  async function move(id: string, dir: -1 | 1) {
     const idx = sorted.findIndex((s) => s.id === id);
     const swapIdx = idx + dir;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
     const a = sorted[idx];
     const b = sorted[swapIdx];
-    setHomepageSections((prev) => prev.map((s) => (s.id === a.id ? { ...s, sortOrder: b.sortOrder } : s.id === b.id ? { ...s, sortOrder: a.sortOrder } : s)));
+    const orderedIds = [...sorted.map((section) => section.id)];
+    [orderedIds[idx], orderedIds[swapIdx]] = [orderedIds[swapIdx], orderedIds[idx]];
+    try {
+      setHomepageSections(await apiRequest<HomepageSection[]>("/admin/homepage-sections/reorder", { method: "PATCH", body: { orderedIds } }));
+    } catch (error) {
+      toast("Homepage order was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
-  function toggleVisible(id: string) {
-    setHomepageSections((prev) => prev.map((s) => (s.id === id ? { ...s, visible: !s.visible } : s)));
+  async function toggleVisible(id: string) {
     const s = homepageSections.find((x) => x.id === id);
-    audit("homepage.section_toggled", "content", `${s?.visible ? "Hid" : "Showed"} homepage section "${s?.label}".`, { resourceId: id });
+    if (!s) return;
+    try {
+      const saved = await apiRequest<HomepageSection>(`/admin/homepage-sections/${encodeURIComponent(id)}`, { method: "PUT", body: { ...s, visible: !s.visible } });
+      setHomepageSections((prev) => prev.map((section) => section.id === id ? saved : section));
+      audit("homepage.section_toggled", "content", `${s.visible ? "Hid" : "Showed"} homepage section "${s.label}".`, { resourceId: id });
+    } catch (error) {
+      toast("Homepage section was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
-  function save(section: HomepageSection) {
-    setHomepageSections((prev) => prev.map((s) => (s.id === section.id ? section : s)));
-    audit("homepage.section_updated", "content", `Updated homepage section "${section.label}".`, { resourceId: section.id });
-    setEditing(null);
+  async function save(section: HomepageSection) {
+    try {
+      const saved = await apiRequest<HomepageSection>(`/admin/homepage-sections/${encodeURIComponent(section.id)}`, { method: "PUT", body: section });
+      setHomepageSections((prev) => prev.map((s) => (s.id === section.id ? saved : s)));
+      audit("homepage.section_updated", "content", `Updated homepage section "${section.label}".`, { resourceId: section.id });
+      setEditing(null);
+    } catch (error) {
+      toast("Homepage section was not saved", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    }
   }
 
   return (

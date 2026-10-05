@@ -6,17 +6,28 @@
 // /<slug>. Next.js matches the explicit route folders (/shop, /about, etc.)
 // before falling through to this catch-all, so those pages are unaffected.
 
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useAdminStore } from "@/lib/admin/store";
+import { apiRequest } from "@/lib/api";
+import type { CMSPage } from "@/lib/admin/types";
 
 export default function CmsPage() {
   const { slug } = useParams<{ slug: string }>();
-  const { cmsPages, isReady } = useAdminStore();
+  const [page, setPage] = useState<CMSPage | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
-  if (!isReady) return <div className="mx-auto max-w-3xl px-4 py-24" />;
+  useEffect(() => {
+    let active = true;
+    setLoaded(false);
+    void apiRequest<CMSPage>(`/pages/${encodeURIComponent(slug)}`)
+      .then((result) => { if (active) setPage(result); })
+      .catch(() => { if (active) setPage(null); })
+      .finally(() => { if (active) setLoaded(true); });
+    return () => { active = false; };
+  }, [slug]);
 
-  const page = cmsPages.find((p) => p.slug === slug && p.status === "published");
+  if (!loaded) return <div className="mx-auto max-w-3xl px-4 py-24" />;
 
   if (!page) {
     return (

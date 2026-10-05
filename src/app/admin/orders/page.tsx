@@ -192,8 +192,8 @@ function OrdersContent() {
             addCustomerNote(openOrder.id, currentUser?.name ?? "Admin", msg);
             audit("order.customer_note", "orders", `Sent customer note on ${openOrder.id}.`, { resourceId: openOrder.id });
           }}
-          onDuplicate={() => {
-            const id = duplicateOrder(openOrder.id);
+          onDuplicate={async () => {
+            const id = await duplicateOrder(openOrder.id);
             audit("order.duplicated", "orders", `Duplicated ${openOrder.id} as ${id}.`, { resourceId: openOrder.id });
           }}
           onCancel={() => setConfirmCancel(openOrder.id)}

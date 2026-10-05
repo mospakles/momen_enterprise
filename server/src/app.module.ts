@@ -19,6 +19,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { CmsModule } from './cms/cms.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { PlatformModule } from './platform/platform.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     WishlistModule,
     CmsModule,
     NotificationsModule,
+    PlatformModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

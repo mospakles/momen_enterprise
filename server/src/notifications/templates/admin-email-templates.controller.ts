@@ -14,13 +14,19 @@ import { UpsertEmailTemplateDto } from './dto/upsert-email-template.dto';
 import { AdminJwtAuthGuard } from '../../common/guards/admin-jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthenticatedAdminUser } from '../../auth/admin-auth/admin-jwt.strategy';
+import { NotificationsService } from '../notifications.service';
 
 @ApiTags('admin-email-templates')
 @ApiBearerAuth()
 @UseGuards(AdminJwtAuthGuard, PermissionsGuard)
 @Controller('admin/email-templates')
 export class AdminEmailTemplatesController {
-  constructor(private readonly service: EmailTemplatesService) {}
+  constructor(
+    private readonly service: EmailTemplatesService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   @Get()
   @Permissions('notifications', 'view')
@@ -44,6 +50,15 @@ export class AdminEmailTemplatesController {
   @Permissions('notifications', 'edit')
   update(@Param('id') id: string, @Body() dto: UpsertEmailTemplateDto) {
     return this.service.update(id, dto);
+  }
+
+  @Post(':id/test')
+  @Permissions('notifications', 'edit')
+  sendTest(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedAdminUser,
+  ) {
+    return this.notifications.sendTemplateTest(id, user.email);
   }
 
   @Delete(':id')

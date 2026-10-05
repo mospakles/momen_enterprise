@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAdminStore } from "@/lib/admin/store";
 import { useAdminAuth } from "@/lib/admin/auth-context";
 import { useAudit } from "@/lib/admin/use-audit";
@@ -12,39 +12,6 @@ import { FilterBar, SearchInput, FilterSelect } from "@/components/admin/ui/Filt
 import { NumberField, TextareaField } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
 
-interface InventoryEvent {
-  id: string;
-  productId: string;
-  productName: string;
-  delta: number;
-  reason: string;
-  actor: string;
-  date: string;
-}
-
-const HISTORY_KEY = "momen.admin.inventory-history.v1";
-
-function useInventoryHistory() {
-  const [history, setHistory] = useState<InventoryEvent[]>([]);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(HISTORY_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating history from localStorage on mount
-      if (raw) setHistory(JSON.parse(raw));
-    } catch {
-      // ignore
-    }
-  }, []);
-  function record(e: Omit<InventoryEvent, "id" | "date">) {
-    setHistory((prev) => {
-      const next = [{ ...e, id: `inv-${Date.now().toString(36)}`, date: new Date().toISOString() }, ...prev].slice(0, 200);
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
-      return next;
-    });
-  }
-  return { history, record };
-}
-
 function deriveStock(qty: number, threshold: number, current: Product["stock"]): Product["stock"] {
   if (current === "made-to-order") return current;
   if (qty <= 0) return "out-of-stock";
@@ -53,10 +20,10 @@ function deriveStock(qty: number, threshold: number, current: Product["stock"]):
 }
 
 export default function AdminInventoryPage() {
-  const { products, upsertProduct } = useAdminStore();
-  const { currentUser, can } = useAdminAuth();
+  const { products, upsertProduct, auditLogs } = useAdminStore();
+  const { can } = useAdminAuth();
   const audit = useAudit();
-  const { history, record } = useInventoryHistory();
+  const history = auditLogs.filter((entry) => entry.resource === "inventory");
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | Product["stock"]>("all");
@@ -90,8 +57,7 @@ export default function AdminInventoryPage() {
     const nextQty = Math.max(0, product.stockQuantity + delta);
     const updated: Product = { ...product, stockQuantity: nextQty, stock: deriveStock(nextQty, product.lowStockThreshold, product.stock), updatedAt: new Date().toISOString() };
     upsertProduct(updated);
-    record({ productId: product.id, productName: product.name, delta, reason, actor: currentUser?.name ?? "Admin" });
-    audit("inventory.adjusted", "inventory", `${delta > 0 ? "Added" : "Removed"} ${Math.abs(delta)} unit(s) of "${product.name}" — ${reason}.`, { resourceId: product.id });
+    audit("inventory.adjusted", "inventory", `${delta > 0 ? "Added" : "Removed"} ${Math.abs(delta)} unit(s) of "${product.name}" — ${reason}.`, { resourceId: product.id, before: { stockQuantity: product.stockQuantity }, after: { stockQuantity: nextQty } });
     setAdjusting(null);
   }
 
@@ -153,11 +119,8 @@ export default function AdminInventoryPage() {
           <ul className="space-y-3">
             {history.map((h) => (
               <li key={h.id} className="border-b border-line pb-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{h.productName}</p>
-                  <p className={h.delta > 0 ? "text-[#006300]" : "text-error"}>{h.delta > 0 ? `+${h.delta}` : h.delta}</p>
-                </div>
-                <p className="text-xs text-ink/45">{h.reason} · {h.actor} · {formatDate(h.date)}</p>
+                <p className="font-medium">{h.summary}</p>
+                <p className="text-xs text-ink/45">{h.actorName} · {formatDate(h.date)}</p>
               </li>
             ))}
           </ul>

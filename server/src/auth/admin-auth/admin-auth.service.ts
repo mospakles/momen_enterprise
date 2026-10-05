@@ -14,6 +14,7 @@ import {
   verifyTotp,
 } from '../../common/utils/totp.util';
 import type { AdminLoginDto } from './dto/login.dto';
+import { EmailSenderService } from '../../notifications/email-sender.service';
 
 export interface TokenPair {
   accessToken: string;
@@ -26,6 +27,7 @@ export class AdminAuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly emailSender: EmailSenderService,
   ) {}
 
   private async issueTokenPair(adminUserId: string): Promise<TokenPair> {
@@ -127,6 +129,12 @@ export class AdminAuthService {
         expiresAt: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
+    const frontendUrl = this.config.get('FRONTEND_URL') ?? 'http://localhost:3000';
+    await this.emailSender.send(
+      user.email,
+      'Reset your Momen admin password',
+      `Use this secure link within one hour to reset your password: ${frontendUrl}/admin/reset-password?token=${encodeURIComponent(token)}`,
+    );
     return { token };
   }
 
@@ -193,5 +201,27 @@ export class AdminAuthService {
       where: { id: adminUserId },
       data: { twoFactorEnabled: false, twoFactorSecret: null },
     });
+  }
+
+  async getProfile(adminUserId: string) {
+    const user = await this.prisma.adminUser.findUniqueOrThrow({
+      where: { id: adminUserId },
+      include: { role: { include: { permissions: true } } },
+    });
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatarUrl ?? undefined,
+      roleId: user.roleId,
+      roleName: user.role.name,
+      status: user.status,
+      twoFactorEnabled: user.twoFactorEnabled,
+      lastLoginAt: user.lastLoginAt?.toISOString(),
+      createdAt: user.createdAt.toISOString(),
+      permissions: user.role.permissions.map(
+        (permission) => `${permission.resource}:${permission.action}`,
+      ),
+    };
   }
 }

@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -50,6 +51,15 @@ export class OrdersController {
     @Param('id') id: string,
   ) {
     return this.ordersService.findOwned(id, user.id);
+  }
+
+  @Patch('mine/:id/customization-confirm')
+  @UseGuards(CustomerJwtAuthGuard)
+  confirmCustomization(
+    @CurrentUser() user: AuthenticatedCustomer,
+    @Param('id') id: string,
+  ) {
+    return this.ordersService.confirmCustomization(id, user.id);
   }
 
   @Get('track')

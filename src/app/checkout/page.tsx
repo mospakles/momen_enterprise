@@ -4,32 +4,21 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
 import { useOrders } from "@/lib/orders-context";
-import { isCustomOrder, stagesForItems } from "@/lib/order-stages";
 import { useAdminStore } from "@/lib/admin/store";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 import { formatNaira, addBusinessDays, formatDateRange } from "@/lib/format";
 import { Address, Order, ProductionSpeed } from "@/lib/types";
+import { apiRequest } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/lib/toast";
 
 const STEPS = ["Contact", "Delivery", "Production", "Payment", "Review"];
 
-// Kept at module scope (rather than inline in the component) so the React
-// Compiler doesn't need to reason about impure calls (Math.random/Date.now)
-// inside a component body — these only ever run from the "Place Order" click
-// handler, never during render.
-function generateOrderId() {
-  return `MOM-${Math.floor(100000 + Math.random() * 900000)}`;
-}
-function generateTransactionId() {
-  return `TXN-${Date.now().toString(36).toUpperCase()}`;
-}
-
 export default function CheckoutPage() {
   const { items, subtotal, clearCart, isReady } = useCart();
   const { addOrder } = useOrders();
-  const { deliveryZones, productionSettings, coupons, setCoupons } = useAdminStore();
-  const { currentUser } = useCustomerAuth();
+  const { deliveryZones, productionSettings } = useAdminStore();
+  const { currentUser, refreshProfile } = useCustomerAuth();
   const router = useRouter();
 
   const [step, setStep] = useState(0);
@@ -114,69 +103,82 @@ export default function CheckoutPage() {
       (!i.measurement || i.measurement.mode === "pending")
   );
 
-  function applyCoupon() {
+  async function applyCoupon() {
     setCouponError(null);
     const code = couponInput.trim().toUpperCase();
     if (!code) return;
-    const coupon = coupons.find((c) => c.code === code);
-    if (!coupon || !coupon.active) return setCouponError("That code isn't valid.");
-    if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) return setCouponError("That code has expired.");
-    if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) return setCouponError("That code has reached its usage limit.");
-    if (coupon.minOrderValue && subtotal < coupon.minOrderValue) return setCouponError(`Minimum order value is ${formatNaira(coupon.minOrderValue)}.`);
-    const amount = coupon.type === "percentage" ? Math.round((subtotal * coupon.value) / 100) : Math.min(coupon.value, subtotal);
-    setAppliedCoupon({ code: coupon.code, discount: amount });
-    toast("Coupon applied", { description: coupon.code, variant: "success" });
+    try {
+      const result = await apiRequest<{ code: string; discountAmount: number }>("/coupons/validate", {
+        method: "POST",
+        body: {
+          code,
+          subtotal,
+          items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
+        },
+      });
+      setAppliedCoupon({ code: result.code, discount: result.discountAmount });
+      toast("Coupon applied", { description: result.code, variant: "success" });
+    } catch (error) {
+      setCouponError(error instanceof Error ? error.message : "That code could not be applied.");
+    }
   }
 
-  function placeOrder() {
+  async function placeOrder() {
     setPlacing(true);
-    const now = new Date().toISOString();
-    const order: Order = {
-      id: generateOrderId(),
-      date: now,
-      items,
-      subtotal,
-      deliveryFee,
-      expressFee,
-      discount,
-      couponCode: appliedCoupon?.code,
-      total,
-      productionSpeed: speed,
-      estimatedCompletion: formatDateRange(completionRange.from, completionRange.to),
-      estimatedDelivery: deliveryDate.toISOString(),
-      paymentStatus: "paid",
-      paymentMethod: payment,
-      paymentProvider: payment === "transfer" ? "Bank Transfer" : "Paystack",
-      transactionId: generateTransactionId(),
-      address,
-      customerEmail: contact.email,
-      internalNotes: [],
-      customerNotes: [],
-      production: { priority: speed === "express" ? 90 : 40, notes: [], expectedCompletionDate: completionRange.to.toISOString() },
-      channel: "web",
-      timeline: stagesForItems(items).map((stage, i) => ({
-        stage,
-        date: now,
-        complete: i <= 1,
-        message: i === 0 ? "We've received your order." : i === 1 ? "Payment received successfully." : undefined,
-      })),
-      status: "Payment Confirmed",
-      // Orders where a customer went beyond the standard configured options
-      // (uploaded reference images or wrote special instructions) enter the
-      // admin approval workflow (Section 9) rather than going straight to
-      // production untouched.
-      customizationStatus: isCustomOrder(items) ? "submitted" : "not_applicable",
-    };
-    addOrder(order);
-    if (appliedCoupon) {
-      setCoupons((prev) => prev.map((c) => (c.code === appliedCoupon.code ? { ...c, usageCount: c.usageCount + 1 } : c)));
-    }
-    setTimeout(() => {
+    try {
+      const order = await apiRequest<Order>("/orders", {
+        method: "POST",
+        body: {
+          customerEmail: currentUser ? undefined : contact.email,
+          address,
+          productionSpeed: speed,
+          paymentMethod: payment,
+          couponCode: appliedCoupon?.code,
+          items: items.map((item) => ({
+            productId: item.product.id,
+            size: item.size,
+            color: item.color,
+            quantity: item.quantity,
+            customizations: item.customizations,
+            customOrder: item.customOrder,
+            measurement: item.measurement ?? { mode: "pending", unit: "cm" },
+          })),
+        },
+      });
+      addOrder(order);
+      sessionStorage.setItem("momen.last-order", JSON.stringify({ id: order.id, email: contact.email }));
+      if (currentUser && saveAddress) {
+        await apiRequest("/auth/addresses", { method: "POST", body: { ...address, isDefault: currentUser.addresses.length === 0 } });
+        await refreshProfile();
+      }
+
+      if (payment === "card") {
+        const initialized = await apiRequest<{ authorizationUrl: string; reference: string }>("/payments/initialize", {
+          method: "POST",
+          body: { orderId: order.id, customerEmail: currentUser ? undefined : contact.email },
+        });
+        clearCart();
+        window.location.assign(initialized.authorizationUrl);
+        return;
+      }
+
       clearCart();
-      toast("Order placed", { description: order.id, variant: "success" });
+      toast("Order submitted", { description: `${order.id} is awaiting bank transfer.`, variant: "success" });
       router.push(`/checkout/confirmation?order=${order.id}`);
-    }, 900);
+    } catch (error) {
+      toast("Could not place order", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+      setPlacing(false);
+    }
   }
+
+  const canContinue =
+    step === 0
+      ? Boolean(contact.fullName && contact.email && contact.phone)
+      : step === 1
+        ? Boolean(zone && address.fullName && address.country && address.state && address.city && address.address && address.postalCode && address.phone)
+        : step === 2
+          ? !missingMeasurements
+          : true;
 
   if (!isReady || items.length === 0) return <div className="mx-auto max-w-4xl px-4 py-24" />;
 
@@ -225,8 +227,8 @@ export default function CheckoutPage() {
                 Save this address to my account
               </label>
               {!zone && (
-                <p className="text-xs text-clay">
-                  We don&rsquo;t have a dedicated delivery zone for {address.country || "this country"} yet — standard global rates apply.
+                <p className="text-xs text-error">
+                  Delivery is not currently configured for {address.country || "this country"}. Please contact us for assistance.
                 </p>
               )}
             </StepCard>
@@ -303,15 +305,10 @@ export default function CheckoutPage() {
                 </button>
               </div>
               {payment === "card" ? (
-                <div className="mt-5 grid gap-4">
-                  <Field label="Card Number" value="" onChange={() => {}} placeholder="•••• •••• •••• ••••" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Expiry" value="" onChange={() => {}} placeholder="MM / YY" />
-                    <Field label="CVC" value="" onChange={() => {}} placeholder="•••" />
-                  </div>
+                <div className="mt-5 border border-line bg-ivory-deep/30 p-5">
                   <p className="text-xs text-ink/40">
-                    Card details are processed securely by our payment provider — Momen never stores raw card
-                    information.
+                    After placing your order, you&rsquo;ll be redirected to Paystack&rsquo;s secure checkout to enter your
+                    card details. Momen never receives or stores raw card information.
                   </p>
                 </div>
               ) : (
@@ -386,7 +383,7 @@ export default function CheckoutPage() {
             {step < STEPS.length - 1 ? (
               <Button
                 onClick={() => setStep((s) => s + 1)}
-                disabled={step === 2 && missingMeasurements}
+                disabled={!canContinue}
               >
                 Continue
               </Button>

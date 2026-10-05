@@ -28,6 +28,16 @@ export class MeasurementProfilesService {
     });
   }
 
+  findAllAdmin() {
+    return this.prisma.measurementProfile.findMany({
+      include: {
+        customer: { select: { id: true, name: true, email: true } },
+        history: { orderBy: { changedAt: 'desc' } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
   async findOwned(id: string, customerId: string) {
     const profile = await this.prisma.measurementProfile.findUnique({
       where: { id },
@@ -105,5 +115,19 @@ export class MeasurementProfilesService {
   async remove(id: string, customerId: string) {
     await this.findOwned(id, customerId);
     await this.prisma.measurementProfile.delete({ where: { id } });
+  }
+
+  async removeAsAdmin(id: string, customerId: string, actor: Actor) {
+    const profile = await this.findOwned(id, customerId);
+    await this.prisma.measurementProfile.delete({ where: { id } });
+    await this.auditLog.log({
+      actorId: actor.id,
+      actorName: actor.name,
+      action: 'measurement_profile.delete',
+      resource: 'measurements',
+      resourceId: id,
+      summary: `Deleted measurement profile "${profile.label}" on behalf of a customer`,
+      before: profile.values,
+    });
   }
 }

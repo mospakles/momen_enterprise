@@ -9,10 +9,16 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { generateOpaqueToken, hashToken } from '../../common/utils/token.util';
 import type { InviteAdminUserDto } from './dto/invite-admin-user.dto';
 import type { UpdateAdminUserDto } from './dto/update-admin-user.dto';
+import { ConfigService } from '@nestjs/config';
+import { EmailSenderService } from '../../notifications/email-sender.service';
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+    private readonly emailSender: EmailSenderService,
+  ) {}
 
   findAll() {
     return this.prisma.adminUser.findMany({
@@ -94,7 +100,13 @@ export class AdminUsersService {
       },
     });
 
-    return { user, setupToken };
+    const frontendUrl = this.config.get('FRONTEND_URL') ?? 'http://localhost:3000';
+    await this.emailSender.send(
+      user.email,
+      'You have been invited to Momen Admin',
+      `Complete your account setup within seven days: ${frontendUrl}/admin/reset-password?token=${encodeURIComponent(setupToken)}`,
+    );
+    return { user: await this.findOne(user.id) };
   }
 
   async update(id: string, dto: UpdateAdminUserDto) {

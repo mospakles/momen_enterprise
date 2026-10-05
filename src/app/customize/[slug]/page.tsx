@@ -14,6 +14,7 @@ import { useCart } from "@/lib/cart-context";
 import { useMeasurements } from "@/lib/measurement-context";
 import { toast } from "@/lib/toast";
 import { formatNaira } from "@/lib/format";
+import { apiAssetUrl, apiRequest } from "@/lib/api";
 import type { CustomOrderDetails, MeasurementUnit, MeasurementValues, Product } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import MeasurementCapture from "@/components/measurement/MeasurementCapture";
@@ -482,25 +483,41 @@ function ColorField({
 
 function PreferencesStep({ draft, update }: { draft: Draft; update: <K extends keyof Draft>(key: K, value: Draft[K]) => void }) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
-  function handleFiles(files: FileList | null) {
+  async function handleFiles(files: FileList | null) {
     if (!files) return;
     const remaining = MAX_REFERENCE_IMAGES - draft.referenceImages.length;
-    Array.from(files)
-      .slice(0, remaining)
-      .forEach((file) => {
-        if (!file.type.startsWith("image/")) {
-          toast("Unsupported file", { description: `${file.name} is not an image.`, variant: "error" });
-          return;
-        }
-        if (file.size > MAX_UPLOAD_BYTES) {
-          toast("File too large", { description: `${file.name} exceeds the 1.8MB upload limit.`, variant: "error" });
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => update("referenceImages", [...draft.referenceImages, String(reader.result)]);
-        reader.readAsDataURL(file);
-      });
+    const selected = Array.from(files).slice(0, remaining).filter((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast("Unsupported file", { description: `${file.name} is not an image.`, variant: "error" });
+        return false;
+      }
+      if (file.size > MAX_UPLOAD_BYTES) {
+        toast("File too large", { description: `${file.name} exceeds the 1.8MB upload limit.`, variant: "error" });
+        return false;
+      }
+      return true;
+    });
+    if (!selected.length) return;
+
+    setUploading(true);
+    try {
+      const uploaded: string[] = [];
+      for (const file of selected) {
+        const form = new FormData();
+        form.append("file", file);
+        form.append("alt", `Customer reference: ${file.name}`);
+        const asset = await apiRequest<{ url: string }>("/custom-order-references", { method: "POST", body: form });
+        uploaded.push(apiAssetUrl(asset.url));
+      }
+      update("referenceImages", [...draft.referenceImages, ...uploaded]);
+    } catch (error) {
+      toast("Reference image upload failed", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+    } finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
   }
 
   return (
@@ -515,9 +532,9 @@ function PreferencesStep({ draft, update }: { draft: Draft; update: <K extends k
           onClick={() => fileInput.current?.click()}
           className="cursor-pointer border-2 border-dashed border-line p-6 text-center text-sm text-ink/40 hover:border-brass hover:text-brass"
         >
-          Click to upload reference images ({draft.referenceImages.length}/{MAX_REFERENCE_IMAGES})
+          {uploading ? "Uploading reference images…" : `Click to upload reference images (${draft.referenceImages.length}/${MAX_REFERENCE_IMAGES})`}
         </div>
-        <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
+        <input ref={fileInput} type="file" accept="image/*" multiple hidden disabled={uploading} onChange={(e) => void handleFiles(e.target.files)} />
 
         {draft.referenceImages.length > 0 && (
           <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">

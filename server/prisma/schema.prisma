@@ -1185,3 +1185,43 @@ model AuditLogEntry {
 
   @@index([resource, resourceId])
 }
+
+// ══════════════════════ Platform configuration & inbound engagement ══════════════════════
+
+/// A versioned JSON document is intentional here: the admin settings screen
+/// edits a single nested configuration object whose sections evolve together.
+/// Operational secrets never belong in this table; they remain environment
+/// variables and the API never accepts them through this model.
+model PlatformSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  confirmedAt    DateTime?
+  unsubscribedAt DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+enum ContactMessageStatus {
+  new
+  in_progress
+  resolved
+}
+
+model ContactMessage {
+  id        String               @id @default(cuid())
+  name      String
+  email     String
+  topic     String
+  message   String
+  status    ContactMessageStatus @default(new)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([status, createdAt])
+}
