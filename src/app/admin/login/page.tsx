@@ -46,8 +46,20 @@ export default function AdminLoginPage() {
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs text-ink/60">Password</span>
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
               />
             </label>
@@ -58,16 +70,6 @@ export default function AdminLoginPage() {
                 autoComplete="one-time-code"
                 value={twoFactorCode}
                 onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
-              />
-            </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs text-ink/60">Password</span>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
               />
             </label>

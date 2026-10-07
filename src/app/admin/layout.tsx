@@ -28,15 +28,19 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const isLoginRoute = pathname === "/admin/login";
+  const isPublicAuthRoute = [
+    "/admin/login",
+    "/admin/forgot-password",
+    "/admin/reset-password",
+  ].includes(pathname);
 
   useEffect(() => {
     localStorage.setItem(SIDEBAR_KEY, JSON.stringify(collapsed));
   }, [collapsed]);
 
   useEffect(() => {
-    if (isReady && !currentUser && !isLoginRoute) router.replace("/admin/login");
-  }, [isReady, currentUser, isLoginRoute, router]);
+    if (isReady && !currentUser && !isPublicAuthRoute) router.replace("/admin/login");
+  }, [isReady, currentUser, isPublicAuthRoute, router]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -49,7 +53,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  if (isLoginRoute) return <>{children}</>;
+  if (isPublicAuthRoute) return <>{children}</>;
 
   if (!isReady || !currentUser) {
     return (

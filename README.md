@@ -40,7 +40,7 @@ In another terminal:
 npm run dev
 ```
 
-The storefront is available at `http://localhost:3000`, the API at `http://localhost:4000/api`, and Swagger at `http://localhost:4000/docs`.
+The storefront is available at `http://localhost:3000`, the admin login at `http://localhost:3000/admin/login`, the API at `http://localhost:4000/api`, and Swagger at `http://localhost:4000/docs`. Sign in to the admin with the `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` values used when running the seed command.
 
 ## Docker
 

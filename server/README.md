@@ -52,9 +52,9 @@ npm run start:dev
 ```
 
 The API listens on `http://localhost:4000/api` (prefix is `/api`), with
-Swagger docs at `http://localhost:4000/docs`. Seeded super admin login is
-printed by the seed script (`admin@momen.studio` / `momen-dev-2026` — **dev
-only**, change immediately outside local development).
+Swagger docs at `http://localhost:4000/docs`. The admin login is available at
+`http://localhost:3000/admin/login`; use the `SEED_ADMIN_EMAIL` and
+`SEED_ADMIN_PASSWORD` values supplied when running the seed command.
 
 To actually take a payment in dev, set `PAYSTACK_SECRET_KEY` in `.env` to a
 real Paystack **test** key (dashboard → Settings → API Keys & Webhooks) — see
