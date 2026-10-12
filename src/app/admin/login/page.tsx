@@ -11,6 +11,9 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  // The code field only appears once the API says this account needs one.
+  const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -24,8 +27,9 @@ export default function AdminLoginPage() {
     setSubmitting(true);
     setError(null);
     const result = await login(email, password, twoFactorCode || undefined);
-    if (!result.ok) setError(result.error);
-    else router.push("/admin");
+    if (result.ok) router.push("/admin");
+    else if (!needsTwoFactor && result.error === "Two-factor code required") setNeedsTwoFactor(true);
+    else setError(result.error);
     setSubmitting(false);
   }
 
@@ -54,25 +58,41 @@ export default function AdminLoginPage() {
             </label>
             <label className="flex flex-col gap-1.5">
               <span className="text-xs text-ink/60">Password</span>
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full border border-line bg-ivory py-2.5 pl-3 pr-16 text-sm outline-none focus:border-brass"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((shown) => !shown)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 px-3 text-xs text-brass hover:underline"
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
             </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-xs text-ink/60">Two-factor code (if enabled)</span>
-              <input
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={twoFactorCode}
-                onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
-              />
-            </label>
+            {needsTwoFactor && (
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs text-ink/60">Two-factor code</span>
+                <input
+                  required
+                  autoFocus
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
+                />
+                <span className="text-xs text-ink/50">Enter the 6-digit code from your authenticator app.</span>
+              </label>
+            )}
           </div>
 
           {error && <p className="mt-4 border border-error/40 bg-error/5 px-3 py-2 text-xs text-error">{error}</p>}
