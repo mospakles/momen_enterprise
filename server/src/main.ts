@@ -67,6 +67,11 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(config.get('PORT') ?? 4000);
+  // Railway and other container platforms send SIGTERM during deploys. Let
+  // Nest run Prisma's shutdown hooks so connections close cleanly.
+  app.enableShutdownHooks();
+
+  const port = config.get<number>('PORT') ?? 4000;
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();

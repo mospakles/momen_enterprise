@@ -60,6 +60,10 @@ docker compose exec -e SEED_ADMIN_EMAIL=admin@example.com -e SEED_ADMIN_PASSWORD
 
 Configure the API environment variables from [server/.env.example](server/.env.example), particularly `DATABASE_URL`, `JWT_ACCESS_SECRET`, `CORS_ORIGIN`, `FRONTEND_URL`, `AUTH_COOKIE_SAME_SITE`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_CALLBACK_URL`, `RESEND_API_KEY`, and `EMAIL_FROM`.
 
+For the complete Railway service layout, reference variables, persistent upload
+volume, health checks, and Paystack callback/webhook setup, follow
+[docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md).
+
 For a cross-site frontend/API deployment, HTTPS is mandatory and `AUTH_COOKIE_SAME_SITE=none`; otherwise use `lax`. Configure Paystack’s callback URL to `/checkout/payment-callback` and its webhook URL to `/api/payments/webhooks/paystack`.
 
 `NEXT_PUBLIC_API_URL` is a browser-visible build-time setting; set it to the public API base ending in `/api` before building the frontend.
