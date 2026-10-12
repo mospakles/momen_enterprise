@@ -45,9 +45,11 @@ Then:
 
 ```bash
 npm run db:migrate   # applies prisma/schema.prisma, creates the database schema
-npm run db:seed      # seeds roles, a super admin, measurement fields, a sample product,
-                      # production/delivery/promotions data, and notification triggers+templates
-                      # (the last of these isn't optional — see "Notifications" below)
+npm run db:seed      # seeds roles, a super admin, measurement fields, the production timeline,
+                      # payment provider config, and notification triggers+templates (the last
+                      # of these isn't optional — see "Notifications" below). Outside production
+                      # it also adds sample data: a product, delivery zone, coupon and tailor.
+                      # Override with SEED_SAMPLE_DATA=true|false.
 npm run start:dev
 ```
 

@@ -59,12 +59,20 @@ Railway shell:
 ```bash
 SEED_ADMIN_EMAIL=admin@example.com \
 SEED_ADMIN_PASSWORD='use-a-unique-long-password' \
+SEED_ADMIN_NAME='Your Name' \
 node dist/prisma/seed.js
 ```
 
-This seed also creates sample catalog data, delivery rules, and promotions.
-Use it for the initial test deployment, then review that data before launch.
-Do not run it blindly against an existing production database.
+With `NODE_ENV=production` the seed creates only what the app needs: roles,
+the administrator, measurement fields, the production timeline rule, payment
+provider config, and notification triggers. It skips the sample product,
+delivery zone, `WELCOME10` coupon and demo tailor. Add `SEED_SAMPLE_DATA=true`
+to include them on a test deployment. Checkout needs at least one delivery
+zone, so create yours in the admin panel before launch.
+
+Re-running the seed is safe: existing rows, including the administrator, are
+left unchanged. To reset the administrator's password, delete that
+`AdminUser` row first.
 
 Do not save these seed credentials as long-lived service variables unless they
 are still required. Remove them after the seed succeeds.

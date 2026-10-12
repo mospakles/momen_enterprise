@@ -4,6 +4,12 @@
 // develop against from the first `npm run start:dev`.
 //
 // Run with: npx prisma db seed
+//
+// Sample data (a demo product, delivery zone, coupon and production staff) is
+// only created when SEED_SAMPLE_DATA=true, or by default outside production.
+// Roles, the first admin, measurement fields, the global timeline rule,
+// payment provider config and notification triggers are always seeded —
+// the app needs them to function.
 
 import { PrismaClient, PermissionAction, PermissionResource, PublishStatus, NotificationEvent } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -125,9 +131,10 @@ async function seedSuperAdmin() {
   const existing = await prisma.adminUser.findUnique({ where: { email } });
   if (existing) return;
 
+  const name = process.env.SEED_ADMIN_NAME?.trim() || 'Amaka Eze';
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.adminUser.create({
-    data: { name: 'Amaka Eze', email, roleId: 'super-admin', status: 'active', passwordHash },
+    data: { name, email, roleId: 'super-admin', status: 'active', passwordHash },
   });
   console.log(`Seeded super admin: ${email}`);
 }
@@ -221,14 +228,16 @@ async function seedCatalog() {
   }
 }
 
-async function seedProduction() {
+async function seedProductionStaff() {
   const existing = await prisma.productionStaff.findFirst({ where: { email: 'chidi.tailor@momen.studio' } });
   if (!existing) {
     await prisma.productionStaff.create({
       data: { name: 'Chidi Nwankwo', role: 'Tailor', email: 'chidi.tailor@momen.studio', capacityPerWeek: 12, status: 'active' },
     });
   }
+}
 
+async function seedProductionTimeline() {
   const existingGlobalRule = await prisma.productionTimelineRule.findFirst({ where: { scope: 'global' } });
   if (!existingGlobalRule) {
     await prisma.productionTimelineRule.create({
@@ -309,16 +318,30 @@ async function seedNotifications() {
   }
 }
 
+function shouldSeedSampleData() {
+  const flag = process.env.SEED_SAMPLE_DATA?.trim().toLowerCase();
+  if (flag === 'true') return true;
+  if (flag === 'false') return false;
+  return process.env.NODE_ENV !== 'production';
+}
+
 async function main() {
   await seedRoles();
   await seedSuperAdmin();
   await seedMeasurementFields();
-  await seedCatalog();
-  await seedDelivery();
-  await seedPromotions();
-  await seedProduction();
+  await seedProductionTimeline();
   await seedPaymentProvider();
   await seedNotifications();
+
+  if (shouldSeedSampleData()) {
+    await seedCatalog();
+    await seedDelivery();
+    await seedPromotions();
+    await seedProductionStaff();
+    console.log('Seeded sample data (catalog, delivery zone, coupon, production staff)');
+  } else {
+    console.log('Skipped sample data (set SEED_SAMPLE_DATA=true to include it)');
+  }
 }
 
 main()
