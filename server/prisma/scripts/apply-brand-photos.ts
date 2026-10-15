@@ -11,11 +11,14 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const prisma = new PrismaClient();
-const mapping = JSON.parse(readFileSync(join(__dirname, 'brand-photos.json'), 'utf8')) as Record<
+// Resolved from the working directory (the server folder locally, /app on
+// Railway) rather than __dirname, so it runs as CommonJS or ES module alike.
+const scriptsDir = join(process.cwd(), 'prisma', 'scripts');
+const mapping = JSON.parse(readFileSync(join(scriptsDir, 'brand-photos.json'), 'utf8')) as Record<
   string,
   string[] | string | Record<string, string>
 >;
-const backupPath = join(__dirname, 'brand-photos.backup.json');
+const backupPath = join(scriptsDir, 'brand-photos.backup.json');
 const url = (name: string) => `/images/brand/${name}.jpg`;
 
 async function apply() {
