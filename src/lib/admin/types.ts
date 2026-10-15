@@ -153,6 +153,9 @@ export interface DeliveryZone {
   standardDays: [number, number];
   expressDays: [number, number];
   expressAvailable: boolean;
+  pickupAvailable?: boolean;
+  pickupLocation?: string;
+  pickupFee?: number;
   active: boolean;
 }
 

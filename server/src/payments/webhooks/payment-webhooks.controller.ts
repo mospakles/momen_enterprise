@@ -36,4 +36,18 @@ export class PaymentWebhooksController {
       signature,
     );
   }
+
+  @Post('flutterwave')
+  @HttpCode(HttpStatus.OK)
+  async flutterwave(
+    @Req() request: RawBodyRequest<Request>,
+    @Headers('verif-hash') signature: string | undefined,
+  ) {
+    if (!request.rawBody) return { handled: false };
+    return this.paymentsService.handleWebhook(
+      PaymentProvider.flutterwave,
+      request.rawBody,
+      signature,
+    );
+  }
 }

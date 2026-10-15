@@ -146,6 +146,7 @@ model Customer {
   orders              Order[]
   wishlistItems       WishlistItem[]
   reviews             Review[]
+  cart                CustomerCart?
 }
 
 model CustomerAddress {
@@ -226,6 +227,7 @@ enum ProductType {
 enum Gender {
   men
   unisex
+  women
 }
 
 enum SizingMode {
@@ -323,13 +325,17 @@ model SizeOption {
 }
 
 model ProductSize {
-  id           String      @id @default(cuid())
-  productId    String
-  product      Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  sizeOptionId String?
-  sizeOption   SizeOption? @relation(fields: [sizeOptionId], references: [id], onDelete: SetNull)
-  label        String // free-text fallback / denormalized copy of sizeOption.label
-  sortOrder    Int         @default(0)
+  id               String      @id @default(cuid())
+  productId        String
+  product          Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sizeOptionId     String?
+  sizeOption       SizeOption? @relation(fields: [sizeOptionId], references: [id], onDelete: SetNull)
+  label            String // free-text fallback / denormalized copy of sizeOption.label
+  sortOrder        Int         @default(0)
+  /// Per-size stock. Null means this size isn't tracked separately and the
+  /// product-level counters apply.
+  stockQuantity    Int?
+  reservedQuantity Int         @default(0)
 }
 
 model ColorSwatch {
@@ -340,12 +346,14 @@ model ColorSwatch {
 }
 
 model ProductColorVariant {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   name      String
   hex       String
-  sortOrder Int     @default(0)
+  sortOrder Int      @default(0)
+  /// Gallery shown when this colour is selected on the product page.
+  images    String[] @default([])
 }
 
 model Fabric {
@@ -416,6 +424,8 @@ model Product {
   images           String[]
   hoverImage       String?
   videos           String[]
+  /// Ordered frames for the 360° viewer (e.g. 24–36 shots around the piece).
+  spinImages       String[]              @default([])
   colorVariants    ProductColorVariant[]
   sizes            ProductSize[]
   productionType   ProductionType
@@ -461,6 +471,7 @@ model Product {
   orderLineItems       OrderLineItem[]
   reviews              Review[]
   wishlistItems        WishlistItem[]
+  stockAlerts          StockAlert[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -552,6 +563,11 @@ enum PaymentMethod {
   cod
 }
 
+enum DeliveryMethod {
+  delivery
+  pickup
+}
+
 enum ProductionSpeed {
   standard
   express
@@ -602,6 +618,7 @@ model Order {
   total       Decimal @db.Decimal(12, 2)
 
   productionSpeed     ProductionSpeed @default(standard)
+  deliveryMethod      DeliveryMethod  @default(delivery)
   estimatedCompletion DateTime?
   estimatedDelivery   DateTime?
 
@@ -691,6 +708,12 @@ model OrderNote {
 
 // ═══ Reviews & Wishlist (needed for Product/Customer relations above) ═══
 
+enum ReviewFit {
+  runs_small
+  true_to_size
+  runs_large
+}
+
 enum ReviewStatus {
   pending
   approved
@@ -709,11 +732,49 @@ model Review {
   title           String?
   body            String
   images          String[]
+  fit             ReviewFit?
   status          ReviewStatus @default(pending)
   featured        Boolean      @default(false)
   responseMessage String?
   respondedAt     DateTime?
   createdAt       DateTime     @default(now())
+}
+
+enum StockAlertKind {
+  back_in_stock
+  price_drop
+}
+
+/// "Tell me when" requests from the product page. Sent once (notifiedAt)
+/// when a product comes back into stock or its price falls below
+/// priceAtSignup.
+model StockAlert {
+  id            String         @id @default(cuid())
+  productId     String
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  email         String
+  customerId    String?
+  size          String?
+  color         String?
+  kind          StockAlertKind
+  priceAtSignup Decimal?       @db.Decimal(12, 2)
+  notifiedAt    DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@unique([productId, email, kind, size])
+  @@index([productId, notifiedAt])
+}
+
+/// A signed-in customer's bag, so it follows them across devices. `items`
+/// holds the client's cart lines (product ids, size, colour, quantity,
+/// customization); product data and prices are re-read from Product on
+/// every fetch, never trusted from here.
+model CustomerCart {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      Json     @default("[]")
+  updatedAt  DateTime @updatedAt
 }
 
 model WishlistItem {
@@ -878,6 +939,9 @@ model DeliveryZone {
   expressDaysMin        Int
   expressDaysMax        Int
   expressAvailable      Boolean  @default(false)
+  pickupAvailable       Boolean  @default(false)
+  pickupLocation        String?
+  pickupFee             Decimal  @default(0) @db.Decimal(12, 2)
   active                Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt

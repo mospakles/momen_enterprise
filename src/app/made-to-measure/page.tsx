@@ -11,13 +11,13 @@ import { useAdminStore } from "@/lib/admin/store";
 import { formatNaira } from "@/lib/format";
 
 const GARMENT_TYPES: { key: string; label: string; categorySlug?: string; garment?: string; image: string }[] = [
-  { key: "kaftan", label: "Kaftan", categorySlug: "kaftans", image: "https://picsum.photos/seed/mtm-kaftan/700/850" },
-  { key: "senator", label: "Senator", categorySlug: "senator", image: "https://picsum.photos/seed/mtm-senator/700/850" },
-  { key: "agbada", label: "Agbada", categorySlug: "agbada", image: "https://picsum.photos/seed/mtm-agbada/700/850" },
-  { key: "jalabia", label: "Jalabia", categorySlug: "jalabia", image: "https://picsum.photos/seed/mtm-jalabia/700/850" },
-  { key: "shirt", label: "Shirt", categorySlug: "shirts", image: "https://picsum.photos/seed/mtm-shirt/700/850" },
-  { key: "pants", label: "Pants", categorySlug: "pants", image: "https://picsum.photos/seed/mtm-pants/700/850" },
-  { key: "two-piece", label: "Two-Piece", garment: "set", image: "https://picsum.photos/seed/mtm-twopiece/700/850" },
+  { key: "kaftan", label: "Kaftan", categorySlug: "kaftans", image: "/images/brand/kaftan4.jpg" },
+  { key: "senator", label: "Senator", categorySlug: "senator", image: "/images/brand/kaftan1.jpg" },
+  { key: "agbada", label: "Agbada", categorySlug: "agbada", image: "/images/brand/agbada7.jpg" },
+  { key: "jalabia", label: "Jalabia", categorySlug: "jalabia", image: "/images/brand/kaftan9.jpg" },
+  { key: "shirt", label: "Shirt", categorySlug: "shirts", image: "/images/brand/shirt5.jpg" },
+  { key: "pants", label: "Pants", categorySlug: "pants", image: "/images/brand/menasooke13.jpg" },
+  { key: "two-piece", label: "Two-Piece", garment: "set", image: "/images/brand/2pieceshort5.jpg" },
 ];
 
 export default function MadeToMeasurePage() {
@@ -45,7 +45,7 @@ function MtmContent() {
   return (
     <div>
       <div className="relative flex h-[46vh] min-h-[320px] items-end overflow-hidden bg-charcoal">
-        <Image src="https://picsum.photos/seed/mtm-hero/2000/1100" alt="Momen made-to-measure" fill className="object-cover opacity-70" />
+        <Image src="/images/brand/agbada11.jpg" alt="A man in an emerald agbada with an embroidered chest panel" fill preload sizes="100vw" className="object-cover object-[50%_22%] opacity-70" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 to-transparent" />
         <div className="relative mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
           <p className="eyebrow text-brass-light">Made-to-Measure</p>

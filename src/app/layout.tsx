@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/fraunces";
-import "@fontsource-variable/fraunces/wght-italic.css";
+import "@fontsource-variable/fraunces/opsz.css";
+import "@fontsource-variable/fraunces/opsz-italic.css";
 import "@fontsource-variable/manrope";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart-context";
@@ -10,16 +10,19 @@ import { CustomerAuthProvider } from "@/lib/customer-auth-context";
 import { AdminStoreProvider } from "@/lib/admin/store";
 import { Toaster } from "@/components/ui/Toaster";
 import StorefrontChrome from "@/components/layout/StorefrontChrome";
+import { MotionProvider } from "@/lib/motion/MotionProvider";
+import { CurtainProvider } from "@/lib/motion/Curtain";
+import { UIProvider } from "@/lib/ui-context";
 
 export const metadata: Metadata = {
-  title: "Momen — Designed for the Man You Are",
+  title: "momen. — Tailored heritage. Modern men.",
   description:
     "Momen is a premium African menswear house — traditional and contemporary tailoring, made-to-measure, and a curated unisex edit. Craftsmanship. Fit. Confidence. Culture.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-ivory text-ink">
         {/* AdminStoreProvider wraps the whole app — not just /admin — so that
             admin edits (price, stock, homepage content, delivery fees, etc.)
@@ -30,8 +33,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <CartProvider>
               <MeasurementProvider>
                 <OrdersProvider>
-                  <StorefrontChrome>{children}</StorefrontChrome>
-                  <Toaster />
+                  <MotionProvider>
+                    <UIProvider>
+                      <CurtainProvider>
+                        <StorefrontChrome>{children}</StorefrontChrome>
+                        <Toaster />
+                      </CurtainProvider>
+                    </UIProvider>
+                  </MotionProvider>
                 </OrdersProvider>
               </MeasurementProvider>
             </CartProvider>

@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "picsum.photos" },
+      // Placeholder editorial photography for the brand journey — see
+      // src/components/journey/media.ts. Remove once brand shoots are in.
+      { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
 };

@@ -1,6 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ReviewFit } from '@prisma/client';
 import {
   IsArray,
+  IsEnum,
   IsEmail,
   IsInt,
   IsOptional,
@@ -26,4 +28,9 @@ export class CreateReviewDto {
   @IsArray()
   @IsString({ each: true })
   images?: string[];
+
+  @ApiProperty({ enum: ReviewFit, required: false })
+  @IsOptional()
+  @IsEnum(ReviewFit)
+  fit?: ReviewFit;
 }

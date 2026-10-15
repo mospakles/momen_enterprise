@@ -260,6 +260,9 @@ function normalizeDeliveryZone(value: Record<string, unknown>): DeliveryZone {
     standardDays: [numberValue(value.standardDaysMin), numberValue(value.standardDaysMax)],
     expressDays: [numberValue(value.expressDaysMin), numberValue(value.expressDaysMax)],
     expressAvailable: Boolean(value.expressAvailable),
+    pickupAvailable: Boolean(value.pickupAvailable),
+    pickupLocation: value.pickupLocation ? String(value.pickupLocation) : undefined,
+    pickupFee: numberValue(value.pickupFee ?? 0),
     active: Boolean(value.active),
   };
 }
@@ -570,9 +573,9 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       slug: p.slug, name: p.name, sku: p.sku, categoryId,
       collectionIds: p.collectionSlugs.map((slug) => collections.find((item) => item.slug === slug)?.id).filter(Boolean),
       tagNames: p.tags, price: p.price, compareAtPrice: p.compareAtPrice, salePrice: p.salePrice,
-      images: p.images, hoverImage: p.hoverImage, videos: p.videos ?? [],
+      images: p.images, hoverImage: p.hoverImage, videos: p.videos ?? [], spinImages: p.spinImages ?? [],
       colorVariants: p.colors.map((color, sortOrder) => ({ ...color, sortOrder })),
-      sizes: p.sizes.map((label, sortOrder) => ({ label, sortOrder, sizeOptionId: sizeOptions.find((item) => item.label === label)?.id })),
+      sizes: p.sizes.map((label, sortOrder) => ({ label, sortOrder, sizeOptionId: sizeOptions.find((item) => item.label === label)?.id, stockQuantity: p.sizeInventory?.[label] ?? null })),
       productionType: p.productionType, productType: p.productType, gender: p.gender, sizingMode: p.sizingMode, garment: p.garment,
       fabricIds: p.fabricIds ?? [], description: p.description, shortDescription: p.shortDescription,
       details: p.details, careInstructions: p.careInstructions,
@@ -658,7 +661,7 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
 
   const upsertDeliveryZone = useCallback((z: DeliveryZone) => {
     const exists = deliveryZones.some((x) => x.id === z.id);
-    const body = { name: z.name, countries: z.countries, standardFee: z.standardFee, expressFee: z.expressFee, freeDeliveryThreshold: z.freeDeliveryThreshold, standardDaysMin: z.standardDays[0], standardDaysMax: z.standardDays[1], expressDaysMin: z.expressDays[0], expressDaysMax: z.expressDays[1], expressAvailable: z.expressAvailable, active: z.active };
+    const body = { name: z.name, countries: z.countries, standardFee: z.standardFee, expressFee: z.expressFee, freeDeliveryThreshold: z.freeDeliveryThreshold, standardDaysMin: z.standardDays[0], standardDaysMax: z.standardDays[1], expressDaysMin: z.expressDays[0], expressDaysMax: z.expressDays[1], expressAvailable: z.expressAvailable, pickupAvailable: z.pickupAvailable ?? false, pickupLocation: z.pickupLocation || undefined, pickupFee: z.pickupFee ?? 0, active: z.active };
     void apiRequest<Record<string, unknown>>(exists ? `/admin/delivery-zones/${z.id}` : "/admin/delivery-zones", { method: exists ? "PUT" : "POST", body })
       .then((saved) => setDeliveryZones((prev) => exists ? prev.map((x) => x.id === z.id ? normalizeDeliveryZone(saved) : x) : [normalizeDeliveryZone(saved), ...prev])).catch(mutationFailed);
   }, [deliveryZones, setDeliveryZones]);

@@ -9,6 +9,7 @@ import { PaymentProvider, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders/orders.service';
 import { PaystackProvider } from './providers/paystack/paystack.provider';
+import { FlutterwaveProvider } from './providers/flutterwave/flutterwave.provider';
 import type { PaymentProviderAdapter } from './providers/payment-provider.interface';
 import { ConfigService } from '@nestjs/config';
 
@@ -21,6 +22,7 @@ export class PaymentsService {
     private readonly ordersService: OrdersService,
     private readonly config: ConfigService,
     paystackProvider: PaystackProvider,
+    private readonly flutterwaveProvider: FlutterwaveProvider,
   ) {
     // Only Paystack is implemented — everything upstream of this map (the
     // service methods below, RefundsService, the webhook controller) talks
@@ -28,6 +30,7 @@ export class PaymentsService {
     // is "write the adapter, add it to this map," not a business-logic change.
     this.adapters = new Map<PaymentProvider, PaymentProviderAdapter>([
       [PaymentProvider.paystack, paystackProvider],
+      [PaymentProvider.flutterwave, flutterwaveProvider],
     ]);
   }
 
@@ -44,6 +47,19 @@ export class PaymentsService {
     return adapter;
   }
 
+  /** Providers the storefront can offer: credentials present in the
+   * environment and not switched off in admin payment settings. */
+  async availableProviders(): Promise<PaymentProvider[]> {
+    const configs = await this.prisma.paymentProviderConfig.findMany();
+    const disabled = new Set(configs.filter((c) => !c.enabled).map((c) => c.provider));
+    const out: PaymentProvider[] = [];
+    if (this.config.get<string>('PAYSTACK_SECRET_KEY') && !disabled.has(PaymentProvider.paystack))
+      out.push(PaymentProvider.paystack);
+    if (this.flutterwaveProvider.configured && !disabled.has(PaymentProvider.flutterwave))
+      out.push(PaymentProvider.flutterwave);
+    return out;
+  }
+
   getAdapter(provider: PaymentProvider): PaymentProviderAdapter {
     const adapter = this.adapters.get(provider);
     if (!adapter)
@@ -56,6 +72,7 @@ export class PaymentsService {
   async initializePayment(
     orderId: string,
     requester: { customerId?: string; customerEmail?: string },
+    provider?: PaymentProvider,
   ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -65,7 +82,14 @@ export class PaymentsService {
     if (order.paymentStatus === 'paid')
       throw new BadRequestException('Order is already paid');
 
-    const adapter = await this.getActiveAdapter();
+    let adapter: PaymentProviderAdapter;
+    if (provider) {
+      if (!(await this.availableProviders()).includes(provider))
+        throw new BadRequestException(`${provider} is not available right now`);
+      adapter = this.getAdapter(provider);
+    } else {
+      adapter = await this.getActiveAdapter();
+    }
     const result = await adapter.initializeTransaction({
       orderId,
       amount: Number(order.total),

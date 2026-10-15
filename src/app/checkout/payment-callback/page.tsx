@@ -11,7 +11,8 @@ function PaymentCallbackContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const reference = params.get("reference") ?? params.get("trxref");
+    // Paystack returns `reference`/`trxref`; Flutterwave returns `tx_ref`.
+    const reference = params.get("reference") ?? params.get("trxref") ?? params.get("tx_ref");
     if (!reference) {
       setError("The payment reference is missing.");
       return;

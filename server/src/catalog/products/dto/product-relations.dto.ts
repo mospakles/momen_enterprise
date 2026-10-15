@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsInt,
   IsOptional,
@@ -22,6 +23,12 @@ export class ColorVariantDto {
   @IsInt()
   @Min(0)
   sortOrder!: number;
+
+  @ApiProperty({ type: [String], required: false, description: 'Gallery shown when this colour is selected' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  images?: string[];
 }
 
 export class SizeEntryDto {
@@ -43,6 +50,12 @@ export class SizeEntryDto {
   @IsInt()
   @Min(0)
   sortOrder!: number;
+
+  @ApiProperty({ required: false, nullable: true, description: 'Per-size stock; omit or null to track at product level' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  stockQuantity?: number | null;
 }
 
 export class ProductCustomizationEntryDto {

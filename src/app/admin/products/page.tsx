@@ -394,6 +394,34 @@ function ProductDrawer({
                 <NumberField label="Stock Quantity" value={form.stockQuantity} onChange={(v) => set("stockQuantity", v)} min={0} />
                 <NumberField label="Low Stock Threshold" value={form.lowStockThreshold} onChange={(v) => set("lowStockThreshold", v)} min={0} />
               </div>
+              {form.sizes.length > 1 && (
+                <div className="mt-5 border-t border-line pt-4">
+                  <Toggle
+                    label="Track stock per size"
+                    hint="When on, each size has its own count and the product total becomes their sum. Sold-out sizes show 'Notify me' on the storefront."
+                    checked={Object.keys(form.sizeInventory ?? {}).length > 0}
+                    onChange={(on) =>
+                      set(
+                        "sizeInventory",
+                        on ? Object.fromEntries(form.sizes.map((size) => [size, 0])) : {},
+                      )
+                    }
+                  />
+                  {Object.keys(form.sizeInventory ?? {}).length > 0 && (
+                    <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6">
+                      {form.sizes.map((size) => (
+                        <NumberField
+                          key={size}
+                          label={size}
+                          min={0}
+                          value={form.sizeInventory?.[size] ?? 0}
+                          onChange={(v) => set("sizeInventory", { ...(form.sizeInventory ?? {}), [size]: v })}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </Card>
 
             <Card>
@@ -420,6 +448,33 @@ function ProductDrawer({
             <p className="text-xs text-ink/45">Paste image URLs, or upload via the Media Library and copy the URL here.</p>
             <TagInput label="Image URLs" values={form.images} onChange={(v) => set("images", v)} placeholder="https://…" />
             <TagInput label="Video URLs (optional)" values={form.videos ?? []} onChange={(v) => set("videos", v)} placeholder="https://…" />
+            <TagInput
+              label="360° frames (optional, in rotation order — 24–36 shots work best)"
+              values={form.spinImages ?? []}
+              onChange={(v) => set("spinImages", v)}
+              placeholder="https://…"
+            />
+            {form.colors.length > 1 && (
+              <Card>
+                <p className="eyebrow mb-1">Photos per colour</p>
+                <p className="mb-3 text-xs text-ink/50">Selecting a colour on the product page swaps the gallery to these. Leave empty to use the main images.</p>
+                <div className="space-y-4">
+                  {form.colors.map((color, i) => (
+                    <div key={color.name} className="flex gap-3">
+                      <span className="mt-6 h-5 w-5 shrink-0 rounded-full border border-line" style={{ backgroundColor: color.hex }} />
+                      <div className="flex-1">
+                        <TagInput
+                          label={color.name}
+                          values={color.images ?? []}
+                          onChange={(v) => set("colors", form.colors.map((c, j) => (j === i ? { ...c, images: v } : c)))}
+                          placeholder="https://…"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
             {form.images[0] && (
               <div className="relative h-56 w-40 overflow-hidden bg-ivory-deep">
                 <Image src={form.images[0]} alt="" fill className="object-cover" sizes="160px" />

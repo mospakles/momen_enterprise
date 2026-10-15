@@ -16,6 +16,10 @@ interface CartContextValue {
    * call rather than building it up via `addItem` + several setters. */
   addCustomItem: (item: Omit<CartItem, "id">) => string;
   removeItem: (id: string) => void;
+  /** Re-insert a removed line at its old position (bag "Undo"). */
+  restoreItem: (item: CartItem, index: number) => void;
+  /** Change a line's size or colour in place (bag inline edit). */
+  updateItem: (id: string, patch: Partial<Pick<CartItem, "size" | "color">>) => void;
   updateQuantity: (id: string, quantity: number) => void;
   setItemMeasurement: (id: string, measurement: CartMeasurement) => void;
   clearCart: () => void;
@@ -27,6 +31,33 @@ interface CartContextValue {
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
+
+/** Fired after a line is added; the bag drawer listens and slides open
+ * (no redirect to the cart page). Deferred so the line exists by then. */
+export const CART_ADDED_EVENT = "momen:cart-added";
+/** Saves references only; the server re-reads products and prices. */
+function saveRemoteCart(items: CartItem[]) {
+  return apiRequest("/cart", {
+    method: "PUT",
+    body: {
+      items: items.map((i) => ({
+        id: i.id,
+        productId: i.product.id,
+        size: i.size,
+        color: i.color,
+        quantity: i.quantity,
+        measurement: i.measurement,
+        customizations: i.customizations,
+        customOrder: i.customOrder,
+      })),
+    },
+  });
+}
+
+function announceAdded(id: string) {
+  if (typeof window === "undefined") return;
+  window.setTimeout(() => window.dispatchEvent(new CustomEvent(CART_ADDED_EVENT, { detail: { id } })), 0);
+}
 const CART_KEY = "momen.cart.v1";
 const WISHLIST_KEY = "momen.wishlist.v1";
 
@@ -81,6 +112,48 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
   }, [currentUser]);
 
+  // Signed-in bags live on the server too, so they follow the customer
+  // across devices. On sign-in the saved bag and this device's bag are
+  // merged (no duplicate lines); after that, changes are saved back. Prices
+  // and product data always come from the server's re-hydrated copy.
+  const [serverSynced, setServerSynced] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isReady || !currentUser || serverSynced === currentUser.id) return;
+    let active = true;
+    void apiRequest<{ items: CartItem[] }>("/cart")
+      .then(async (remote) => {
+        if (!active) return;
+        const sameLine = (a: CartItem, b: CartItem) =>
+          a.id === b.id ||
+          (!a.customOrder && !b.customOrder && a.product.id === b.product.id && a.size === b.size && a.color === b.color);
+        let local: CartItem[] = [];
+        try {
+          local = JSON.parse(localStorage.getItem(CART_KEY) ?? "[]") as CartItem[];
+        } catch {
+          local = [];
+        }
+        const merged = [...remote.items, ...local.filter((l) => !remote.items.some((r) => sameLine(r, l)))];
+        setItems(merged);
+        setServerSynced(currentUser.id);
+        if (merged.length !== remote.items.length) await saveRemoteCart(merged);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [isReady, currentUser, serverSynced]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset sync marker on sign-out
+      setServerSynced(null);
+      return;
+    }
+    if (serverSynced !== currentUser.id) return;
+    const id = window.setTimeout(() => void saveRemoteCart(items).catch(() => undefined), 600);
+    return () => window.clearTimeout(id);
+  }, [items, currentUser, serverSynced]);
+
   const addItem = useCallback((product: Product, size: string, color: string, quantity = 1) => {
     const id = `${product.id}-${size}-${color}-${Date.now()}`;
     setItems((prev) => [
@@ -97,19 +170,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             : undefined,
       },
     ]);
-    toast(`Added to bag`, { description: product.name, variant: "success" });
+    announceAdded(id);
     return id;
   }, []);
 
   const addCustomItem = useCallback((item: Omit<CartItem, "id">) => {
     const id = `${item.product.id}-custom-${Date.now()}`;
     setItems((prev) => [...prev, { ...item, id }]);
-    toast("Custom order added to bag", { description: item.product.name, variant: "success" });
+    announceAdded(id);
     return id;
   }, []);
 
   const removeItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
+  }, []);
+
+  const restoreItem = useCallback((item: CartItem, index: number) => {
+    setItems((prev) => {
+      if (prev.some((i) => i.id === item.id)) return prev;
+      const next = [...prev];
+      next.splice(Math.min(index, next.length), 0, item);
+      return next;
+    });
+  }, []);
+
+  const updateItem = useCallback((id: string, patch: Partial<Pick<CartItem, "size" | "color">>) => {
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
   }, []);
 
   const updateQuantity = useCallback((id: string, quantity: number) => {
@@ -154,6 +240,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     addItem,
     addCustomItem,
     removeItem,
+    restoreItem,
+    updateItem,
     updateQuantity,
     setItemMeasurement,
     clearCart,

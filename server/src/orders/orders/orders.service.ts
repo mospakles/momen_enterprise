@@ -36,6 +36,20 @@ interface OrderActor {
 const PRIORITY_STANDARD = 40;
 const PRIORITY_EXPRESS = 90;
 
+/** Mirrors a product-level stock change onto the matching size row, when
+ * that size is tracked individually (stockQuantity not null). */
+async function adjustSizeStock(
+  tx: Prisma.TransactionClient,
+  productId: string,
+  size: string,
+  data: Prisma.ProductSizeUpdateManyMutationInput,
+) {
+  await tx.productSize.updateMany({
+    where: { productId, label: size, stockQuantity: { not: null } },
+    data,
+  });
+}
+
 const ORDER_INCLUDE = {
   items: true,
   timeline: { orderBy: { sortOrder: 'asc' } },
@@ -101,6 +115,7 @@ export class OrdersService {
       couponCode: order.couponCode ?? undefined,
       total: Number(order.total),
       productionSpeed: order.productionSpeed,
+      deliveryMethod: order.deliveryMethod,
       estimatedCompletion: order.estimatedCompletion?.toISOString(),
       estimatedDelivery: order.estimatedDelivery?.toISOString(),
       paymentStatus: order.paymentStatus,
@@ -200,6 +215,11 @@ export class OrdersService {
             throw new BadRequestException(
               `Insufficient stock for product ${item.productId}`,
             );
+          const sizeAvailable = snapshot.sizeAvailable(item.size);
+          if (sizeAvailable !== undefined && sizeAvailable < item.quantity)
+            throw new BadRequestException(
+              `${snapshot.name} in size ${item.size} is out of stock`,
+            );
         }
 
         let customizationCost = 0;
@@ -273,10 +293,12 @@ export class OrdersService {
 
     // Replaces trusting deliveryFee/expressFee as client input — resolved
     // from DeliveryZone data matched against the destination country.
+    const deliveryMethod = dto.deliveryMethod ?? 'delivery';
     const deliveryQuote = await this.deliveryZonesService.quote(
       dto.address.country,
       dto.productionSpeed,
       subtotal,
+      deliveryMethod,
     );
     const total =
       subtotal -
@@ -353,6 +375,7 @@ export class OrdersService {
           couponCode: couponResult?.code,
           total,
           productionSpeed: dto.productionSpeed,
+          deliveryMethod,
           estimatedCompletion,
           estimatedDelivery,
           productionExpectedCompletionDate: estimatedCompletion,
@@ -391,6 +414,24 @@ export class OrdersService {
         },
       });
 
+      const giftMessage = dto.giftMessage?.trim();
+      if (dto.giftWrap || giftMessage) {
+        await tx.orderNote.create({
+          data: {
+            orderId,
+            audience: NoteAudience.customer,
+            authorId: actor.customerId,
+            authorName: actorName,
+            message: [
+              dto.giftWrap ? 'Gift order: please wrap.' : 'Gift order.',
+              giftMessage ? `Message: "${giftMessage}"` : null,
+            ]
+              .filter(Boolean)
+              .join(' '),
+          },
+        });
+      }
+
       // Reserve stock for made-to-order-able items now; finalized
       // (decremented from stockQuantity) once payment is confirmed — either
       // immediately here (gift card paid in full) or later via
@@ -403,6 +444,14 @@ export class OrdersService {
             ? { stockQuantity: { decrement: p.dtoItem.quantity } }
             : { reservedQuantity: { increment: p.dtoItem.quantity } },
         });
+        await adjustSizeStock(
+          tx,
+          p.dtoItem.productId,
+          p.dtoItem.size,
+          paidViaGiftCard
+            ? { stockQuantity: { decrement: p.dtoItem.quantity } }
+            : { reservedQuantity: { increment: p.dtoItem.quantity } },
+        );
       }
 
       if (couponResult) {
@@ -692,6 +741,10 @@ export class OrdersService {
               },
             })
             .catch(() => undefined);
+          await adjustSizeStock(tx, item.productId, item.size, {
+            stockQuantity: { decrement: item.quantity },
+            reservedQuantity: { decrement: item.quantity },
+          });
         }
         if (order.status === OrderStatus.order_placed) {
           await this.advanceTimelineAndStatus(
@@ -711,6 +764,9 @@ export class OrdersService {
               data: { reservedQuantity: { decrement: item.quantity } },
             })
             .catch(() => undefined);
+          await adjustSizeStock(tx, item.productId, item.size, {
+            reservedQuantity: { decrement: item.quantity },
+          });
         }
         await tx.order.update({
           where: { id },
@@ -723,6 +779,12 @@ export class OrdersService {
       orderId: id,
       paymentStatus: status,
     });
+    // Released or sold stock may change what's available for alerts.
+    order.items.forEach(
+      (item) =>
+        item.productId &&
+        this.events.emit('product.changed', { productId: item.productId }),
+    );
     return this.findOneAdmin(id);
   }
 
@@ -751,10 +813,18 @@ export class OrdersService {
               data: { reservedQuantity: { decrement: item.quantity } },
             })
             .catch(() => undefined);
+          await adjustSizeStock(tx, item.productId, item.size, {
+            reservedQuantity: { decrement: item.quantity },
+          });
         }
       }
     });
 
+    order.items.forEach(
+      (item) =>
+        item.productId &&
+        this.events.emit('product.changed', { productId: item.productId }),
+    );
     return this.findOneAdmin(id);
   }
 
