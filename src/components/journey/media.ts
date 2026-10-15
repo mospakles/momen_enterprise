@@ -142,9 +142,9 @@ export const MEDIA = {
  * slugs to curate; when a slug isn't published, the lookbook falls back to the
  * next signature/featured product from the catalogue. */
 export const LOOK_PRODUCT_SLUGS = [
-  "adebayo-complete-agbada-set",
-  "obasi-embroidered-kaftan",
-  "obi-native-shirt",
-  "weekend-two-piece-set",
-  "femi-straight-trouser",
+  "oba-ivory-agbada",
+  "obinna-embroidered-kaftan",
+  "kola-jacquard-mandarin-shirt",
+  "lekki-short-two-piece",
+  "ola-aso-oke-cargo-trouser",
 ];
