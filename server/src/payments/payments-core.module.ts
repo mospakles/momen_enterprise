@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { PaystackProvider } from './providers/paystack/paystack.provider';
+import { FlutterwaveProvider } from './providers/flutterwave/flutterwave.provider';
 import { OrdersModule } from '../orders/orders/orders.module';
 
 // Split out from PaymentsModule so RefundsModule (which needs PaymentsService
@@ -10,7 +11,7 @@ import { OrdersModule } from '../orders/orders/orders.module';
 // without importing OrdersModule separately.
 @Module({
   imports: [OrdersModule],
-  providers: [PaymentsService, PaystackProvider],
-  exports: [OrdersModule, PaymentsService, PaystackProvider],
+  providers: [PaymentsService, PaystackProvider, FlutterwaveProvider],
+  exports: [OrdersModule, PaymentsService, PaystackProvider, FlutterwaveProvider],
 })
 export class PaymentsCoreModule {}

@@ -34,5 +34,18 @@ export class UpsertDeliveryZoneDto {
   @ApiProperty() @IsInt() @Min(0) expressDaysMax!: number;
 
   @ApiProperty({ default: false }) @IsBoolean() expressAvailable!: boolean;
+  @ApiProperty({ default: false, required: false })
+  @IsOptional()
+  @IsBoolean()
+  pickupAvailable?: boolean;
+  @ApiProperty({ required: false, description: 'Shown to customers choosing pickup' })
+  @IsOptional()
+  @IsString()
+  pickupLocation?: string;
+  @ApiProperty({ default: 0, required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  pickupFee?: number;
   @ApiProperty({ default: true }) @IsBoolean() active!: boolean;
 }

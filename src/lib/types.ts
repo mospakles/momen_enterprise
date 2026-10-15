@@ -5,7 +5,7 @@ export type ProductionType = "ready-to-wear" | "made-to-measure";
  * and is derived from this. */
 export type ProductType = "ready-to-wear" | "made-to-measure" | "customizable" | "accessory";
 
-export type Gender = "men" | "unisex";
+export type Gender = "men" | "unisex" | "women";
 
 /** Whether a product is sold in fixed sizes, cut to measurement, or both. */
 export type SizingMode = "standard" | "made-to-measure" | "both" | "one-size";
@@ -17,6 +17,8 @@ export type Garment = "top" | "trouser" | "set" | "agbada" | "accessory";
 export interface ProductColor {
   name: string;
   hex: string;
+  /** Gallery shown when this colour is selected (falls back to `images`). */
+  images?: string[];
 }
 
 export type PublishStatus = "draft" | "scheduled" | "published" | "archived";
@@ -106,6 +108,12 @@ export interface Product {
   images: string[];
   hoverImage?: string;
   videos?: string[];
+  /** Ordered frames for the 360° viewer. */
+  spinImages?: string[];
+  /** Units available per size, for sizes tracked individually. */
+  sizeStock?: Record<string, number>;
+  /** Raw per-size stock counts (admin editing). */
+  sizeInventory?: Record<string, number>;
   colors: ProductColor[];
   sizes: string[];
   productionType: ProductionType;
@@ -342,6 +350,7 @@ export interface Order {
   couponCode?: string;
   total: number;
   productionSpeed: ProductionSpeed;
+  deliveryMethod?: "delivery" | "pickup";
   estimatedCompletion: string;
   estimatedDelivery: string;
   paymentStatus: "pending" | "paid" | "failed" | "refunded" | "partially_refunded";

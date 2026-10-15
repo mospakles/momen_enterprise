@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ProductionSpeed } from '@prisma/client';
+import { DeliveryMethod, ProductionSpeed } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { UpsertDeliveryZoneDto } from './dto/upsert-delivery-zone.dto';
 
@@ -14,6 +14,7 @@ export interface DeliveryQuote {
   expressFee: number;
   standardDays: [number, number];
   expressDays: [number, number];
+  method: DeliveryMethod;
 }
 
 @Injectable()
@@ -59,6 +60,7 @@ export class DeliveryZonesService {
     country: string,
     speed: ProductionSpeed,
     subtotal: number,
+    method: DeliveryMethod = DeliveryMethod.delivery,
   ): Promise<DeliveryQuote> {
     const zones = await this.prisma.deliveryZone.findMany({
       where: { active: true },
@@ -84,10 +86,18 @@ export class DeliveryZonesService {
     // A free-shipping threshold waives the standard fee, not the express
     // upcharge — express is a premium the customer is opting into
     // regardless of order size, not a shipping cost being covered.
+    if (method === DeliveryMethod.pickup && !zone.pickupAvailable) {
+      throw new BadRequestException(
+        `Pickup is not available for "${country}"`,
+      );
+    }
+    // Pickup replaces the courier fee with the zone's pickup fee (often 0).
     const deliveryFee =
-      freeThreshold !== null && subtotal >= freeThreshold
-        ? 0
-        : Number(zone.standardFee);
+      method === DeliveryMethod.pickup
+        ? Number(zone.pickupFee)
+        : freeThreshold !== null && subtotal >= freeThreshold
+          ? 0
+          : Number(zone.standardFee);
     const expressFee =
       speed === ProductionSpeed.express ? Number(zone.expressFee) : 0;
 
@@ -98,6 +108,7 @@ export class DeliveryZonesService {
       expressFee,
       standardDays: [zone.standardDaysMin, zone.standardDaysMax],
       expressDays: [zone.expressDaysMin, zone.expressDaysMax],
+      method,
     };
   }
 }

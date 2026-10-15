@@ -114,6 +114,13 @@ function ZoneModal({ zone, onCancel, onSave, onDelete }: { zone: DeliveryZone | 
         </div>
         <NumberField label="Free Delivery Threshold (₦, optional)" value={form.freeDeliveryThreshold ?? 0} onChange={(v) => set("freeDeliveryThreshold", v || undefined)} />
         <Toggle label="Express delivery available in this zone" checked={form.expressAvailable} onChange={(v) => set("expressAvailable", v)} />
+        <Toggle label="Pickup available (customers collect in person)" checked={Boolean(form.pickupAvailable)} onChange={(v) => set("pickupAvailable", v)} />
+        {form.pickupAvailable && (
+          <div className="grid grid-cols-[2fr_1fr] gap-4">
+            <Field label="Pickup location (shown at checkout)" value={form.pickupLocation ?? ""} onChange={(v) => set("pickupLocation", v)} />
+            <NumberField label="Pickup fee (₦)" value={form.pickupFee ?? 0} onChange={(v) => set("pickupFee", v)} min={0} />
+          </div>
+        )}
         <Toggle label="Zone active" checked={form.active} onChange={(v) => set("active", v)} />
       </div>
       <div className="mt-6 flex gap-3">

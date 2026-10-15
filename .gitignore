@@ -28,3 +28,10 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# Original brand photography (~324 MB). The site serves the optimised copies
+# in public/images/brand — regenerate those if originals change.
+/public/brand/
+
+# Local backup written by server/prisma/scripts/apply-brand-photos.ts
+server/prisma/scripts/brand-photos.backup.json

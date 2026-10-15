@@ -70,6 +70,12 @@ export class CreateProductDto {
   @IsString({ each: true })
   videos?: string[];
 
+  @ApiProperty({ type: [String], required: false, description: 'Ordered frames for the 360° viewer' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  spinImages?: string[];
+
   @ApiProperty({ type: [ColorVariantDto] })
   @IsArray()
   @ValidateNested({ each: true })

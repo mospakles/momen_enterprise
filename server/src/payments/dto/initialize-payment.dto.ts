@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { PaymentProvider } from '@prisma/client';
+import { IsEmail, IsIn, IsOptional, IsString } from 'class-validator';
 
 export class InitializePaymentDto {
   @ApiProperty()
@@ -14,4 +15,9 @@ export class InitializePaymentDto {
   @IsOptional()
   @IsEmail()
   customerEmail?: string;
+
+  @ApiProperty({ required: false, enum: [PaymentProvider.paystack, PaymentProvider.flutterwave] })
+  @IsOptional()
+  @IsIn([PaymentProvider.paystack, PaymentProvider.flutterwave])
+  provider?: PaymentProvider;
 }

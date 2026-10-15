@@ -20,6 +20,9 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { CmsModule } from './cms/cms.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PlatformModule } from './platform/platform.module';
+import { StockAlertsModule } from './stock-alerts/stock-alerts.module';
+import { CartModule } from './cart/cart.module';
+import { AddressesModule } from './addresses/addresses.module';
 
 @Module({
   imports: [
@@ -42,6 +45,9 @@ import { PlatformModule } from './platform/platform.module';
     CmsModule,
     NotificationsModule,
     PlatformModule,
+    StockAlertsModule,
+    CartModule,
+    AddressesModule,
   ],
   controllers: [AppController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

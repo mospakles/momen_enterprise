@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  DeliveryMethod,
   MeasurementUnit,
   PaymentMethod,
   ProductionSpeed,
@@ -7,6 +8,7 @@ import {
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsIn,
@@ -14,6 +16,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
   MinLength,
   ValidateNested,
@@ -135,6 +138,15 @@ export class CreateOrderDto {
   @IsEnum(ProductionSpeed)
   productionSpeed!: ProductionSpeed;
 
+  @ApiProperty({
+    enum: DeliveryMethod,
+    required: false,
+    description: 'Pickup is only accepted where the destination zone offers it',
+  })
+  @IsOptional()
+  @IsEnum(DeliveryMethod)
+  deliveryMethod?: DeliveryMethod;
+
   @ApiProperty({ enum: [PaymentMethod.card, PaymentMethod.transfer] })
   @IsEnum(PaymentMethod)
   paymentMethod!: PaymentMethod;
@@ -159,4 +171,18 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   giftCardCode?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Complimentary gift wrapping; recorded on the order as a customer-visible note',
+  })
+  @IsOptional()
+  @IsBoolean()
+  giftWrap?: boolean;
+
+  @ApiProperty({ required: false, maxLength: 300 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  giftMessage?: string;
 }

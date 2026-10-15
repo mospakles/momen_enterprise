@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma, PublishStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogService } from '../../audit-log/audit-log.service';
@@ -47,6 +48,7 @@ export class ProductsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
+    private readonly events: EventEmitter2,
   ) {}
 
   /** Shapes a raw Prisma row into the flat frontend `Product` contract:
@@ -70,8 +72,28 @@ export class ProductsService {
       images: product.images,
       hoverImage: product.hoverImage ?? undefined,
       videos: product.videos,
-      colors: product.colorVariants.map((c) => ({ name: c.name, hex: c.hex })),
+      colors: product.colorVariants.map((c) => ({
+        name: c.name,
+        hex: c.hex,
+        ...(c.images.length ? { images: c.images } : {}),
+      })),
       sizes: product.sizes.map((s) => s.label),
+      // Available units per size, only for sizes tracked individually.
+      sizeStock: Object.fromEntries(
+        product.sizes
+          .filter((s) => s.stockQuantity !== null)
+          .map((s) => [
+            s.label,
+            Math.max(0, (s.stockQuantity ?? 0) - s.reservedQuantity),
+          ]),
+      ),
+      // Raw per-size counts for the admin editor (tracked sizes only).
+      sizeInventory: Object.fromEntries(
+        product.sizes
+          .filter((s) => s.stockQuantity !== null)
+          .map((s) => [s.label, s.stockQuantity ?? 0]),
+      ),
+      spinImages: product.spinImages,
       productionType: product.productionType,
       productType: product.productType,
       gender: product.gender,
@@ -186,6 +208,15 @@ export class ProductsService {
     return this.serialize(product);
   }
 
+  /** Published product by id, or null (used to re-hydrate saved bags). */
+  async findOnePublishedById(id: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id, ...this.publishedWhere() },
+      include: PRODUCT_INCLUDE,
+    });
+    return product ? this.serialize(product) : null;
+  }
+
   async findAllAdmin(query: AdminQueryProductsDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 50;
@@ -238,6 +269,7 @@ export class ProductsService {
           sizeOptionId: s.sizeOptionId,
           label: s.label,
           sortOrder: s.sortOrder,
+          stockQuantity: s.stockQuantity ?? null,
         })),
       },
       colorVariants: {
@@ -245,6 +277,7 @@ export class ProductsService {
           name: c.name,
           hex: c.hex,
           sortOrder: c.sortOrder,
+          images: c.images ?? [],
         })),
       },
       fabrics: { create: dto.fabricIds.map((fabricId) => ({ fabricId })) },
@@ -284,6 +317,7 @@ export class ProductsService {
                 sizeOptionId: s.sizeOptionId,
                 label: s.label,
                 sortOrder: s.sortOrder,
+                stockQuantity: s.stockQuantity ?? null,
               })),
             }
           : undefined,
@@ -295,6 +329,7 @@ export class ProductsService {
                 name: c.name,
                 hex: c.hex,
                 sortOrder: c.sortOrder,
+                images: c.images ?? [],
               })),
             }
           : undefined,
@@ -355,6 +390,7 @@ export class ProductsService {
           images: dto.images,
           hoverImage: dto.hoverImage,
           videos: dto.videos ?? [],
+          spinImages: dto.spinImages ?? [],
           productionType: dto.productionType,
           productType: dto.productType,
           gender: dto.gender,
@@ -371,7 +407,7 @@ export class ProductsService {
           isNew: dto.isNew ?? false,
           isFeatured: dto.isFeatured ?? false,
           isSignature: dto.isSignature ?? false,
-          stockQuantity: dto.stockQuantity,
+          stockQuantity: trackedSizeTotal(dto.sizes) ?? dto.stockQuantity,
           lowStockThreshold: dto.lowStockThreshold,
           publishStatus: dto.publishStatus ?? PublishStatus.draft,
           publishAt: dto.publishAt ? new Date(dto.publishAt) : null,
@@ -423,6 +459,9 @@ export class ProductsService {
             ? { hoverImage: dto.hoverImage }
             : {}),
           ...(dto.videos !== undefined ? { videos: dto.videos } : {}),
+          ...(dto.spinImages !== undefined
+            ? { spinImages: dto.spinImages }
+            : {}),
           ...(dto.productionType !== undefined
             ? { productionType: dto.productionType }
             : {}),
@@ -463,9 +502,12 @@ export class ProductsService {
           ...(dto.isSignature !== undefined
             ? { isSignature: dto.isSignature }
             : {}),
-          ...(dto.stockQuantity !== undefined
-            ? { stockQuantity: dto.stockQuantity }
-            : {}),
+          // When sizes carry their own stock, the product total is their sum.
+          ...(trackedSizeTotal(dto.sizes) !== undefined
+            ? { stockQuantity: trackedSizeTotal(dto.sizes) }
+            : dto.stockQuantity !== undefined
+              ? { stockQuantity: dto.stockQuantity }
+              : {}),
           ...(dto.lowStockThreshold !== undefined
             ? { lowStockThreshold: dto.lowStockThreshold }
             : {}),
@@ -506,6 +548,7 @@ export class ProductsService {
     });
 
     if (actor) await this.logAuditedFieldChanges(before, id, actor);
+    this.events.emit('product.changed', { productId: id });
     return this.findOneAdmin(id);
   }
 
@@ -561,6 +604,9 @@ export class ProductsService {
         : {}),
     };
     await this.prisma.product.updateMany({ where: { id: { in: ids } }, data });
+    ids.forEach((productId) =>
+      this.events.emit('product.changed', { productId }),
+    );
     return this.prisma.product
       .findMany({ where: { id: { in: ids } }, include: PRODUCT_INCLUDE })
       .then((rows) => rows.map((p) => this.serialize(p)));
@@ -591,6 +637,7 @@ export class ProductsService {
         fabrics: { include: { fabric: true } },
         customizations: { include: { group: { include: { choices: true } } } },
         collections: { include: { collection: { select: { slug: true } } } },
+        sizes: true,
       },
     });
     if (!product) throw new NotFoundException('Product not found');
@@ -604,6 +651,15 @@ export class ProductsService {
       isEffectivelyPublished: isEffectivelyPublished(product),
       stockQuantity: product.stockQuantity,
       reservedQuantity: product.reservedQuantity,
+      /** Available units for a size tracked individually, else undefined. */
+      sizeAvailable: (label: string): number | undefined => {
+        const row = product.sizes.find(
+          (s) => s.label === label && s.stockQuantity !== null,
+        );
+        return row
+          ? (row.stockQuantity ?? 0) - row.reservedQuantity
+          : undefined;
+      },
       sizingMode: product.sizingMode,
       customizable: product.customizable,
       garment: product.garment,
@@ -632,4 +688,17 @@ export class ProductsService {
       },
     };
   }
+}
+
+/** Sum of per-size stock when any size in the payload is tracked; undefined
+ * when sizes are absent or none carry a quantity. */
+function trackedSizeTotal(
+  sizes: { stockQuantity?: number | null }[] | undefined,
+): number | undefined {
+  if (!sizes) return undefined;
+  const tracked = sizes.filter(
+    (s) => s.stockQuantity !== undefined && s.stockQuantity !== null,
+  );
+  if (tracked.length === 0) return undefined;
+  return tracked.reduce((sum, s) => sum + (s.stockQuantity ?? 0), 0);
 }

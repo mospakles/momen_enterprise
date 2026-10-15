@@ -49,6 +49,7 @@ export const ADMIN_NAV: NavGroup[] = [
       { href: "/admin/measurements", label: "Measurements", icon: "ruler", resource: "measurements" },
       { href: "/admin/reviews", label: "Reviews", icon: "star", resource: "reviews" },
       { href: "/admin/wishlist", label: "Wishlist", icon: "heart", resource: "reviews" },
+      { href: "/admin/stock-alerts", label: "Stock Alerts", icon: "heart", resource: "products" },
     ],
   },
   {

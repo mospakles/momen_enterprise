@@ -20,10 +20,17 @@ export class PaymentsController {
     @CurrentUser() user: AuthenticatedCustomer | null,
     @Body() dto: InitializePaymentDto,
   ) {
-    return this.paymentsService.initializePayment(dto.orderId, {
-      customerId: user?.id,
-      customerEmail: dto.customerEmail,
-    });
+    return this.paymentsService.initializePayment(
+      dto.orderId,
+      { customerId: user?.id, customerEmail: dto.customerEmail },
+      dto.provider,
+    );
+  }
+
+  @Get('providers')
+  @Public()
+  async providers() {
+    return { providers: await this.paymentsService.availableProviders() };
   }
 
   @Get('verify/:reference')
