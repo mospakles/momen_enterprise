@@ -7,6 +7,7 @@ import { Product } from "@/lib/types";
 import { formatNaira } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/Button";
+import { isMadeToMeasure } from "@/lib/product-utils";
 
 export default function QuickViewModal({ product, onClose }: { product: Product; onClose: () => void }) {
   const { addItem } = useCart();
@@ -94,9 +95,9 @@ export default function QuickViewModal({ product, onClose }: { product: Product;
                   View Full Details
                 </Button>
               </div>
-              {product.productionType === "made-to-measure" && (
+              {isMadeToMeasure(product) && (
                 <p className="mt-3 text-xs text-clay">
-                  This is a made-to-measure piece — add measurements from the{" "}
+                  Added in a standard size from our size guide. To have it cut to your measurements, choose &ldquo;Made to measure&rdquo; on the{" "}
                   <Link href={`/product/${product.slug}`} className="underline">
                     product page
                   </Link>

@@ -3,6 +3,7 @@
 // photo gets a blurred colour placeholder while it loads.
 
 import { BRAND_IMAGES, LEGACY_BRAND_PATHS } from "./brand-images.generated";
+import type { CartItem, Product } from "./types";
 
 /** Current served path for an image (legacy names are mapped forward). */
 export function resolveImage<T extends string | undefined>(src: T): T {
@@ -36,3 +37,17 @@ export function imageProps(src: string) {
   const placeholder = placeholderFor(resolved);
   return placeholder ? { src: resolved, placeholder } : { src: resolved };
 }
+
+/** A product with every brand photo path mapped to its current name.
+ * Tolerates the slim product copies on orders (no colours, sometimes no images). */
+export function withCurrentImages(p: Product): Product {
+  return {
+    ...p,
+    images: p.images?.map((src) => resolveImage(src)) ?? p.images,
+    hoverImage: resolveImage(p.hoverImage),
+    colors: p.colors?.map((c) => (c.images ? { ...c, images: c.images.map((src) => resolveImage(src)) } : c)) ?? p.colors,
+  };
+}
+
+/** Bag items carry their own product copy (from storage or the saved cart). */
+export const withCurrentItemImages = (items: CartItem[]) => (items ?? []).map((i) => (i.product ? { ...i, product: withCurrentImages(i.product) } : i));

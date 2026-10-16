@@ -175,7 +175,7 @@ function ShopContent() {
   const kicker = query.q ? "Search" : occasion ? "Occasion" : singleCategory ? "Garment" : "Shop";
   const intro = query.q
     ? null
-    : occasion?.line ?? singleCategory?.description ?? "Agbada, kaftan, senator and the pieces around them — ready to wear or cut to measure in Lagos.";
+    : occasion?.line ?? singleCategory?.description ?? "Agbada, kaftan, jalabia and the pieces around them — ready to wear or cut to measure in Lagos.";
 
   const chips = buildChips(query, categories);
   const isLanding = !query.q && !occasion && query.category.length === 0 && activeCount(query) === 0;

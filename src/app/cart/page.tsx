@@ -6,12 +6,8 @@ import { useCart } from "@/lib/cart-context";
 import { useAdminStore } from "@/lib/admin/store";
 import { formatNaira } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
+import MeasurementStatus from "@/components/shop/MeasurementStatus";
 
-function needsMeasurementWarning(item: ReturnType<typeof useCart>["items"][number]) {
-  if (item.product.productionType !== "made-to-measure") return false;
-  if (item.customOrder && item.size !== "Made-to-Measure") return false; // standard size chosen in the wizard
-  return !item.measurement || item.measurement.mode === "pending";
-}
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, subtotal, isReady } = useCart();
@@ -72,20 +68,7 @@ export default function CartPage() {
                     </div>
                   )}
 
-                  {item.product.productionType === "made-to-measure" && !(item.customOrder && item.size !== "Made-to-Measure") && (
-                    <p className={`mt-2 text-xs ${needsMeasurementWarning(item) ? "text-error" : "text-brass"}`}>
-                      {needsMeasurementWarning(item) ? (
-                        <>
-                          ⚠ Measurements needed —{" "}
-                          <Link href={item.customOrder ? `/customize/${item.product.slug}` : `/product/${item.product.slug}`} className="underline">
-                            add now
-                          </Link>
-                        </>
-                      ) : (
-                        "✓ Measurements attached"
-                      )}
-                    </p>
-                  )}
+                  <MeasurementStatus item={item} back="/cart" className="mt-2" />
                 </div>
 
                 <div className="mt-4 flex items-center justify-between">

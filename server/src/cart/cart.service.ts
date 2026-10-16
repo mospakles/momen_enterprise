@@ -13,6 +13,8 @@ export interface StoredCartLine {
   color: string;
   quantity: number;
   measurement?: unknown;
+  /** Made-to-measure pieces: standard size from the guide, or cut to measure. */
+  fit?: 'standard' | 'measure';
   customizations?: Record<string, string>;
   customOrder?: unknown;
 }
@@ -77,6 +79,7 @@ function sanitize(lines: StoredCartLine[]): StoredCartLine[] {
       color: String(l.color ?? '').slice(0, 60),
       quantity: Math.min(20, Math.max(1, Math.floor(Number(l.quantity) || 1))),
       measurement: l.measurement,
+      fit: l.fit === 'measure' || l.fit === 'standard' ? l.fit : undefined,
       customizations: l.customizations,
       customOrder: l.customOrder,
     }));

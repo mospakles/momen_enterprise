@@ -8,12 +8,8 @@ const nextConfig: NextConfig = {
   images: {
     // Serve modern formats; the JPEGs in public/images/brand are the fallback.
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      { protocol: "https", hostname: "picsum.photos" },
-      // Placeholder editorial photography for the brand journey — see
-      // src/components/journey/media.ts. Remove once brand shoots are in.
-      { protocol: "https", hostname: "images.unsplash.com" },
-    ],
+    // No remote stock-photo hosts: only brand photography (and admin uploads,
+    // which render unoptimised) appears on the site.
   },
   // Brand photos were renamed in the curation pass (brand/curation.json);
   // old URLs redirect to the new names.

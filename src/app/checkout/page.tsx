@@ -22,6 +22,8 @@ import { apiRequest } from "@/lib/api";
 import { itemFromProduct, track } from "@/lib/analytics";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 import { toast } from "@/lib/toast";
+import { needsMeasurements } from "@/lib/product-utils";
+import MeasurementStatus, { measureHref } from "@/components/shop/MeasurementStatus";
 
 const STEPS = ["Contact", "Delivery", "Payment", "Review"] as const;
 const FORM_KEY = "momen.checkout.form";
@@ -204,12 +206,10 @@ export default function CheckoutPage() {
   };
   const deliveryDate = addBusinessDays(completionRange.to, 2);
 
-  const missingMeasurements = items.some(
-    (i) =>
-      i.product.productionType === "made-to-measure" &&
-      !(i.customOrder && i.size !== "Made-to-Measure") && // standard size chosen via the customization wizard
-      (!i.measurement || i.measurement.mode === "pending")
-  );
+  // Only pieces the customer chose to have cut to measure wait on measurements;
+  // a standard size from the size guide goes straight to payment.
+  const unmeasured = items.filter(needsMeasurements);
+  const missingMeasurements = unmeasured.length > 0;
 
   async function applyCoupon(raw = couponInput, silent = false) {
     setCouponError(null);
@@ -265,7 +265,7 @@ export default function CheckoutPage() {
             quantity: item.quantity,
             customizations: item.customizations,
             customOrder: item.customOrder,
-            measurement: item.measurement ?? { mode: "pending", unit: "cm" },
+            measurement: item.measurement ?? { mode: "pending", unit: "cm" }, // API requires one; "pending" + a standard size = sized from the guide
           })),
         },
       });
@@ -458,9 +458,21 @@ export default function CheckoutPage() {
                   )}
 
                   {missingMeasurements && (
-                    <p role="alert" className="bg-error/5 p-4 text-sm text-error">
-                      One or more made-to-measure pieces still need measurements. <Link href="/cart" className="underline">Add them from your bag</Link> before payment.
-                    </p>
+                    <div role="alert" className="bg-error/5 p-4 text-sm text-error">
+                      <p>
+                        {unmeasured.length === 1 ? "This piece is" : "These pieces are"} cut to your measurements, so we need them before payment:
+                      </p>
+                      <ul className="mt-2 space-y-1">
+                        {unmeasured.map((item) => (
+                          <li key={item.id}>
+                            {item.product.name} —{" "}
+                            <Link href={measureHref(item)} className="underline underline-offset-2">
+                              add measurements
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
 
                   <fieldset>
@@ -693,6 +705,7 @@ function Summary({
             <span className="min-w-0 flex-1 text-sm">
               <span className="block truncate">{item.product.name}</span>
               <span className="block text-xs text-ink/55">{item.size} · {item.color}</span>
+              <MeasurementStatus item={item} className="mt-1" />
             </span>
             <span className="text-sm">{formatNaira((item.product.price + (item.customizationCost ?? 0)) * item.quantity)}</span>
           </li>

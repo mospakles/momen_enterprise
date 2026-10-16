@@ -16,7 +16,7 @@ import { Wordmark } from "@/components/brand/Wordmark";
 import { trapFocus, useDialog } from "@/lib/a11y";
 import { Portal } from "@/components/ui/Portal";
 
-const CLOTHING_CATEGORIES = ["kaftans", "senator", "agbada", "jalabia", "shirts", "pants", "casual-wear"];
+const CLOTHING_CATEGORIES = ["kaftans", "agbada", "jalabia", "shirts", "pants", "casual-wear"];
 const ACCESSORY_CATEGORIES = ["footwear", "belts", "bags", "caps", "other-accessories"];
 const COLLECTION_ORDER = ["new-arrivals", "signature", "occasion", "everyday", "heritage", "contemporary", "limited-edition"];
 

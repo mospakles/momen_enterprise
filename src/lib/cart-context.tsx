@@ -5,11 +5,14 @@ import { CartItem, CartMeasurement, Product } from "./types";
 import { apiRequest } from "./api";
 import { useCustomerAuth } from "./customer-auth-context";
 import { toast } from "./toast";
+import { isMadeToMeasure } from "./product-utils";
+import { withCurrentItemImages } from "./brand-images";
 
 interface CartContextValue {
   items: CartItem[];
   wishlist: string[];
-  addItem: (product: Product, size: string, color: string, quantity?: number) => string;
+  /** `fit: "measure"` marks the piece as needing measurements before checkout. */
+  addItem: (product: Product, size: string, color: string, quantity?: number, fit?: "standard" | "measure") => string;
   /** Used by the Made-to-Measure wizard to add a fully custom-configured
    * item (fabric, colours, style customizations, measurements, reference
    * images, special instructions, and computed customization cost) in one
@@ -47,6 +50,7 @@ function saveRemoteCart(items: CartItem[]) {
         color: i.color,
         quantity: i.quantity,
         measurement: i.measurement,
+        fit: i.fit,
         customizations: i.customizations,
         customOrder: i.customOrder,
       })),
@@ -72,7 +76,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const rawCart = localStorage.getItem(CART_KEY);
       const rawWish = localStorage.getItem(WISHLIST_KEY);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating cart from localStorage on mount
-      if (rawCart) setItems(JSON.parse(rawCart));
+      if (rawCart) setItems(withCurrentItemImages(JSON.parse(rawCart)));
       if (rawWish) setWishlist(JSON.parse(rawWish));
     } catch {
       // ignore corrupt storage
@@ -133,7 +137,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           local = [];
         }
         const merged = [...remote.items, ...local.filter((l) => !remote.items.some((r) => sameLine(r, l)))];
-        setItems(merged);
+        setItems(withCurrentItemImages(merged));
         setServerSynced(currentUser.id);
         if (merged.length !== remote.items.length) await saveRemoteCart(merged);
       })
@@ -154,8 +158,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearTimeout(id);
   }, [items, currentUser, serverSynced]);
 
-  const addItem = useCallback((product: Product, size: string, color: string, quantity = 1) => {
+  const addItem = useCallback((product: Product, size: string, color: string, quantity = 1, fit: "standard" | "measure" = "standard") => {
     const id = `${product.id}-${size}-${color}-${Date.now()}`;
+    const mtm = isMadeToMeasure(product);
+    const measured = mtm && fit === "measure";
     setItems((prev) => [
       ...prev,
       {
@@ -164,10 +170,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         size,
         color,
         quantity,
-        measurement:
-          product.productionType === "made-to-measure"
-            ? { mode: "pending", unit: "cm" }
-            : undefined,
+        fit: mtm ? fit : undefined,
+        measurement: measured ? { mode: "pending", unit: "cm" } : undefined,
       },
     ]);
     announceAdded(id);
@@ -203,7 +207,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setItemMeasurement = useCallback((id: string, measurement: CartMeasurement) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, measurement } : i)));
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, measurement, fit: isMadeToMeasure(i.product) ? "measure" : i.fit } : i)));
   }, []);
 
   const clearCart = useCallback(() => setItems([]), []);

@@ -24,11 +24,9 @@ import { EASE_HOUSE } from "@/lib/motion/ease";
 import type { CartItem } from "@/lib/types";
 import { MEDIA } from "@/components/journey/media";
 import { placeholderFor } from "@/lib/brand-images";
+import { needsMeasurements } from "@/lib/product-utils";
+import MeasurementStatus from "./MeasurementStatus";
 
-const needsMeasurements = (item: CartItem) =>
-  item.product.productionType === "made-to-measure" &&
-  !(item.customOrder && item.size !== "Made-to-Measure") &&
-  (!item.measurement || item.measurement.mode === "pending");
 
 export default function BagDrawer() {
   const { bagOpen, openBag, closeBag } = useUI();
@@ -197,6 +195,12 @@ export default function BagDrawer() {
                         muted={!freeDelivery}
                       />
                     </dl>
+                    {items.some(needsMeasurements) && (
+                      <p role="status" className="mt-4 text-xs text-error">
+                        {items.filter(needsMeasurements).length === 1 ? "One piece needs" : `${items.filter(needsMeasurements).length} pieces need`} your
+                        measurements before payment — add them from the piece above.
+                      </p>
+                    )}
                     <button
                       type="button"
                       onClick={checkout}
@@ -230,7 +234,7 @@ function BagLine({ item, highlight, onRemove }: { item: CartItem; highlight: boo
   const { product } = item;
   const unit = product.price + (item.customizationCost ?? 0);
   const editable = !item.customOrder;
-  const mtmWarning = needsMeasurements(item);
+  const pathname = usePathname();
 
   return (
     <m.li
@@ -297,11 +301,7 @@ function BagLine({ item, highlight, onRemove }: { item: CartItem; highlight: boo
           </p>
         )}
 
-        {mtmWarning && (
-          <Link href={item.customOrder ? `/customize/${product.slug}` : `/product/${product.slug}`} className="mt-2 text-xs text-error underline underline-offset-2">
-            Measurements needed — add them now
-          </Link>
-        )}
+        <MeasurementStatus item={item} back={pathname} className="mt-2" />
 
         <div className="mt-auto flex items-center justify-between pt-3">
           <div className="flex items-center border border-line">

@@ -31,7 +31,7 @@ export default function CollectionDetailPage() {
   return (
     <div>
       <div className="relative flex h-[52vh] min-h-[340px] items-end overflow-hidden bg-charcoal">
-        <Image src={collection.image} alt={collection.name} fill unoptimized={/^https?:/.test(collection.image) && !collection.image.includes("picsum.photos")} className="object-cover object-[50%_18%] opacity-80" />
+        {collection.image && <Image src={collection.image} alt={collection.name} fill sizes="100vw" unoptimized={/^https?:/.test(collection.image)} className="object-cover object-[50%_18%] opacity-80" />}
         <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/10 to-transparent" />
         <div className="relative mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
           {collection.tag && <p className="eyebrow text-brass-light">{collection.tag}</p>}

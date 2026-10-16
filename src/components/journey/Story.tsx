@@ -27,7 +27,7 @@ const CHAPTERS = [
   {
     kicker: "III — The line",
     title: "A modern line.",
-    body: "The agbada, the kaftan, the senator — garments with centuries behind them, drawn with a cleaner shoulder and a sharper fall. Heritage, edited.",
+    body: "The agbada, the kaftan, the jalabia — garments with centuries behind them, drawn with a cleaner shoulder and a sharper fall. Heritage, edited.",
   },
   {
     kicker: "IV — The man",

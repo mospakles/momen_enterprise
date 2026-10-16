@@ -30,7 +30,7 @@ export default function JournalPostPage() {
       <p className="eyebrow">{formatDate(post.updatedAt)} · {post.author}</p>
       <h1 className="mt-2 font-display text-4xl sm:text-5xl">{post.title}</h1>
       <div className="relative mt-8 aspect-[16/9] overflow-hidden bg-ivory-deep">
-        <Image src={post.coverImage} alt={post.title} fill unoptimized={/^https?:/.test(post.coverImage) && !post.coverImage.includes("picsum.photos")} className="object-cover" />
+        {post.coverImage && <Image src={post.coverImage} alt={post.title} fill sizes="100vw" unoptimized={/^https?:/.test(post.coverImage)} className="object-cover" />}
       </div>
       <div className="prose prose-sm mt-8 max-w-none text-ink/75 [&_p]:leading-relaxed" dangerouslySetInnerHTML={{ __html: post.body }} />
       <div className="mt-8 flex flex-wrap gap-2">

@@ -2,13 +2,25 @@
 // underscores ("made_to_measure", "one_size") while the frontend types use
 // hyphens ("made-to-measure"); these helpers accept both.
 
-import type { Product } from "./types";
+import type { CartItem, Product } from "./types";
 
 const norm = (value: string | undefined) => (value ?? "").replace(/_/g, "-");
 
+/** Sizing mode with hyphens ("made-to-measure", "both", "one-size", "standard"). */
+export const sizingModeOf = (p: Product) => norm(p.sizingMode);
 export const isMadeToMeasure = (p: Product) => norm(p.productionType) === "made-to-measure";
 export const isAccessory = (p: Product) => norm(p.productType) === "accessory";
 export const isOneSize = (p: Product) => norm(p.sizingMode) === "one-size" || p.sizes.length <= 1;
+/** A bag item that can't go to payment until measurements are added: only a
+ * made-to-measure piece the customer chose to have cut to their measurements.
+ * A standard size picked from the size guide goes straight through. */
+export function needsMeasurements(item: CartItem) {
+  if (!isMadeToMeasure(item.product)) return false;
+  if (item.measurement && item.measurement.mode !== "pending") return false;
+  if (item.customOrder) return item.size === "Made-to-Measure";
+  return item.fit === "measure";
+}
+
 export const offersMadeToMeasure = (p: Product) => ["made-to-measure", "both"].includes(norm(p.sizingMode)) || isMadeToMeasure(p);
 
 /** Category comparison that works whether `product.category` holds the slug

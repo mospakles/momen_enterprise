@@ -11,6 +11,7 @@ import { DataTable, Column } from "@/components/admin/ui/DataTable";
 import { FilterBar, SearchInput, FilterSelect } from "@/components/admin/ui/FilterBar";
 import { NumberField, TextareaField } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
+import { isMadeToMeasure } from "@/lib/product-utils";
 
 function deriveStock(qty: number, threshold: number, current: Product["stock"]): Product["stock"] {
   if (current === "made-to-order") return current;
@@ -30,7 +31,7 @@ export default function AdminInventoryPage() {
   const [adjusting, setAdjusting] = useState<Product | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const trackedProducts = useMemo(() => products.filter((p) => p.productionType === "ready-to-wear"), [products]);
+  const trackedProducts = useMemo(() => products.filter((p) => !isMadeToMeasure(p)), [products]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

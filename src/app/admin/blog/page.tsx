@@ -70,7 +70,7 @@ export default function AdminBlogPage() {
 
 function PostDrawer({ post, onCancel, onSave, onDelete }: { post: BlogPost | null; onCancel: () => void; onSave: (p: BlogPost) => void; onDelete?: () => void }) {
   const [form, setForm] = useState<BlogPost>(
-    post ?? { id: "", slug: "", title: "", excerpt: "", body: "", coverImage: "https://picsum.photos/seed/new-journal/1600/1000", author: "", status: "draft", tags: [], seo: {}, updatedAt: new Date().toISOString() }
+    post ?? { id: "", slug: "", title: "", excerpt: "", body: "", coverImage: "", author: "", status: "draft", tags: [], seo: {}, updatedAt: new Date().toISOString() }
   );
   function set<K extends keyof BlogPost>(key: K, value: BlogPost[K]) {
     setForm((f) => ({ ...f, [key]: value }));

@@ -173,7 +173,7 @@ async function seedCatalog() {
       slug: 'heritage',
       name: 'Heritage',
       description: 'Traditional silhouettes, modern tailoring.',
-      image: 'https://picsum.photos/seed/heritage/1200/1500',
+      image: '/images/brand/campaign-ivory-kaftan-white-agbada.jpg',
       publishStatus: PublishStatus.published,
       sortOrder: 1,
     },
@@ -182,7 +182,7 @@ async function seedCatalog() {
 
   const fabric = await prisma.fabric.upsert({
     where: { id: 'fabric-senator-cotton' },
-    create: { id: 'fabric-senator-cotton', name: 'Senator Cotton', category: 'Cotton', image: 'https://picsum.photos/seed/fabric1/600/600', description: 'Breathable, structured cotton blend.', additionalCost: 0, available: true, sortOrder: 1 },
+    create: { id: 'fabric-senator-cotton', name: 'Senator Cotton', category: 'Cotton', image: '', description: 'Breathable, structured cotton blend.', additionalCost: 0, available: true, sortOrder: 1 },
     update: {},
   });
 
@@ -198,7 +198,7 @@ async function seedCatalog() {
         sku: 'MOM-KAF-001',
         categoryId: category.id,
         price: 65000,
-        images: ['https://picsum.photos/seed/onyeka1/1200/1500'],
+        images: ['/images/brand/kaftan-embroidered-beige.jpg'],
         productionType: 'made_to_measure',
         productType: 'made_to_measure',
         gender: 'men',

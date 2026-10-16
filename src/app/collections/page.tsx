@@ -35,14 +35,14 @@ export default function CollectionsPage() {
               href={`/collections/${c.slug}`}
               className="group relative flex aspect-[16/9] items-end overflow-hidden bg-ivory-deep sm:aspect-[21/9]"
             >
-              <Image
+              {c.image && <Image
                 src={c.image}
                 alt={c.name}
                 fill
                 sizes="100vw"
-                unoptimized={/^https?:/.test(c.image) && !c.image.includes("picsum.photos")}
+                unoptimized={/^https?:/.test(c.image)}
                 className="object-cover object-[50%_18%] transition-transform duration-700 group-hover:scale-105"
-              />
+              />}
               <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent" />
               <div className="relative w-full p-6 sm:p-10">
                 {c.tag && <p className="eyebrow text-brass-light">{c.tag}</p>}

@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import { isMadeToMeasure } from "@/lib/product-utils";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useAdminStore } from "@/lib/admin/store";
@@ -28,7 +29,7 @@ const emptyProduct = (): Product => ({
   tags: [],
   price: 0,
   currency: "NGN",
-  images: ["https://picsum.photos/seed/new-product/1200/1500"],
+  images: [],
   colors: [{ name: "Ivory", hex: "#F1ECDD" }],
   sizes: ["S", "M", "L"],
   productionType: "made-to-measure",
@@ -125,7 +126,7 @@ function ProductsContent() {
       render: (p) => (
         <div className="flex items-center gap-3">
           <div className="relative h-12 w-9 shrink-0 overflow-hidden bg-ivory-deep">
-            <Image src={p.images[0]} alt="" fill className="object-cover" sizes="36px" />
+            {p.images[0] && <Image src={p.images[0]} alt="" fill className="object-cover" sizes="36px" />}
           </div>
           <div>
             <p className="font-medium">{p.name}</p>
@@ -267,7 +268,7 @@ function ProductDrawer({
     .filter((d) => d.garments.includes(form.garment))
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((d) => d.key);
-  const activeFields = form.measurementFieldKeys ?? defaultFields;
+  const activeFields = form.measurementFieldKeys?.length ? form.measurementFieldKeys : defaultFields;
 
   function set<K extends keyof Product>(key: K, value: Product[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -567,7 +568,7 @@ function ProductDrawer({
             <p className="text-xs text-ink/45">
               By default, required measurements come from the garment type ({form.garment}). Override which fields apply to this specific product below.
             </p>
-            {form.productionType !== "made-to-measure" ? (
+            {!isMadeToMeasure(form) ? (
               <EmptyState title="Not a made-to-measure product" description="Measurement fields only apply to made-to-measure items." />
             ) : (
               <div className="space-y-1.5">

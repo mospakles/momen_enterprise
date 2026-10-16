@@ -268,6 +268,9 @@ export interface CartItem {
   color: string;
   quantity: number;
   measurement?: CartMeasurement;
+  /** How a made-to-measure piece is cut: a standard size from the size guide
+   * (no measurements needed) or to the customer's measurements. */
+  fit?: "standard" | "measure";
   customizations?: Record<string, string>; // groupId -> choiceId
   customOrder?: CustomOrderDetails;
   customizationCost?: number;

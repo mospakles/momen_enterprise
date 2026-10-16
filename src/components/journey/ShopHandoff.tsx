@@ -13,7 +13,7 @@ import { useCurtainNavigate } from "@/lib/motion/Curtain";
 import { usePrefersReducedMotion } from "@/lib/motion/hooks";
 import { MEDIA, focal } from "./media";
 
-const GARMENTS = ["Agbada", "Kaftan", "Senator", "Jalabia", "Aso-oke", "Brocade", "Linen"];
+const GARMENTS = ["Agbada", "Kaftan", "Jalabia", "Aso-oke", "Brocade", "Linen"];
 
 export default function ShopHandoff() {
   const navigate = useCurtainNavigate();

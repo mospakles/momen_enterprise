@@ -8,7 +8,6 @@ import type { Product } from "./types";
 const SYNONYMS: Record<string, string[]> = {
   kaftan: ["caftan", "kaftans"],
   agbada: ["grand", "boubou"],
-  senator: ["native"],
   trouser: ["pants", "trousers"],
   pants: ["trouser", "trousers"],
   shoes: ["footwear", "sandals", "pam"],

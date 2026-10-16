@@ -14,7 +14,6 @@ import { formatNaira } from "@/lib/format";
 
 const GARMENT_TYPES: { key: string; label: string; categorySlug?: string; garment?: string; image: string }[] = [
   { key: "kaftan", label: "Kaftan", categorySlug: "kaftans", image: "/images/brand/senator-beige.jpg" },
-  { key: "senator", label: "Senator", categorySlug: "senator", image: "/images/brand/senator-charcoal.jpg" },
   { key: "agbada", label: "Agbada", categorySlug: "agbada", image: "/images/brand/agbada-white-tonal.jpg" },
   { key: "jalabia", label: "Jalabia", categorySlug: "jalabia", image: "/images/brand/jalabia-ivory.jpg" },
   { key: "shirt", label: "Shirt", categorySlug: "shirts", image: "/images/brand/shirt-linen-sage.jpg" },

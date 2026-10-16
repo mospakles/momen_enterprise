@@ -6,6 +6,9 @@ import { ORDER_STAGES } from "./order-stages";
 import { apiRequest } from "./api";
 import { useCustomerAuth } from "./customer-auth-context";
 import { toast } from "./toast";
+import { withCurrentItemImages } from "./brand-images";
+
+const withCurrentOrderImages = (order: Order): Order => ({ ...order, items: withCurrentItemImages(order.items) });
 
 export { ORDER_STAGES };
 
@@ -55,7 +58,7 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       const path = isAdmin ? "/admin/orders" : "/orders/mine";
-      setOrders(await apiRequest<Order[]>(path));
+      setOrders((await apiRequest<Order[]>(path)).map(withCurrentOrderImages));
     } catch {
       setOrders([]);
     } finally {
@@ -70,7 +73,8 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("momen:auth-changed", reload);
   }, [refreshOrders]);
 
-  const replaceOrder = useCallback((saved: Order) => {
+  const replaceOrder = useCallback((incoming: Order) => {
+    const saved = withCurrentOrderImages(incoming);
     setOrders((previous) => {
       const exists = previous.some((order) => order.id === saved.id);
       return exists ? previous.map((order) => (order.id === saved.id ? saved : order)) : [saved, ...previous];

@@ -18,6 +18,7 @@ import { apiAssetUrl, apiRequest } from "@/lib/api";
 import type { CustomOrderDetails, MeasurementUnit, MeasurementValues, Product } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import MeasurementCapture from "@/components/measurement/MeasurementCapture";
+import { sizingModeOf } from "@/lib/product-utils";
 
 const MAX_REFERENCE_IMAGES = 6;
 const MAX_UPLOAD_BYTES = 1.8 * 1024 * 1024;
@@ -70,7 +71,7 @@ function draftKey(slug: string) {
 function defaultDraft(product: Product): Draft {
   return {
     size: product.sizes[Math.floor(product.sizes.length / 2)] ?? "M",
-    sizingChoice: product.sizingMode === "made-to-measure" ? "measure" : "standard",
+    sizingChoice: sizingModeOf(product) === "made-to-measure" ? "measure" : "standard",
     fabricId: undefined,
     primaryColor: product.colors[0]?.name,
     secondaryColor: undefined,
@@ -117,8 +118,8 @@ function Wizard({ product }: { product: Product }) {
     [product.customization, customizationGroups]
   );
 
-  const needsMeasurements = product.sizingMode === "made-to-measure" || (product.sizingMode === "both" && draft.sizingChoice === "measure");
-  const hasSizingChoice = product.sizingMode === "both";
+  const needsMeasurements = sizingModeOf(product) === "made-to-measure" || (sizingModeOf(product) === "both" && draft.sizingChoice === "measure");
+  const hasSizingChoice = sizingModeOf(product) === "both";
 
   const steps = useMemo(() => {
     const list = [{ key: "customize", label: "Customize" }];
@@ -334,7 +335,11 @@ function CustomizeStep({
                 className={`border p-2.5 text-left ${draft.fabricId === f.id ? "border-brass bg-brass/5" : "border-line hover:border-ink"}`}
               >
                 <div className="relative aspect-square overflow-hidden bg-ivory-deep">
-                  <Image src={f.image} alt={f.name} fill className="object-cover" sizes="140px" unoptimized />
+                  {f.image ? (
+                    <Image src={f.image} alt={f.name} fill className="object-cover" sizes="140px" unoptimized />
+                  ) : (
+                    <span className="display absolute inset-0 flex items-center justify-center p-2 text-center text-sm text-ink/50">{f.category}</span>
+                  )}
                 </div>
                 <p className="mt-2 text-xs font-medium">{f.name}</p>
                 <p className="text-[11px] text-ink/45">{f.additionalCost > 0 ? `+${formatNaira(f.additionalCost)}` : "Included"}</p>
@@ -398,7 +403,7 @@ function CustomizeStep({
             </button>
           </div>
         )}
-        {(!hasSizingChoice ? product.sizingMode === "standard" : draft.sizingChoice === "standard") && (
+        {(!hasSizingChoice ? sizingModeOf(product) === "standard" : draft.sizingChoice === "standard") && (
           <div className="flex flex-wrap gap-2">
             {product.sizes.map((s) => (
               <button
@@ -411,7 +416,7 @@ function CustomizeStep({
             ))}
           </div>
         )}
-        {((hasSizingChoice && draft.sizingChoice === "measure") || product.sizingMode === "made-to-measure") && (
+        {((hasSizingChoice && draft.sizingChoice === "measure") || sizingModeOf(product) === "made-to-measure") && (
           <p className="text-sm text-ink/60">You&rsquo;ll provide your measurements on the next step.</p>
         )}
       </section>

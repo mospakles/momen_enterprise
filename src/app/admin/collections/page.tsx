@@ -19,7 +19,7 @@ const emptyCollection = (): Collection => ({
   slug: "",
   name: "",
   description: "",
-  image: "https://picsum.photos/seed/new-collection/1600/1000",
+  image: "",
   productSlugs: [],
   publishStatus: "draft",
   expressEligible: true,
@@ -72,7 +72,7 @@ export default function AdminCollectionsPage() {
             return (
               <Card key={c.id} className="!p-0 overflow-hidden">
                 <div className="relative h-32 w-full bg-ivory-deep">
-                  <Image src={c.image} alt="" fill className="object-cover" sizes="360px" />
+                  {c.image && <Image src={c.image} alt="" fill className="object-cover" sizes="360px" />}
                   {c.tag && <span className="absolute left-2 top-2 bg-ink px-2 py-1 text-[10px] uppercase tracking-wide text-ivory">{c.tag}</span>}
                 </div>
                 <div className="p-4">

@@ -295,7 +295,8 @@ function OrderCard({ order, products }: { order: Order; products: Product[] }) {
         void _id;
         addCustomItem({ ...rest, product: current });
       } else {
-        const id = addItem(current, item.size, item.color, item.quantity);
+        const measured = item.measurement && item.measurement.mode !== "pending";
+        const id = addItem(current, item.size, item.color, item.quantity, measured || item.fit === "measure" ? "measure" : "standard");
         if (item.measurement && item.measurement.mode !== "pending") setItemMeasurement(id, item.measurement);
       }
       added++;

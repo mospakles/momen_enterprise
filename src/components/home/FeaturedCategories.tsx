@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAdminStore } from "@/lib/admin/store";
 
-const FEATURED_SLUGS = ["kaftans", "senator", "agbada", "shirts", "pants", "casual-wear", "accessories", "unisex"];
+const FEATURED_SLUGS = ["kaftans", "agbada", "shirts", "pants", "casual-wear", "accessories", "unisex"];
 
 export default function FeaturedCategories({ headline }: { headline?: string }) {
   const { categories, products } = useAdminStore();
@@ -12,12 +12,12 @@ export default function FeaturedCategories({ headline }: { headline?: string }) 
   const cards = FEATURED_SLUGS.map((slug) => {
     if (slug === "unisex") {
       const rep = products.find((p) => p.gender === "unisex");
-      return { slug, name: "Unisex", href: "/unisex", image: rep?.images[0] ?? "https://picsum.photos/seed/unisex-cat/900/1100" };
+      return { slug, name: "Unisex", href: "/unisex", image: rep?.images[0] ?? "/images/brand/campaign-linen-couple.jpg" };
     }
     const cat = categories.find((c) => c.slug === slug);
     if (!cat) return null;
     const rep = products.find((p) => p.category === cat.name) ?? products.find((p) => p.category.toLowerCase().includes(slug.split("-")[0]));
-    return { slug, name: cat.name, href: `/shop?category=${slug}`, image: cat.image ?? rep?.images[0] ?? "https://picsum.photos/seed/momen-cat/900/1100" };
+    return { slug, name: cat.name, href: `/shop?category=${slug}`, image: cat.image ?? rep?.images[0] ?? "/images/brand/campaign-trio-onyx-beige-white.jpg" };
   }).filter((c): c is NonNullable<typeof c> => Boolean(c));
 
   return (

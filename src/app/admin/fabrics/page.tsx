@@ -48,7 +48,7 @@ export default function AdminFabricsPage() {
           {sorted.map((f) => (
             <Card key={f.id} className="!p-0 overflow-hidden">
               <div className="relative h-32 w-full bg-ivory-deep">
-                <Image src={f.image} alt="" fill className="object-cover" sizes="360px" unoptimized />
+                {f.image ? <Image src={f.image} alt="" fill className="object-cover" sizes="360px" unoptimized /> : <span className="absolute inset-0 flex items-center justify-center text-xs text-ink/40">No swatch photo</span>}
               </div>
               <div className="p-4">
                 <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -90,7 +90,7 @@ export default function AdminFabricsPage() {
 
 function FabricModal({ fabric, nextOrder, onCancel, onSave }: { fabric: Fabric | null; nextOrder: number; onCancel: () => void; onSave: (f: Fabric) => void }) {
   const [form, setForm] = useState<Fabric>(
-    fabric ?? { id: "", name: "", category: "Cotton", image: "https://picsum.photos/seed/new-fabric/800/800", description: "", additionalCost: 0, available: true, sortOrder: nextOrder }
+    fabric ?? { id: "", name: "", category: "Cotton", image: "", description: "", additionalCost: 0, available: true, sortOrder: nextOrder }
   );
   function set<K extends keyof Fabric>(key: K, value: Fabric[K]) {
     setForm((f) => ({ ...f, [key]: value }));

@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { itemFromProduct, track } from "@/lib/analytics";
 import { estimateArrival, formatArrival, useDeliverySettings } from "@/lib/delivery";
-import { availableUnits, inCategory, isAccessory, isMadeToMeasure, isOneSize, stockState } from "@/lib/product-utils";
+import { availableUnits, inCategory, isAccessory, isMadeToMeasure, isOneSize, sizingModeOf, stockState } from "@/lib/product-utils";
 import { useRecentlyViewed } from "@/lib/recently-viewed";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 import { AccordionItem } from "@/components/ui/Accordion";
@@ -137,7 +137,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       sizeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    const id = addItem(product, size!, color, quantity);
+    const id = addItem(product, size!, color, quantity, isMTM ? fitMode : "standard");
     if (isMTM && fitMode === "measure" && pendingMeasurement) {
       setItemMeasurement(id, pendingMeasurement);
     }
@@ -267,6 +267,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                       </button>
                     ))}
                   </div>
+                )}
+                {isMTM && (
+                  <p className="mt-3 text-xs leading-relaxed text-ink/60">
+                    {fitMode === "standard"
+                      ? "Pick your size with the size guide — no measurements needed, straight through to payment."
+                      : "Cut to your body: we'll need your measurements before payment. Add them below now, or from your bag."}
+                  </p>
                 )}
 
                 {/* Size */}
@@ -530,8 +537,13 @@ function DesignYours({
             </li>
           ))}
         </ol>
-        <p className="mt-4 text-xs text-ink/55">
-          {product.sizes.length > 0 && <>Standard sizes {product.sizes[0]}–{product.sizes[product.sizes.length - 1]}. </>}
+        <p className="mt-4 text-xs leading-relaxed text-ink/70">
+          {sizingModeOf(product) === "made-to-measure"
+            ? "Cut only to your measurements — you'll add them while you design, and can save them to your account for next time."
+            : "Choose a standard size from the size guide and go straight to payment, or have it cut to your measurements."}
+        </p>
+        <p className="mt-2 text-xs text-ink/55">
+          {product.sizes.length > 0 && sizingModeOf(product) !== "made-to-measure" && <>Standard sizes {product.sizes[0]}–{product.sizes[product.sizes.length - 1]}. </>}
           <button type="button" onClick={onGuide} className="underline underline-offset-2">Size guide</button>
         </p>
       </div>

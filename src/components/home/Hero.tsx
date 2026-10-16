@@ -18,7 +18,7 @@ export default function Hero({ content }: { content?: HeroContent }) {
   const ctaHref = content?.ctaHref || "/shop";
   const ctaLabel2 = content?.ctaLabel2 || "Explore Made-to-Measure";
   const ctaHref2 = content?.ctaHref2 || "/made-to-measure";
-  const image = content?.image || "https://picsum.photos/seed/momen-hero-men/1800/1300";
+  const image = content?.image || "/images/brand/hero-gold-agbada-courtyard.jpg";
 
   return (
     <section className="relative flex min-h-[88vh] items-end overflow-hidden bg-charcoal">

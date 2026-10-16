@@ -42,17 +42,7 @@ import type {
   Testimonial,
 } from "./types";
 import { apiAssetUrl, apiRequest } from "@/lib/api";
-import { resolveImage } from "@/lib/brand-images";
-
-/** Maps brand photo paths renamed in the curation pass to their new names. */
-function withCurrentImages(p: Product): Product {
-  return {
-    ...p,
-    images: p.images.map((src) => resolveImage(src)),
-    hoverImage: resolveImage(p.hoverImage),
-    colors: p.colors.map((c) => (c.images ? { ...c, images: c.images.map((src) => resolveImage(src)) } : c)),
-  };
-}
+import { resolveImage, withCurrentImages } from "@/lib/brand-images";
 import { toast } from "@/lib/toast";
 
 function usePersistentState<T>(_key: string, initial: T) {

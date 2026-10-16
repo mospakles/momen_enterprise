@@ -26,7 +26,8 @@ export default function MeasurementCapture({
   const { measurementFieldDefs } = useAdminStore();
   const fields = useMemo(
     () =>
-      fieldOverride ??
+      // An empty override (the API default) means "use the garment's fields".
+      (fieldOverride?.length ? fieldOverride : undefined) ??
       measurementFieldDefs
         .filter((d) => d.garments.includes(garment))
         .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -62,7 +63,21 @@ export default function MeasurementCapture({
     setValues((prev) => ({ ...prev, [field]: value }));
   }
 
+  // Every field marked required in the admin (all of them, if none are flagged)
+  // needs a positive value before the measurements can be saved.
+  const requiredFields = useMemo(() => {
+    const flagged = fields.filter((f) => measurementFieldDefs.find((d) => d.key === f)?.required);
+    return flagged.length ? flagged : fields;
+  }, [fields, measurementFieldDefs]);
+  const missing = requiredFields.filter((f) => !(Number(values[f]) > 0));
+  const labelOf = (f: MeasurementField) => measurementFieldDefs.find((d) => d.key === f)?.label ?? f;
+
   function finalizeManual() {
+    if (missing.length || fields.length === 0) {
+      // From the guided flow, land on the form so the gaps are visible.
+      setMode("manual");
+      return;
+    }
     if (saveToAccount) {
       createProfile(`Measurements — ${new Date().toLocaleDateString()}`, unit, values);
     }
@@ -149,9 +164,14 @@ export default function MeasurementCapture({
             <input type="checkbox" checked={saveToAccount} onChange={(e) => setSaveToAccount(e.target.checked)} className="accent-brass" />
             Save these measurements to my account for future orders
           </label>
-          <button onClick={finalizeManual} className="eyebrow mt-4 bg-ink px-5 py-2.5 text-ivory hover:bg-brass">
+          <button onClick={finalizeManual} disabled={missing.length > 0 || fields.length === 0} className="eyebrow mt-4 bg-ink px-5 py-2.5 text-ivory hover:bg-brass disabled:opacity-40">
             Save Measurements
           </button>
+          {fields.length === 0 ? (
+            <p className="mt-2 text-xs text-error">We couldn&apos;t load the measurement form — refresh the page, or contact us and we&apos;ll take them with you.</p>
+          ) : (
+            missing.length > 0 && <p className="mt-2 text-xs text-ink/55">Still needed: {missing.map(labelOf).join(", ")}.</p>
+          )}
         </div>
       )}
 

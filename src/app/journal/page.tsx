@@ -20,7 +20,7 @@ export default function JournalPage() {
           {published.map((p) => (
             <Link key={p.id} href={`/journal/${p.slug}`} className="group">
               <div className="relative aspect-[4/3] overflow-hidden bg-ivory-deep">
-                <Image src={p.coverImage} alt={p.title} fill unoptimized={/^https?:/.test(p.coverImage) && !p.coverImage.includes("picsum.photos")} className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                {p.coverImage && <Image src={p.coverImage} alt={p.title} fill sizes="(min-width:1024px) 33vw, 100vw" unoptimized={/^https?:/.test(p.coverImage)} className="object-cover transition-transform duration-700 group-hover:scale-105" />}
               </div>
               <p className="mt-4 eyebrow text-clay">{formatDate(p.updatedAt)}</p>
               <p className="mt-1 font-display text-xl">{p.title}</p>

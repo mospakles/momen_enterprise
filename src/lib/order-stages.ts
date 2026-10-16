@@ -4,6 +4,7 @@
 // know an order's expected stage list, so these never drift apart.
 
 import type { CartItem, OrderStage } from "./types";
+import { isMadeToMeasure as productIsMadeToMeasure } from "./product-utils";
 
 export const ORDER_STAGES: OrderStage[] = [
   "Order Placed",
@@ -28,7 +29,7 @@ export function isCustomOrder(items: CartItem[]): boolean {
 }
 
 function isMadeToMeasure(items: CartItem[]): boolean {
-  return items.some((i) => i.product.productionType === "made-to-measure");
+  return items.some((i) => productIsMadeToMeasure(i.product));
 }
 
 export type OrderTypeLabel = "Ready-to-Wear" | "Made-to-Measure" | "Custom" | "Accessory";

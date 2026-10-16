@@ -50,7 +50,7 @@ const SPECS: OrderSpec[] = [
     daysAgo: 48, customerIdx: 5, speed: "express", completedCount: 8, paymentStatus: "paid", assignStaff: "ps-2",
     items: [{
       productSlug: "amadi-classic-kaftan", size: "Made-to-Measure", color: "Ink Black", qty: 1,
-      customOrder: { fabricId: "fab-premium-cotton", primaryColor: "Ink Black", referenceImages: ["https://picsum.photos/seed/ref-kaftan-1/900/1100"], referenceNotes: "Match this neckline shape.", specialInstructions: "Please add a slightly deeper side vent than standard." },
+      customOrder: { fabricId: "fab-premium-cotton", primaryColor: "Ink Black", referenceImages: ["/images/brand/kaftan-embroidered-beige.jpg"], referenceNotes: "Match this neckline shape.", specialInstructions: "Please add a slightly deeper side vent than standard." },
     }],
     customizationStatus: "confirmed",
   },
@@ -74,7 +74,7 @@ const SPECS: OrderSpec[] = [
     daysAgo: 12, customerIdx: 7, speed: "standard", completedCount: 1, paymentStatus: "paid",
     items: [{
       productSlug: "obasi-embroidered-kaftan", size: "Made-to-Measure", color: "Burgundy", qty: 1,
-      customOrder: { fabricId: "fab-guinea-brocade", primaryColor: "Burgundy", referenceImages: ["https://picsum.photos/seed/ref-kaftan-2/900/1100"], referenceNotes: "Embroidery pattern like this, but in gold thread." },
+      customOrder: { fabricId: "fab-guinea-brocade", primaryColor: "Burgundy", referenceImages: ["/images/brand/kaftan-embroidered-beige.jpg"], referenceNotes: "Embroidery pattern like this, but in gold thread." },
     }],
     customizationStatus: "awaiting_customer_confirmation",
   },

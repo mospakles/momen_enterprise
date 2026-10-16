@@ -13,9 +13,14 @@ import {
   SizingMode,
 } from "./types";
 
-// Deterministic placeholder imagery — swap for real editorial menswear photography.
-const img = (seed: string, w = 1200, h = 1500) =>
-  `https://picsum.photos/seed/${seed}/${w}/${h}`;
+// Demo imagery: real brand outfit photos, picked deterministically per seed.
+const DEMO_LOOKS = ["agbada-onyx", "kaftan-embroidered-beige", "jalabia-ivory", "campaign-trio-onyx-beige-white", "linen-short-set-sage", "shirt-linen-sage", "asooke-wide-leg-indigo", "agbada-emerald", "kaftan-geometric-white", "camp-collar-set-ivory"];
+const img = (seed: string, _w?: number, _h?: number) => {
+  void _w;
+  void _h;
+  const hash = [...seed].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  return `/images/brand/${DEMO_LOOKS[hash % DEMO_LOOKS.length]}.jpg`;
+};
 
 /* ───────────────────────────── Collections ───────────────────────────── */
 

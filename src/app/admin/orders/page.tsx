@@ -15,6 +15,7 @@ import { DataTable, Column, exportCsv } from "@/components/admin/ui/DataTable";
 import { FilterBar, SearchInput, FilterSelect, DateRangeFilter, DateRangeKey, rangeFromPreset } from "@/components/admin/ui/FilterBar";
 import { TextareaField } from "@/components/admin/ui/form";
 import { inRange } from "@/lib/admin/analytics";
+import { isMadeToMeasure } from "@/lib/product-utils";
 
 const EXCEPTION_STATUSES: OrderStatus[] = ["Payment Failed", "Cancelled", "Refund Requested", "Refunded", "Partially Refunded", "On Hold", "Awaiting Customer Response"];
 const ALL_STATUSES: OrderStatus[] = [...ORDER_STAGES, ...EXCEPTION_STATUSES];
@@ -319,7 +320,7 @@ function OrderDrawer({
                       <p>{it.product.name} × {it.quantity}</p>
                       <p className="text-xs text-ink/45">
                         {it.size}, {it.color}
-                        {it.product.productionType === "made-to-measure" && (it.measurement && it.measurement.mode !== "pending" ? " · measurements attached" : " · measurements pending")}
+                        {isMadeToMeasure(it.product) && (it.measurement && it.measurement.mode !== "pending" ? " · measurements attached" : it.size === "Made-to-Measure" ? " · measurements pending" : " · standard size from the size guide")}
                         {it.customOrder && " · custom order"}
                       </p>
                     </div>
@@ -651,7 +652,7 @@ function ProductionBriefModal({
         <div className="space-y-6">
           {customItems.map((it) => {
             const fabric = fabrics.find((f) => f.id === it.customOrder?.fabricId);
-            const activeFields = it.product.measurementFieldKeys ?? measurementFieldDefs.filter((d) => d.garments.includes(it.product.garment)).map((d) => d.key);
+            const activeFields = (it.product.measurementFieldKeys?.length ? it.product.measurementFieldKeys : undefined) ?? measurementFieldDefs.filter((d) => d.garments.includes(it.product.garment)).map((d) => d.key);
             return (
               <div key={it.id} className="border border-line p-4">
                 <p className="font-medium">{it.product.name} × {it.quantity}</p>

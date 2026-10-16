@@ -22,7 +22,7 @@ export const OCCASIONS: Occasion[] = [
     label: "Wedding",
     line: "For the vows, and the photographs that outlive them.",
     href: "/shop?occasion=wedding",
-    matches: (p) => inCollection(p, "occasion", "limited-edition") && inCategory(p, "agbada", "kaftans", "senator", "other-accessories", "caps"),
+    matches: (p) => inCollection(p, "occasion", "limited-edition") && inCategory(p, "agbada", "kaftans", "other-accessories", "caps"),
   },
   {
     slug: "owambe",
@@ -36,7 +36,7 @@ export const OCCASIONS: Occasion[] = [
     label: "Office",
     line: "Native, sharpened. Monday to Friday with intent.",
     href: "/shop?occasion=office",
-    matches: (p) => inCollection(p, "everyday", "signature") && inCategory(p, "shirts", "pants", "senator", "kaftans", "belts", "bags"),
+    matches: (p) => inCollection(p, "everyday", "signature") && inCategory(p, "shirts", "pants", "kaftans", "belts", "bags"),
   },
   {
     slug: "weekend",
