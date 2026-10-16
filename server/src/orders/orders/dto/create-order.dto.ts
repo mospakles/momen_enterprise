@@ -22,7 +22,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export class OrderAddressDto {
+class OrderAddressDto {
   @ApiProperty() @IsString() @MinLength(1) fullName!: string;
   @ApiProperty() @IsString() country!: string;
   @ApiProperty() @IsString() state!: string;
@@ -36,7 +36,7 @@ export class OrderAddressDto {
   @ApiProperty() @IsString() phone!: string;
 }
 
-export class OrderItemMeasurementDto {
+class OrderItemMeasurementDto {
   @ApiProperty({ enum: ['profile', 'manual', 'pending'] })
   @IsIn(['profile', 'manual', 'pending'])
   mode!: 'profile' | 'manual' | 'pending';
@@ -62,7 +62,7 @@ export class OrderItemMeasurementDto {
   unit!: MeasurementUnit;
 }
 
-export class CustomOrderDetailsDto {
+class CustomOrderDetailsDto {
   @ApiProperty({ required: false }) @IsOptional() @IsString() fabricId?: string;
   @ApiProperty({ required: false })
   @IsOptional()
@@ -91,7 +91,7 @@ export class CustomOrderDetailsDto {
   specialInstructions?: string;
 }
 
-export class CreateOrderItemDto {
+class CreateOrderItemDto {
   @ApiProperty() @IsString() productId!: string;
   @ApiProperty() @IsString() size!: string;
   @ApiProperty() @IsString() color!: string;

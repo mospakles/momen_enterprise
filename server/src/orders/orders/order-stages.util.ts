@@ -4,7 +4,7 @@ import { OrderStatus } from '@prisma/client';
 // backend computes the same stage list the storefront/admin UI expects. If
 // that file changes, mirror the change here.
 
-export const ORDER_STAGES: OrderStatus[] = [
+const ORDER_STAGES: OrderStatus[] = [
   OrderStatus.order_placed,
   OrderStatus.payment_confirmed,
   OrderStatus.customization_review,

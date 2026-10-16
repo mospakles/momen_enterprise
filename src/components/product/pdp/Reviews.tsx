@@ -250,7 +250,7 @@ function FitSummary({ reviews }: { reviews: Review[] }) {
   );
 }
 
-export function Stars({ value }: { value: number }) {
+function Stars({ value }: { value: number }) {
   return (
     <span className="inline-flex text-sm tracking-[0.15em]" aria-label={`${value.toFixed(1)} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((n) => (

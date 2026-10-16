@@ -5,7 +5,7 @@
 
 import type { Product } from "./types";
 
-export type AnalyticsEvent =
+type AnalyticsEvent =
   | "view_item"
   | "view_item_list"
   | "add_to_cart"

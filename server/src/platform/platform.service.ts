@@ -8,9 +8,9 @@ import { EmailSenderService } from '../notifications/email-sender.service';
 import { MEDIA_UPLOAD_DIR } from '../cms/media/media-storage.config';
 import type { CreateContactMessageDto } from './dto/platform.dto';
 
-export const PLATFORM_SETTINGS_KEY = 'platform';
+const PLATFORM_SETTINGS_KEY = 'platform';
 
-export const DEFAULT_PLATFORM_SETTINGS = {
+const DEFAULT_PLATFORM_SETTINGS = {
   general: {
     brandName: 'Momen',
     logoUrl: '',

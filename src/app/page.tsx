@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Journey from "@/components/journey/Journey";
 
-// The landing page is the brand journey: story first, shop second. The
-// previous admin-composed homepage sections still live in
-// src/components/home/ and remain available to reuse elsewhere.
+// The landing page is the brand journey: story first, shop second.
 
 export const metadata: Metadata = {
   title: "momen. — Tailored heritage. Modern men.",

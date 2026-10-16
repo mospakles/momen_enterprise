@@ -1,13 +1,13 @@
 import type { PermissionResource } from "./types";
 
-export interface NavLeaf {
+interface NavLeaf {
   href: string;
   label: string;
   icon: string;
   resource?: PermissionResource;
 }
 
-export interface NavGroup {
+interface NavGroup {
   label: string;
   items: NavLeaf[];
 }

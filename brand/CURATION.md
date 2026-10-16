@@ -6,7 +6,7 @@ by `node brand/build-images.mjs`, which also writes placeholders, dimensions and
 
 Grades: **A** hero/campaign quality · **B** solid product or support shot · **C** rejected (moved to `/_rejected/`, never served).
 
-Totals: 33 A · 177 B · 14 C.
+Totals: 211 images served, 16 kept out of the site in `/_rejected/` (14 graded C, 2 retired as unused).
 
 ## Served images
 
@@ -27,7 +27,6 @@ Totals: 33 A · 177 B · 14 C.
 | Nigerian Tailor Crafting a Cream Kaftan.png | `atelier-tailor-embroidering-cream-kaftan` | A | atelier | site: story |
 | Emerald Threads in a Nigerian Atelier.png | `atelier-tailor-sewing-emerald` | A | atelier | site: process |
 | Crafting Nigerian luxury, stitch by stitch.png | `atelier-tailors-at-work-wide` | A | atelier | site: aboutFounder |
-| Luxury tailoring in a Nigerian atelier.png | `atelier-tailors-navy-cocoa-wide` | A | atelier | site: aboutAtelier |
 | Nigerian Luxury Atelier in Motion.png | `atelier-wide-negative-space` | A | atelier | site: occasions.bespoke |
 | Bespoke Nigerian Kaftan Fitting.png | `bespoke-fitting-ivory-kaftan-wide` | A | bespoke | site: process; site: shopFeatures.bespoke |
 | MOMEN Bespoke Tailoring in Warm Light.png | `hero-bespoke-fitting-warm-light` | A | bespoke | site: bespoke; site: madeToMeasureHero |
@@ -52,7 +51,6 @@ Totals: 33 A · 177 B · 14 C.
 | agbada6.png | `agbada-ivory-onyx` | B | agbada | product: oba-ivory-agbada |
 | agbbada4.png | `agbada-olive` | B | agbada | product: adebayo-signature-agbada |
 | agbada5.png | `agbada-pearl` | B | agbada | product: oba-ivory-agbada |
-| Crafting Luxury in the Sunlit Studio.png | `atelier-tailor-sewing-cocoa` | B | atelier | site: aboutFounderDetails |
 | Refined black leather briefcase.png | `bag-briefcase-black` | B | bags | product: marina-leather-briefcase |
 | Luxury brown leather briefcase.png | `bag-briefcase-brown` | B | bags | category: bags; product: marina-leather-briefcase |
 | Luxury Black Leather Crossbody Bag.png | `bag-crossbody-black` | B | bags | product: ikeja-leather-crossbody |
@@ -231,6 +229,8 @@ Totals: 33 A · 177 B · 14 C.
 
 | Original | Reason |
 |---|---|
+| Luxury tailoring in a Nigerian atelier.png | Unused: the founder portraits took its place on the About page |
+| Crafting Luxury in the Sunlit Studio.png | Unused: the founder portraits took its place on the About page |
 | Motun.jpg | Founder portrait carries a photographer's credit mark in the corner — request clean files |
 | Motunn.jpg | Founder portrait carries a photographer's credit mark in the corner — request clean files |
 | Motunnn.jpg | Founder portrait carries a photographer's credit mark in the corner — request clean files |

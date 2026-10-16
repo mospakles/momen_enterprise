@@ -10,7 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export class ValidateCouponItemDto {
+class ValidateCouponItemDto {
   @ApiProperty() @IsString() productId!: string;
   @ApiProperty() @IsInt() @Min(1) quantity!: number;
 }

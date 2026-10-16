@@ -18,7 +18,7 @@ import type {
 } from './dto/address.dto';
 import { EmailSenderService } from '../../notifications/email-sender.service';
 
-export interface TokenPair {
+interface TokenPair {
   accessToken: string;
   refreshToken: string;
 }

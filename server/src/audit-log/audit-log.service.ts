@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PermissionResource, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
-export interface AuditLogEntryInput {
+interface AuditLogEntryInput {
   actorId?: string;
   actorName: string;
   action: string;

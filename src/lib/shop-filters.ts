@@ -30,7 +30,7 @@ export const SORTS: { key: SortKey; label: string }[] = [
 
 /** Cloth vocabulary matched against each product's own copy, since the
  * structured `fabric` field is often empty. */
-export const FABRICS = ["Aso-oke", "Brocade", "Linen", "Cotton", "Ankara", "Lace", "Silk", "Wool", "Leather", "Raffia", "Kente", "George"];
+const FABRICS = ["Aso-oke", "Brocade", "Linen", "Cotton", "Ankara", "Lace", "Silk", "Wool", "Leather", "Raffia", "Kente", "George"];
 
 const list = (v: string | null) => (v ? v.split(",").map((s) => s.trim()).filter(Boolean) : []);
 
@@ -61,7 +61,7 @@ export function serializeQuery(q: ShopQuery) {
   return p.toString();
 }
 
-export function productFabrics(p: Product) {
+function productFabrics(p: Product) {
   const text = normalise([p.name, p.fabric, p.shortDescription, p.description, p.tags.join(" ")].join(" "));
   return FABRICS.filter((f) => text.includes(normalise(f)));
 }

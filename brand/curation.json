@@ -865,11 +865,13 @@
  },
  {
   "src": "Crafting Luxury in the Sunlit Studio.png",
-  "name": "atelier-tailor-sewing-cocoa",
+  "name": null,
   "grade": "B",
   "category": "atelier",
   "alt": "A tailor sews cocoa cloth at a machine beside folded fabric and shears",
-  "file": "atelier-tailor-sewing-cocoa.png"
+  "file": "atelier-tailor-sewing-cocoa.png",
+  "retired": "atelier-tailor-sewing-cocoa",
+  "reason": "Unused: the founder portraits took its place on the About page (original kept in /_rejected/)"
  },
  {
   "src": "Crafting Nigerian luxury, stitch by stitch.png",
@@ -1161,11 +1163,13 @@
  },
  {
   "src": "Luxury tailoring in a Nigerian atelier.png",
-  "name": "atelier-tailors-navy-cocoa-wide",
+  "name": null,
   "grade": "A",
   "category": "atelier",
   "alt": "Tailors sewing navy and cocoa cloth in a busy atelier",
-  "file": "atelier-tailors-navy-cocoa-wide.png"
+  "file": "atelier-tailors-navy-cocoa-wide.png",
+  "retired": "atelier-tailors-navy-cocoa-wide",
+  "reason": "Unused: the founder portraits took its place on the About page (original kept in /_rejected/)"
  },
  {
   "src": "Luxury white leather Nigerian palm sandals.png",

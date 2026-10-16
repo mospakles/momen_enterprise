@@ -37,8 +37,11 @@ for (const e of entries) {
   let file = [e.src, renamed, e.file].filter(Boolean).map((f) => path.join(originals, f)).find((p) => fs.existsSync(p));
   if (!e.name) {
     if (file) fs.renameSync(file, path.join(rejected, e.src));
-    const oldServed = path.join(served, e.src.replace(/\.(png|jpe?g)$/i, "").toLowerCase() + ".jpg");
-    if (fs.existsSync(oldServed)) fs.rmSync(oldServed);
+    // Drop any served copy, under its original or its retired curated name.
+    for (const stem of [e.src.replace(/\.(png|jpe?g)$/i, "").toLowerCase(), e.retired].filter(Boolean)) {
+      const servedCopy = path.join(served, `${stem}.jpg`);
+      if (fs.existsSync(servedCopy)) fs.rmSync(servedCopy);
+    }
     continue;
   }
   if (!file) throw new Error(`Missing original for ${e.src}`);

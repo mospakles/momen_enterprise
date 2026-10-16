@@ -1,6 +1,6 @@
 import { SizingMode } from '@prisma/client';
 
-export type StockStatus =
+type StockStatus =
   'in-stock' | 'low-stock' | 'made-to-order' | 'out-of-stock';
 
 /** Replaces the frontend's stored `Product.stock` field — derived so it

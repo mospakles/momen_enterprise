@@ -7,7 +7,7 @@ import { DeliveryMethod, ProductionSpeed } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { UpsertDeliveryZoneDto } from './dto/upsert-delivery-zone.dto';
 
-export interface DeliveryQuote {
+interface DeliveryQuote {
   zoneId: string;
   zoneName: string;
   deliveryFee: number;

@@ -1,6 +1,6 @@
 import { SetMetadata } from '@nestjs/common';
 
-export const IS_PUBLIC_KEY = 'isPublic';
+const IS_PUBLIC_KEY = 'isPublic';
 
 /** Documents that a route is intentionally open — guest checkout, browsing
  * published products, etc. Every route in this app opts into auth

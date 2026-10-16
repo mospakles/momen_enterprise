@@ -21,8 +21,6 @@ export function needsMeasurements(item: CartItem) {
   return item.fit === "measure";
 }
 
-export const offersMadeToMeasure = (p: Product) => ["made-to-measure", "both"].includes(norm(p.sizingMode)) || isMadeToMeasure(p);
-
 /** Category comparison that works whether `product.category` holds the slug
  * (API) or the display name (legacy data). */
 export function inCategory(p: Product, category: { slug: string; name: string }) {
@@ -30,7 +28,7 @@ export function inCategory(p: Product, category: { slug: string; name: string })
   return c === category.slug.toLowerCase() || c === category.name.toLowerCase();
 }
 
-export type StockState = "in-stock" | "low-stock" | "made-to-order" | "sold-out";
+type StockState = "in-stock" | "low-stock" | "made-to-order" | "sold-out";
 
 export function stockState(p: Product): StockState {
   const s = norm(p.stock);

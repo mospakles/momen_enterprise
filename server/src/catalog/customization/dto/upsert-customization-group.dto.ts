@@ -12,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export class CustomizationChoiceDto {
+class CustomizationChoiceDto {
   @ApiProperty() @IsString() @MinLength(1) label!: string;
   @ApiProperty({ required: false })
   @IsOptional()

@@ -13,7 +13,7 @@ import type { UpsertRoleDto } from './dto/upsert-role.dto';
 const VALID_RESOURCES = new Set<string>(Object.values(PermissionResource));
 const VALID_ACTIONS = new Set<string>(Object.values(PermissionAction));
 
-export interface ActorContext {
+interface ActorContext {
   id: string;
   name: string;
 }

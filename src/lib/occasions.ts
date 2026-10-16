@@ -4,7 +4,7 @@
 
 import type { Product } from "./types";
 
-export interface Occasion {
+interface Occasion {
   slug: string;
   label: string;
   line: string;

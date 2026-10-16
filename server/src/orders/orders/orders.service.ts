@@ -50,6 +50,25 @@ async function adjustSizeStock(
   });
 }
 
+/** Returns stock held for an unpaid order to the shelf (product and size). */
+async function releaseReservations(
+  tx: Prisma.TransactionClient,
+  items: { productId: string | null; size: string; quantity: number }[],
+) {
+  for (const item of items) {
+    if (!item.productId) continue;
+    await tx.product
+      .update({
+        where: { id: item.productId },
+        data: { reservedQuantity: { decrement: item.quantity } },
+      })
+      .catch(() => undefined);
+    await adjustSizeStock(tx, item.productId, item.size, {
+      reservedQuantity: { decrement: item.quantity },
+    });
+  }
+}
+
 const ORDER_INCLUDE = {
   items: true,
   timeline: { orderBy: { sortOrder: 'asc' } },
@@ -756,18 +775,7 @@ export class OrdersService {
           );
         }
       } else if (status === 'failed' && order.paymentStatus !== 'failed') {
-        for (const item of order.items) {
-          if (!item.productId) continue;
-          await tx.product
-            .update({
-              where: { id: item.productId },
-              data: { reservedQuantity: { decrement: item.quantity } },
-            })
-            .catch(() => undefined);
-          await adjustSizeStock(tx, item.productId, item.size, {
-            reservedQuantity: { decrement: item.quantity },
-          });
-        }
+        await releaseReservations(tx, order.items);
         await tx.order.update({
           where: { id },
           data: { status: OrderStatus.payment_failed },
@@ -805,18 +813,7 @@ export class OrdersService {
         },
       });
       if (order.paymentStatus !== 'paid') {
-        for (const item of order.items) {
-          if (!item.productId) continue;
-          await tx.product
-            .update({
-              where: { id: item.productId },
-              data: { reservedQuantity: { decrement: item.quantity } },
-            })
-            .catch(() => undefined);
-          await adjustSizeStock(tx, item.productId, item.size, {
-            reservedQuantity: { decrement: item.quantity },
-          });
-        }
+        await releaseReservations(tx, order.items);
       }
     });
 

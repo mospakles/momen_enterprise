@@ -31,13 +31,6 @@ export function placeholderFor(src: string | undefined) {
   return value;
 }
 
-/** Spread onto next/image: `<Image {...imageProps(src)} …/>`. */
-export function imageProps(src: string) {
-  const resolved = resolveImage(src);
-  const placeholder = placeholderFor(resolved);
-  return placeholder ? { src: resolved, placeholder } : { src: resolved };
-}
-
 /** A product with every brand photo path mapped to its current name.
  * Tolerates the slim product copies on orders (no colours, sometimes no images). */
 export function withCurrentImages(p: Product): Product {

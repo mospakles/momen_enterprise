@@ -26,7 +26,7 @@ export function normalise(text: string) {
 }
 
 /** Damerau–Levenshtein distance with an early exit above `max`. */
-export function editDistance(a: string, b: string, max = 2) {
+function editDistance(a: string, b: string, max = 2) {
   if (Math.abs(a.length - b.length) > max) return max + 1;
   const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
   for (let j = 1; j <= b.length; j++) d[0][j] = j;
@@ -66,7 +66,7 @@ function tokenScore(token: string, words: string[]) {
   return best;
 }
 
-export function productWords(p: Product) {
+function productWords(p: Product) {
   const text = [p.name, p.category, p.fabric, p.shortDescription ?? "", p.tags.join(" "), p.collectionSlugs.join(" "), p.colors.map((c) => c.name).join(" "), p.productType]
     .join(" ");
   return [...new Set(normalise(text).split(/\s+/).filter(Boolean))];

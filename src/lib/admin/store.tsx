@@ -45,11 +45,6 @@ import { apiAssetUrl, apiRequest } from "@/lib/api";
 import { resolveImage, withCurrentImages } from "@/lib/brand-images";
 import { toast } from "@/lib/toast";
 
-function usePersistentState<T>(_key: string, initial: T) {
-  const [state, setState] = useState<T>(() => (Array.isArray(initial) ? ([] as T) : initial));
-  return [state, setState, true] as const;
-}
-
 const EMPTY_SYSTEM_SETTINGS: SystemSettings = {
   general: { brandName: "Momen", logoUrl: "", faviconUrl: "/favicon.ico", supportEmail: "", supportPhone: "", instagram: "", tiktok: "", pinterest: "" },
   currency: { defaultCurrency: "NGN", supportedCurrencies: ["NGN"] },
@@ -75,23 +70,19 @@ interface AdminStoreValue {
 
   // Catalog
   products: Product[];
-  setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   upsertProduct: (p: Product) => void;
   deleteProduct: (id: string) => void;
   bulkUpdateProducts: (ids: string[], patch: Partial<Product>) => void;
 
   collections: Collection[];
-  setCollections: React.Dispatch<React.SetStateAction<Collection[]>>;
   upsertCollection: (c: Collection) => void;
   deleteCollection: (id: string) => void;
 
   categories: Category[];
-  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   upsertCategory: (c: Category) => void;
   deleteCategory: (id: string) => void;
 
   customizationGroups: CustomizationGroup[];
-  setCustomizationGroups: React.Dispatch<React.SetStateAction<CustomizationGroup[]>>;
   upsertCustomizationGroup: (g: CustomizationGroup) => void;
   deleteCustomizationGroup: (id: string) => void;
 
@@ -99,34 +90,28 @@ interface AdminStoreValue {
   setMeasurementFieldDefs: React.Dispatch<React.SetStateAction<MeasurementFieldDef[]>>;
 
   fabrics: Fabric[];
-  setFabrics: React.Dispatch<React.SetStateAction<Fabric[]>>;
   upsertFabric: (f: Fabric) => void;
   deleteFabric: (id: string) => void;
 
   colorSwatches: ColorSwatch[];
-  setColorSwatches: React.Dispatch<React.SetStateAction<ColorSwatch[]>>;
   upsertColorSwatch: (c: ColorSwatch) => void;
   deleteColorSwatch: (id: string) => void;
 
   sizeOptions: SizeOption[];
-  setSizeOptions: React.Dispatch<React.SetStateAction<SizeOption[]>>;
   upsertSizeOption: (s: SizeOption) => void;
   deleteSizeOption: (id: string) => void;
 
   // CRM
   customers: Customer[];
-  setCustomers: React.Dispatch<React.SetStateAction<Customer[]>>;
   upsertCustomer: (c: Customer) => void;
   addCustomerNote: (customerId: string, author: string, message: string) => void;
 
   // People & access
   adminUsers: AdminUser[];
-  setAdminUsers: React.Dispatch<React.SetStateAction<AdminUser[]>>;
   upsertAdminUser: (u: AdminUser) => void;
   deleteAdminUser: (id: string) => void;
 
   roles: Role[];
-  setRoles: React.Dispatch<React.SetStateAction<Role[]>>;
   upsertRole: (r: Role) => void;
 
   auditLogs: AuditLogEntry[];
@@ -140,7 +125,6 @@ interface AdminStoreValue {
   setProductionTimelineRules: React.Dispatch<React.SetStateAction<ProductionTimelineRule[]>>;
 
   deliveryZones: DeliveryZone[];
-  setDeliveryZones: React.Dispatch<React.SetStateAction<DeliveryZone[]>>;
   upsertDeliveryZone: (z: DeliveryZone) => void;
   deleteDeliveryZone: (id: string) => void;
 
@@ -149,18 +133,15 @@ interface AdminStoreValue {
   setPaymentProviders: React.Dispatch<React.SetStateAction<PaymentProviderConfig[]>>;
 
   refunds: Refund[];
-  setRefunds: React.Dispatch<React.SetStateAction<Refund[]>>;
   requestRefund: (r: Omit<Refund, "id" | "status" | "requestedAt">) => void;
   updateRefundStatus: (id: string, status: Refund["status"], by: string) => void;
 
   // Promotions
   coupons: Coupon[];
-  setCoupons: React.Dispatch<React.SetStateAction<Coupon[]>>;
   upsertCoupon: (c: Coupon) => void;
   deleteCoupon: (id: string) => void;
 
   giftCards: GiftCard[];
-  setGiftCards: React.Dispatch<React.SetStateAction<GiftCard[]>>;
   upsertGiftCard: (g: GiftCard) => void;
 
   // Reviews
@@ -177,32 +158,26 @@ interface AdminStoreValue {
 
   notificationLog: NotificationLogEntry[];
   emailTemplates: EmailTemplate[];
-  setEmailTemplates: React.Dispatch<React.SetStateAction<EmailTemplate[]>>;
   upsertEmailTemplate: (t: EmailTemplate) => void;
 
   // CMS / content
   cmsPages: CMSPage[];
-  setCmsPages: React.Dispatch<React.SetStateAction<CMSPage[]>>;
   upsertCmsPage: (p: CMSPage) => void;
   deleteCmsPage: (id: string) => void;
 
   faqs: FAQItem[];
-  setFaqs: React.Dispatch<React.SetStateAction<FAQItem[]>>;
   upsertFaq: (f: FAQItem) => void;
   deleteFaq: (id: string) => void;
 
   testimonials: Testimonial[];
-  setTestimonials: React.Dispatch<React.SetStateAction<Testimonial[]>>;
   upsertTestimonial: (t: Testimonial) => void;
   deleteTestimonial: (id: string) => void;
 
   blogPosts: BlogPost[];
-  setBlogPosts: React.Dispatch<React.SetStateAction<BlogPost[]>>;
   upsertBlogPost: (b: BlogPost) => void;
   deleteBlogPost: (id: string) => void;
 
   banners: Banner[];
-  setBanners: React.Dispatch<React.SetStateAction<Banner[]>>;
   upsertBanner: (b: Banner) => void;
   deleteBanner: (id: string) => void;
 
@@ -213,7 +188,6 @@ interface AdminStoreValue {
   setHomepageSections: React.Dispatch<React.SetStateAction<HomepageSection[]>>;
 
   mediaAssets: MediaAsset[];
-  setMediaAssets: React.Dispatch<React.SetStateAction<MediaAsset[]>>;
   uploadMediaAsset: (file: File, folder?: string, alt?: string) => void;
   addExternalMediaAsset: (name: string, url: string, folder?: string, alt?: string) => void;
   deleteMediaAsset: (id: string) => void;
@@ -226,14 +200,11 @@ interface AdminStoreValue {
    * case for checkout when no more-specific `productionTimelineRules` /
    * `deliveryZones` entry applies. Editing this updates the storefront. */
   productionSettings: ProductionSettings;
-  setProductionSettings: React.Dispatch<React.SetStateAction<ProductionSettings>>;
 
   systemHealthChecks: SystemHealthCheck[];
 }
 
 const AdminStoreContext = createContext<AdminStoreValue | null>(null);
-
-const K = (name: string) => `momen.admin.${name}.v1`;
 
 function numberValue(value: unknown) {
   return Number(value ?? 0);
@@ -312,53 +283,49 @@ function normalizeCustomer(value: Record<string, unknown>): Customer {
 export function AdminStoreProvider({ children }: { children: React.ReactNode }) {
   const [apiReady, setApiReady] = useState(false);
   const [healthChecks, setHealthChecks] = useState<SystemHealthCheck[]>([]);
-  const [products, setProducts, r1] = usePersistentState<Product[]>(K("products"), []);
-  const [collections, setCollections, r2] = usePersistentState<Collection[]>(K("collections"), []);
-  const [categories, setCategories, r3] = usePersistentState<Category[]>(K("categories"), []);
-  const [customizationGroups, setCustomizationGroups, r20] = usePersistentState<CustomizationGroup[]>(K("customization-groups"), []);
-  const [measurementFieldDefs, setMeasurementFieldDefs, r21] = usePersistentState<MeasurementFieldDef[]>(K("measurement-fields"), []);
-  const [fabrics, setFabrics, r31] = usePersistentState<Fabric[]>(K("fabrics"), []);
-  const [colorSwatches, setColorSwatches, r32] = usePersistentState<ColorSwatch[]>(K("color-swatches"), []);
-  const [sizeOptions, setSizeOptions, r33] = usePersistentState<SizeOption[]>(K("size-options"), []);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [customizationGroups, setCustomizationGroups] = useState<CustomizationGroup[]>([]);
+  const [measurementFieldDefs, setMeasurementFieldDefs] = useState<MeasurementFieldDef[]>([]);
+  const [fabrics, setFabrics] = useState<Fabric[]>([]);
+  const [colorSwatches, setColorSwatches] = useState<ColorSwatch[]>([]);
+  const [sizeOptions, setSizeOptions] = useState<SizeOption[]>([]);
 
-  const [customers, setCustomers, r4] = usePersistentState<Customer[]>(K("customers"), []);
-  const [adminUsers, setAdminUsers, r5] = usePersistentState<AdminUser[]>(K("admin-users"), []);
-  const [roles, setRoles, r22] = usePersistentState<Role[]>(K("roles"), []);
-  const [auditLogs, setAuditLogs, r6] = usePersistentState<AuditLogEntry[]>(K("audit-logs"), []);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
 
-  const [productionStaff, setProductionStaff, r23] = usePersistentState<ProductionStaff[]>(K("production-staff"), []);
-  const [productionTimelineRules, setProductionTimelineRules, r24] = usePersistentState<ProductionTimelineRule[]>(K("production-timeline-rules"), []);
-  const [deliveryZones, setDeliveryZones, r7] = usePersistentState<DeliveryZone[]>(K("delivery-zones"), []);
+  const [productionStaff, setProductionStaff] = useState<ProductionStaff[]>([]);
+  const [productionTimelineRules, setProductionTimelineRules] = useState<ProductionTimelineRule[]>([]);
+  const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
 
-  const [paymentProviders, setPaymentProviders, r25] = usePersistentState<PaymentProviderConfig[]>(K("payment-providers"), []);
-  const [refunds, setRefunds, r8] = usePersistentState<Refund[]>(K("refunds"), []);
+  const [paymentProviders, setPaymentProviders] = useState<PaymentProviderConfig[]>([]);
+  const [refunds, setRefunds] = useState<Refund[]>([]);
 
-  const [coupons, setCoupons, r9] = usePersistentState<Coupon[]>(K("coupons"), []);
-  const [giftCards, setGiftCards, r10] = usePersistentState<GiftCard[]>(K("gift-cards"), []);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [giftCards, setGiftCards] = useState<GiftCard[]>([]);
 
-  const [reviews, setReviews, r11] = usePersistentState<Review[]>(K("reviews"), []);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
-  const [notificationTriggers, setNotificationTriggers, r26] = usePersistentState<NotificationTrigger[]>(K("notification-triggers"), []);
-  const [notificationLog, setNotificationLog, r27] = usePersistentState<NotificationLogEntry[]>(K("notification-log"), []);
-  const [emailTemplates, setEmailTemplates, r12] = usePersistentState<EmailTemplate[]>(K("email-templates"), []);
+  const [notificationTriggers, setNotificationTriggers] = useState<NotificationTrigger[]>([]);
+  const [notificationLog, setNotificationLog] = useState<NotificationLogEntry[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
 
-  const [cmsPages, setCmsPages, r13] = usePersistentState<CMSPage[]>(K("cms-pages"), []);
-  const [faqs, setFaqs, r14] = usePersistentState<FAQItem[]>(K("faqs"), []);
-  const [testimonials, setTestimonials, r15] = usePersistentState<Testimonial[]>(K("testimonials"), []);
-  const [blogPosts, setBlogPosts, r16] = usePersistentState<BlogPost[]>(K("blog-posts"), []);
-  const [banners, setBanners, r17] = usePersistentState<Banner[]>(K("banners"), []);
-  const [navigationItems, setNavigationItems, r28] = usePersistentState<NavigationItem[]>(K("navigation"), []);
-  const [homepageSections, setHomepageSections, r18] = usePersistentState<HomepageSection[]>(K("homepage-sections"), []);
-  const [mediaAssets, setMediaAssets, r19] = usePersistentState<MediaAsset[]>(K("media-assets"), []);
+  const [cmsPages, setCmsPages] = useState<CMSPage[]>([]);
+  const [faqs, setFaqs] = useState<FAQItem[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [navigationItems, setNavigationItems] = useState<NavigationItem[]>([]);
+  const [homepageSections, setHomepageSections] = useState<HomepageSection[]>([]);
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
 
-  const [systemSettings, setSystemSettings, r29] = usePersistentState<SystemSettings>(K("system-settings"), EMPTY_SYSTEM_SETTINGS);
-  const [productionSettings, setProductionSettings, r30] = usePersistentState<ProductionSettings>(K("production-settings"), EMPTY_PRODUCTION_SETTINGS);
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(EMPTY_SYSTEM_SETTINGS);
+  const productionSettings = EMPTY_PRODUCTION_SETTINGS;
 
-  const localStateReady = [
-    r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16, r17, r18, r19,
-    r20, r21, r22, r23, r24, r25, r26, r27, r28, r29, r30, r31, r32, r33,
-  ].every(Boolean);
-  const isReady = apiReady && localStateReady;
+  const isReady = apiReady;
 
   const loadPublicData = useCallback(async () => {
     const results = await Promise.all([
@@ -817,63 +784,63 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
   const value = useMemo<AdminStoreValue>(
     () => ({
       isReady,
-      products, setProducts, upsertProduct, deleteProduct, bulkUpdateProducts,
-      collections, setCollections, upsertCollection, deleteCollection,
-      categories, setCategories, upsertCategory, deleteCategory,
-      customizationGroups, setCustomizationGroups, upsertCustomizationGroup, deleteCustomizationGroup,
+      products, upsertProduct, deleteProduct, bulkUpdateProducts,
+      collections, upsertCollection, deleteCollection,
+      categories, upsertCategory, deleteCategory,
+      customizationGroups, upsertCustomizationGroup, deleteCustomizationGroup,
       measurementFieldDefs, setMeasurementFieldDefs,
-      fabrics, setFabrics, upsertFabric, deleteFabric,
-      colorSwatches, setColorSwatches, upsertColorSwatch, deleteColorSwatch,
-      sizeOptions, setSizeOptions, upsertSizeOption, deleteSizeOption,
-      customers, setCustomers, upsertCustomer, addCustomerNote,
-      adminUsers, setAdminUsers, upsertAdminUser, deleteAdminUser,
-      roles, setRoles, upsertRole,
+      fabrics, upsertFabric, deleteFabric,
+      colorSwatches, upsertColorSwatch, deleteColorSwatch,
+      sizeOptions, upsertSizeOption, deleteSizeOption,
+      customers, upsertCustomer, addCustomerNote,
+      adminUsers, upsertAdminUser, deleteAdminUser,
+      roles, upsertRole,
       auditLogs, logAudit,
       productionStaff, setProductionStaff,
       productionTimelineRules, setProductionTimelineRules,
-      deliveryZones, setDeliveryZones, upsertDeliveryZone, deleteDeliveryZone,
+      deliveryZones, upsertDeliveryZone, deleteDeliveryZone,
       paymentProviders, setPaymentProviders,
-      refunds, setRefunds, requestRefund, updateRefundStatus,
-      coupons, setCoupons, upsertCoupon, deleteCoupon,
-      giftCards, setGiftCards, upsertGiftCard,
+      refunds, requestRefund, updateRefundStatus,
+      coupons, upsertCoupon, deleteCoupon,
+      giftCards, upsertGiftCard,
       reviews, setReviews, updateReviewStatus, toggleReviewFeatured, respondToReview, deleteReview,
       notificationTriggers, setNotificationTriggers,
       notificationLog,
-      emailTemplates, setEmailTemplates, upsertEmailTemplate,
-      cmsPages, setCmsPages, upsertCmsPage, deleteCmsPage,
-      faqs, setFaqs, upsertFaq, deleteFaq,
-      testimonials, setTestimonials, upsertTestimonial, deleteTestimonial,
-      blogPosts, setBlogPosts, upsertBlogPost, deleteBlogPost,
-      banners, setBanners, upsertBanner, deleteBanner,
+      emailTemplates, upsertEmailTemplate,
+      cmsPages, upsertCmsPage, deleteCmsPage,
+      faqs, upsertFaq, deleteFaq,
+      testimonials, upsertTestimonial, deleteTestimonial,
+      blogPosts, upsertBlogPost, deleteBlogPost,
+      banners, upsertBanner, deleteBanner,
       navigationItems, setNavigationItems,
       homepageSections, setHomepageSections,
-      mediaAssets, setMediaAssets, uploadMediaAsset, addExternalMediaAsset, deleteMediaAsset,
+      mediaAssets, uploadMediaAsset, addExternalMediaAsset, deleteMediaAsset,
       systemSettings, setSystemSettings,
-      productionSettings, setProductionSettings,
+      productionSettings,
       systemHealthChecks: healthChecks,
     }),
     [
-      isReady, products, setProducts, upsertProduct, deleteProduct, bulkUpdateProducts,
-      collections, setCollections, upsertCollection, deleteCollection,
-      categories, setCategories, upsertCategory, deleteCategory,
-      customizationGroups, setCustomizationGroups, upsertCustomizationGroup, deleteCustomizationGroup, measurementFieldDefs, setMeasurementFieldDefs,
-      fabrics, setFabrics, upsertFabric, deleteFabric, colorSwatches, setColorSwatches, upsertColorSwatch, deleteColorSwatch,
-      sizeOptions, setSizeOptions, upsertSizeOption, deleteSizeOption,
-      customers, setCustomers, upsertCustomer, addCustomerNote,
-      adminUsers, setAdminUsers, upsertAdminUser, deleteAdminUser, roles, setRoles, upsertRole,
+      isReady, products, upsertProduct, deleteProduct, bulkUpdateProducts,
+      collections, upsertCollection, deleteCollection,
+      categories, upsertCategory, deleteCategory,
+      customizationGroups, upsertCustomizationGroup, deleteCustomizationGroup, measurementFieldDefs, setMeasurementFieldDefs,
+      fabrics, upsertFabric, deleteFabric, colorSwatches, upsertColorSwatch, deleteColorSwatch,
+      sizeOptions, upsertSizeOption, deleteSizeOption,
+      customers, upsertCustomer, addCustomerNote,
+      adminUsers, upsertAdminUser, deleteAdminUser, roles, upsertRole,
       auditLogs, logAudit, productionStaff, setProductionStaff, productionTimelineRules, setProductionTimelineRules,
-      deliveryZones, setDeliveryZones, upsertDeliveryZone, deleteDeliveryZone,
-      paymentProviders, setPaymentProviders, refunds, setRefunds, requestRefund, updateRefundStatus,
-      coupons, setCoupons, upsertCoupon, deleteCoupon, giftCards, setGiftCards, upsertGiftCard,
+      deliveryZones, upsertDeliveryZone, deleteDeliveryZone,
+      paymentProviders, setPaymentProviders, refunds, requestRefund, updateRefundStatus,
+      coupons, upsertCoupon, deleteCoupon, giftCards, upsertGiftCard,
       reviews, setReviews, updateReviewStatus, toggleReviewFeatured, respondToReview, deleteReview,
       notificationTriggers, setNotificationTriggers, notificationLog,
-      emailTemplates, setEmailTemplates, upsertEmailTemplate,
-      cmsPages, setCmsPages, upsertCmsPage, deleteCmsPage, faqs, setFaqs, upsertFaq, deleteFaq,
-      testimonials, setTestimonials, upsertTestimonial, deleteTestimonial,
-      blogPosts, setBlogPosts, upsertBlogPost, deleteBlogPost, banners, setBanners, upsertBanner, deleteBanner,
+      emailTemplates, upsertEmailTemplate,
+      cmsPages, upsertCmsPage, deleteCmsPage, faqs, upsertFaq, deleteFaq,
+      testimonials, upsertTestimonial, deleteTestimonial,
+      blogPosts, upsertBlogPost, deleteBlogPost, banners, upsertBanner, deleteBanner,
       navigationItems, setNavigationItems, homepageSections, setHomepageSections,
-      mediaAssets, setMediaAssets, uploadMediaAsset, addExternalMediaAsset, deleteMediaAsset, systemSettings, setSystemSettings,
-      productionSettings, setProductionSettings, healthChecks,
+      mediaAssets, uploadMediaAsset, addExternalMediaAsset, deleteMediaAsset, systemSettings, setSystemSettings,
+      productionSettings, healthChecks,
     ]
   );
 

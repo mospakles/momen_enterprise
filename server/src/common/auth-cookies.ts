@@ -1,7 +1,7 @@
 import type { CookieOptions, Request } from 'express';
 import type { ConfigService } from '@nestjs/config';
 
-export type AuthAudience = 'customer' | 'admin';
+type AuthAudience = 'customer' | 'admin';
 
 export function accessCookieName(audience: AuthAudience) {
   return `momen_${audience}_access`;

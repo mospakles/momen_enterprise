@@ -6,7 +6,7 @@ import type { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import { accessCookieName, readCookie } from '../../common/auth-cookies';
 
-export interface AdminJwtPayload {
+interface AdminJwtPayload {
   sub: string;
   type: 'admin';
 }

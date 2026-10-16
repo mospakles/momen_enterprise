@@ -33,7 +33,7 @@ next-env.d.ts
 # in public/images/brand — regenerate those if originals change.
 /public/brand/
 
-# Local backup written by server/prisma/scripts/apply-brand-photos.ts
+# Local backup left by the retired apply-brand-photos script
 server/prisma/scripts/brand-photos.backup.json
 
 # Images graded C during curation (kept, never served) — see brand/CURATION.md

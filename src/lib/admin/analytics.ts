@@ -4,7 +4,7 @@
 
 import type { Order } from "@/lib/types";
 
-export interface Bucket {
+interface Bucket {
   start: Date;
   end: Date;
   label: string;

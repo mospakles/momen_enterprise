@@ -4,7 +4,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { useMotionValue, useSpring, type MotionValue } from "motion/react";
 import { SPRING_SOFT } from "./ease";
 
-export function useMediaQuery(query: string, serverValue = false) {
+function useMediaQuery(query: string, serverValue = false) {
   return useSyncExternalStore(
     (onChange) => {
       const list = window.matchMedia(query);
