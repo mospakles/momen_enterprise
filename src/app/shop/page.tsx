@@ -19,7 +19,8 @@ import { track, itemFromProduct } from "@/lib/analytics";
 import { formatNaira } from "@/lib/format";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 import { SplitText } from "@/lib/motion/SplitText";
-import { MEDIA } from "@/components/journey/media";
+import { MEDIA, focal } from "@/components/journey/media";
+import { placeholderFor } from "@/lib/brand-images";
 import type { Product } from "@/lib/types";
 
 const PAGE = 12;
@@ -29,9 +30,10 @@ const RESTORE_KEY = "momen.shop.restore";
 // Editorial interruptions in the grid. Placeholder campaign imagery — see
 // src/components/journey/media.ts.
 const FEATURES = [
-  { image: MEDIA.occasions.wedding, kicker: "The wedding edit", title: "For the vows, and every photograph after.", href: "/shop?occasion=wedding", cta: "Shop the edit" },
-  { image: { src: "/images/brand/menasooke2.jpg", alt: "A man in a black tee and striped aso-oke cargo trousers" }, kicker: "The cloth", title: "Aso-oke, ankara, linen — chosen by touch.", href: "/shop?fabric=Aso-oke", cta: "Shop the cloth" },
-  { image: MEDIA.bespoke, kicker: "Bespoke", title: "Cut for one. Book a fitting in Lagos or measure at home.", href: "/made-to-measure", cta: "Begin a commission" },
+  { image: MEDIA.shopFeatures.wedding, kicker: "The wedding edit", title: "For the vows, and every photograph after.", href: "/shop?occasion=wedding", cta: "Shop the edit" },
+  { image: MEDIA.shopFeatures.cloth, kicker: "The cloth", title: "Aso-oke, ankara, linen — chosen by touch.", href: "/shop?fabric=Aso-oke", cta: "Shop the cloth" },
+  { image: MEDIA.shopFeatures.accessories, kicker: "Finishing pieces", title: "Fila caps, palm sandals and leather to complete the look.", href: "/shop?category=accessories", cta: "Shop accessories" },
+  { image: MEDIA.shopFeatures.bespoke, kicker: "Bespoke", title: "Cut for one. Book a fitting in Lagos or measure at home.", href: "/made-to-measure", cta: "Begin a commission" },
 ];
 
 export default function ShopPage() {
@@ -176,6 +178,7 @@ function ShopContent() {
     : occasion?.line ?? singleCategory?.description ?? "Agbada, kaftan, senator and the pieces around them — ready to wear or cut to measure in Lagos.";
 
   const chips = buildChips(query, categories);
+  const isLanding = !query.q && !occasion && query.category.length === 0 && activeCount(query) === 0;
   const showFeatures = !query.q && results.length > 8;
 
   // Mobile density maps 3/4 → 2, desktop 1 → 2.
@@ -184,11 +187,35 @@ function ShopContent() {
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 pb-24 sm:px-6 lg:px-10">
-      <header className="pb-10 pt-10 lg:pb-14 lg:pt-16">
-        <p className="label text-clay">{kicker}</p>
-        <SplitText key={title} as="h1" text={title} className="display mt-4 text-[clamp(2.8rem,7vw,6.5rem)]" trigger="manual" />
-        {intro && <p className="mt-5 max-w-lg text-[0.95rem] leading-relaxed text-ink/65">{intro}</p>}
-      </header>
+      {isLanding ? (
+        // The unfiltered collection opens on a campaign image; filtered views
+        // keep the quieter text header so results stay close to the top.
+        <header data-tone="dark" className="relative -mx-4 mb-0 flex min-h-[62vh] items-end overflow-hidden bg-night px-4 pb-12 pt-24 text-bone sm:-mx-6 sm:px-6 lg:-mx-10 lg:min-h-[72vh] lg:px-10 lg:pb-16">
+          <Image
+            src={MEDIA.shopHero.src}
+            alt={MEDIA.shopHero.alt}
+            fill
+            preload
+            sizes="100vw"
+            placeholder={placeholderFor(MEDIA.shopHero.src)}
+            style={focal(MEDIA.shopHero).style}
+            className={`object-cover ${focal(MEDIA.shopHero).className}`}
+          />
+          <span aria-hidden className="absolute inset-0 bg-linear-to-r from-night/70 via-night/25 to-transparent" />
+          <span aria-hidden className="absolute inset-0 bg-linear-to-t from-night/60 to-transparent" />
+          <div className="relative">
+            <p className="label text-sand">{kicker}</p>
+            <SplitText key={title} as="h1" text={title} className="display mt-4 text-[clamp(2.8rem,7vw,6.5rem)]" trigger="manual" />
+            {intro && <p className="mt-5 max-w-lg text-[0.95rem] leading-relaxed text-bone/80">{intro}</p>}
+          </div>
+        </header>
+      ) : (
+        <header className="pb-10 pt-10 lg:pb-14 lg:pt-16">
+          <p className="label text-clay">{kicker}</p>
+          <SplitText key={title} as="h1" text={title} className="display mt-4 text-[clamp(2.8rem,7vw,6.5rem)]" trigger="manual" />
+          {intro && <p className="mt-5 max-w-lg text-[0.95rem] leading-relaxed text-ink/65">{intro}</p>}
+        </header>
+      )}
 
       {/* Toolbar */}
       <div className={`sticky z-30 -mx-4 border-y border-line bg-ivory/92 px-4 backdrop-blur-md transition-[top] duration-500 ease-house sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 ${headerHidden ? "top-0" : "top-16 lg:top-18"}`}>
@@ -314,7 +341,7 @@ function Feature({ feature, wide }: { feature: (typeof FEATURES)[number]; wide: 
       className={`col-span-full ${wide ? "lg:col-span-2" : ""}`}
     >
       <Link href={feature.href} className="group relative block h-full min-h-105 overflow-hidden bg-night text-bone" data-cursor="Enter" data-tone="dark">
-        <Image src={feature.image.src} alt={feature.image.alt} fill sizes="(min-width:1024px) 50vw, 100vw" className="object-cover opacity-80 transition-transform duration-[1.6s] ease-house group-hover:scale-[1.04]" />
+        <Image src={feature.image.src} alt={feature.image.alt} fill sizes="(min-width:1024px) 50vw, 100vw" placeholder={placeholderFor(feature.image.src)} style={focal(feature.image).style} className={`object-cover ${focal(feature.image).className} opacity-80 transition-transform duration-[1.6s] ease-house group-hover:scale-[1.04]`} />
         <span className="absolute inset-0 bg-linear-to-t from-night/85 via-night/20 to-transparent" />
         <span className="absolute inset-x-0 bottom-0 p-7 lg:p-10">
           <span className="label block text-sand">{feature.kicker}</span>

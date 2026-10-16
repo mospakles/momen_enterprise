@@ -8,7 +8,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { OCCASIONS } from "@/lib/occasions";
 import { SplitText } from "@/lib/motion/SplitText";
-import { MEDIA } from "./media";
+import { MEDIA, focal } from "./media";
+import { placeholderFor } from "@/lib/brand-images";
 
 export default function Occasions() {
   const [open, setOpen] = useState(0);
@@ -44,7 +45,9 @@ export default function Occasions() {
                   alt={media.alt}
                   fill
                   sizes="60vw"
-                  className={`object-cover transition-[transform,filter] duration-[1.4s] ease-house ${isOpen ? "scale-100 grayscale-0" : "scale-110 grayscale"}`}
+                  placeholder={placeholderFor(media.src)}
+                  style={focal(media).style}
+                  className={`object-cover ${focal(media).className} transition-[transform,filter] duration-[1.4s] ease-house ${isOpen ? "scale-100 grayscale-0" : "scale-110 grayscale"}`}
                 />
                 <span className={`absolute inset-0 bg-night transition-opacity duration-700 ${isOpen ? "opacity-30" : "opacity-60"}`} />
                 <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-night/90 to-transparent p-7 pt-24">
@@ -72,7 +75,7 @@ export default function Occasions() {
           return (
             <li key={occasion.slug} className="w-[78vw] shrink-0 snap-start sm:w-[44vw]">
               <Link href={occasion.href} className="group relative block aspect-[3/4] overflow-hidden active:scale-[0.99]">
-                <Image src={media.src} alt={media.alt} fill sizes="78vw" className="object-cover" />
+                <Image src={media.src} alt={media.alt} fill sizes="78vw" placeholder={placeholderFor(media.src)} style={focal(media).style} className={`object-cover ${focal(media).className}`} />
                 <span className="absolute inset-0 bg-linear-to-t from-night/90 via-night/20 to-transparent" />
                 <span className="absolute inset-x-0 bottom-0 p-5">
                   <span className="label block text-sand">{String(i + 1).padStart(2, "0")}</span>

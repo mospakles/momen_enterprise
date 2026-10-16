@@ -10,7 +10,8 @@ import { m } from "motion/react";
 import { ClipReveal, Reveal } from "@/lib/motion/Reveal";
 import { SplitText } from "@/lib/motion/SplitText";
 import { EASE_HOUSE } from "@/lib/motion/ease";
-import { MEDIA } from "./media";
+import { MEDIA, focal } from "./media";
+import { placeholderFor } from "@/lib/brand-images";
 
 const CHAPTERS = [
   {
@@ -69,7 +70,7 @@ export default function Story() {
                     animate={{ scale: i === active ? 1 : 1.12 }}
                     transition={{ duration: 1.6, ease: EASE_HOUSE }}
                   >
-                    <Image src={image.src} alt={i === active ? image.alt : ""} fill sizes="50vw" className="object-cover" />
+                    <Image src={image.src} alt={i === active ? image.alt : ""} fill sizes="50vw" placeholder={placeholderFor(image.src)} className={`object-cover ${focal(image).className}`} style={focal(image).style} />
                   </m.div>
                 </m.div>
               ))}
@@ -90,7 +91,7 @@ export default function Story() {
               viewport={{ amount: 0.55 }}
             >
               <ClipReveal className="relative mb-8 aspect-[4/5] w-full bg-bone lg:hidden">
-                <Image src={MEDIA.story[i].src} alt={MEDIA.story[i].alt} fill sizes="100vw" className="object-cover" />
+                <Image src={MEDIA.story[i].src} alt={MEDIA.story[i].alt} fill sizes="100vw" placeholder={placeholderFor(MEDIA.story[i].src)} className={`object-cover ${focal(MEDIA.story[i]).className}`} style={focal(MEDIA.story[i]).style} />
               </ClipReveal>
               <Reveal>
                 <p className="label text-clay">{chapter.kicker}</p>

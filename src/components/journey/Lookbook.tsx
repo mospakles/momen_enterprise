@@ -14,15 +14,16 @@ import type { Product } from "@/lib/types";
 import { ClipReveal, Reveal } from "@/lib/motion/Reveal";
 import { SplitText } from "@/lib/motion/SplitText";
 import { useIsDesktop, usePrefersReducedMotion } from "@/lib/motion/hooks";
-import { LOOK_PRODUCT_SLUGS, MEDIA } from "./media";
+import { LOOK_PRODUCT_SLUGS, MEDIA, focal } from "./media";
+import { placeholderFor } from "@/lib/brand-images";
 
 // Asymmetric placement per look on the 12-column desktop grid.
 const LAYOUT = [
-  { col: "lg:col-start-1 lg:col-span-6", aspect: "aspect-[4/5]", offset: "lg:mt-0", speed: 40 },
-  { col: "lg:col-start-8 lg:col-span-5", aspect: "aspect-[3/4]", offset: "lg:mt-[28vh]", speed: -50 },
-  { col: "lg:col-start-2 lg:col-span-4", aspect: "aspect-[4/5]", offset: "lg:-mt-[8vh]", speed: 60 },
-  { col: "lg:col-start-7 lg:col-span-5", aspect: "aspect-[2/3]", offset: "lg:mt-[14vh]", speed: -30 },
-  { col: "lg:col-start-4 lg:col-span-6", aspect: "aspect-[4/5]", offset: "lg:mt-[12vh]", speed: 30 },
+  { col: "lg:col-start-1 lg:col-span-8", aspect: "aspect-[4/3] lg:aspect-[16/10]", offset: "lg:mt-0", speed: 30 },
+  { col: "lg:col-start-9 lg:col-span-4", aspect: "aspect-[4/5] lg:aspect-[2/3]", offset: "lg:mt-[22vh]", speed: -50 },
+  { col: "lg:col-start-2 lg:col-span-4", aspect: "aspect-[4/5]", offset: "lg:-mt-[6vh]", speed: 60 },
+  { col: "lg:col-start-6 lg:col-span-7", aspect: "aspect-[4/3] lg:aspect-[16/10]", offset: "lg:mt-[16vh]", speed: -30 },
+  { col: "lg:col-start-4 lg:col-span-5", aspect: "aspect-[4/5]", offset: "lg:mt-[12vh]", speed: 30 },
 ];
 
 function pickLooks(products: Product[]) {
@@ -101,8 +102,10 @@ function Look({
               src={image.src}
               alt={image.alt}
               fill
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover object-top"
+              sizes="(min-width: 1024px) 60vw, 100vw"
+              placeholder={placeholderFor(image.src)}
+              style={focal(image).style}
+              className={`object-cover ${focal(image).className}`}
             />
           </div>
           <span className="label absolute bottom-5 left-5 translate-y-3 bg-ivory px-3 py-2 text-ink opacity-0 transition-all duration-700 ease-house group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">

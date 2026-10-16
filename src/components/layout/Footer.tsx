@@ -1,6 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { MEDIA } from "@/components/journey/media";
+import { placeholderFor } from "@/lib/brand-images";
 import { FormEvent, useState } from "react";
 import { m } from "motion/react";
 import { apiRequest } from "@/lib/api";
@@ -60,6 +63,9 @@ export default function Footer() {
             <p className="label text-sand">Join the house</p>
             <h2 className="display mt-5 max-w-[16ch] text-[clamp(2.2rem,4vw,3.5rem)]">New cloth, first fittings, quiet notes from Lagos.</h2>
             <JoinForm />
+            <div className="relative mt-12 hidden aspect-[16/9] max-w-md overflow-hidden sm:block">
+              <Image src={MEDIA.footer.src} alt={MEDIA.footer.alt} fill sizes="28rem" placeholder={placeholderFor(MEDIA.footer.src)} className="object-cover opacity-90" />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:col-span-6 lg:col-start-7">

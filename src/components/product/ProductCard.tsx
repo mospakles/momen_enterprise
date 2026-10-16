@@ -6,6 +6,7 @@
 // point to "Design yours" instead, since they need the wizard.
 
 import Image from "next/image";
+import { placeholderFor } from "@/lib/brand-images";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
@@ -63,6 +64,7 @@ export default function ProductCard({ product, priority = false, sizes = "(min-w
             alt={product.name}
             fill
             preload={priority}
+            placeholder={placeholderFor(product.images[0])}
             sizes={sizes}
             className={`object-cover transition-[opacity,transform] duration-900 ease-house group-hover:scale-[1.03] ${second ? "group-hover:opacity-0" : ""}`}
           />

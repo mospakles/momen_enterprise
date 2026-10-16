@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { placeholderFor } from "@/lib/brand-images";
 import Link from "next/link";
 import { useRef } from "react";
 import type { Product } from "@/lib/types";
@@ -30,7 +31,7 @@ export default function ProductRail({ title, kicker, products }: { title: string
           <li key={p.id} className="w-[62vw] shrink-0 snap-start sm:w-[38vw] lg:w-[calc((100%-3rem)/4)]">
             <Link href={`/product/${p.slug}`} className="group block">
               <div className="relative aspect-[4/5] overflow-hidden bg-bone">
-                <Image src={p.images[0]} alt={p.name} fill sizes="(min-width:1024px) 22vw, 60vw" className="object-cover transition-opacity duration-700 group-hover:opacity-0" />
+                <Image src={p.images[0]} alt={p.name} fill sizes="(min-width:1024px) 22vw, 60vw" placeholder={placeholderFor(p.images[0])} className="object-cover transition-opacity duration-700 group-hover:opacity-0" />
                 {(p.hoverImage ?? p.images[1]) && (
                   <Image src={(p.hoverImage ?? p.images[1])!} alt="" fill sizes="(min-width:1024px) 22vw, 60vw" className="object-cover opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
                 )}

@@ -6,7 +6,8 @@ import { m, useScroll, useTransform } from "motion/react";
 import { SplitText } from "@/lib/motion/SplitText";
 import { usePointerParallax, usePrefersReducedMotion } from "@/lib/motion/hooks";
 import { EASE_HOUSE } from "@/lib/motion/ease";
-import { HERO_VIDEO, MEDIA } from "./media";
+import { HERO_VIDEO, MEDIA, focal } from "./media";
+import { placeholderFor } from "@/lib/brand-images";
 
 /** Full-viewport opening image. The headline waits for the intro (`play`),
  * the image drifts against the cursor and sinks slowly as you scroll. */
@@ -49,8 +50,10 @@ export default function Hero({ play }: { play: boolean }) {
               alt={MEDIA.hero.alt}
               fill
               preload
+              placeholder={placeholderFor(MEDIA.hero.src)}
               sizes="100vw"
-              className="object-cover object-[50%_30%]"
+              className={`object-cover ${focal(MEDIA.hero).className}`}
+              style={focal(MEDIA.hero).style}
             />
           )}
         </m.div>

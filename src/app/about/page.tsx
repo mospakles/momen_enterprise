@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Reveal, ClipReveal } from "@/lib/motion/Reveal";
 import { SplitText } from "@/lib/motion/SplitText";
+import { MEDIA, focal } from "@/components/journey/media";
+import { placeholderFor } from "@/lib/brand-images";
 
 export const metadata: Metadata = {
   title: "The house — momen.",
@@ -47,7 +49,7 @@ export default function AboutPage() {
     <div>
       {/* Hero */}
       <section data-tone="dark" className="relative flex h-[78vh] min-h-[480px] items-end overflow-hidden bg-night">
-        <Image src="/images/brand/agbada12.jpg" alt="A man in a burgundy agbada with gold embroidery and cap" fill preload sizes="100vw" className="object-cover object-[50%_25%] opacity-85" />
+        <Image src={MEDIA.aboutHero.src} alt={MEDIA.aboutHero.alt} fill preload sizes="100vw" placeholder={placeholderFor(MEDIA.aboutHero.src)} style={focal(MEDIA.aboutHero).style} className={`object-cover opacity-90 ${focal(MEDIA.aboutHero).className}`} />
         <div className="absolute inset-0 bg-linear-to-t from-night/90 via-night/25 to-night/30" />
         <div className="relative mx-auto w-full max-w-[1600px] px-5 pb-14 sm:px-10 lg:px-16 lg:pb-20">
           <p className="label text-sand">The house</p>
@@ -64,14 +66,16 @@ export default function AboutPage() {
       <section aria-labelledby="founder-heading" className="mx-auto max-w-[1600px] px-5 py-24 sm:px-10 lg:grid lg:grid-cols-12 lg:gap-10 lg:px-16 lg:py-36">
         <div className="lg:col-span-5">
           <ClipReveal className="relative aspect-[4/5] w-full bg-bone">
-            <Image src="/images/brand/me.jpg" alt={`${FOUNDER.name}, ${FOUNDER.role} of momen.`} fill sizes="(min-width:1024px) 40vw, 100vw" className="object-cover object-top" />
+            {/* Founder portraits are awaiting clean (unwatermarked) files — see
+                brand/CURATION.md. The atelier stands in until then. */}
+            <Image src={MEDIA.aboutFounder.src} alt={MEDIA.aboutFounder.alt} fill sizes="(min-width:1024px) 40vw, 100vw" placeholder={placeholderFor(MEDIA.aboutFounder.src)} style={focal(MEDIA.aboutFounder).style} className={`object-cover ${focal(MEDIA.aboutFounder).className}`} />
           </ClipReveal>
           <div className="mt-4 grid grid-cols-2 gap-4">
             <ClipReveal className="relative aspect-square w-full bg-bone" delay={0.15}>
-              <Image src="/images/brand/meeee.jpg" alt={`${FOUNDER.name} laughing in the studio`} fill sizes="(min-width:1024px) 20vw, 50vw" className="object-cover object-top" />
+              <Image src={MEDIA.aboutFounderDetails[0].src} alt={MEDIA.aboutFounderDetails[0].alt} fill sizes="(min-width:1024px) 20vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[0].src)} className="object-cover" />
             </ClipReveal>
             <ClipReveal className="relative aspect-square w-full bg-bone" delay={0.25}>
-              <Image src="/images/brand/motunnn.jpg" alt={`${FOUNDER.name} in an ankara ruffle dress`} fill sizes="(min-width:1024px) 20vw, 50vw" className="object-cover object-top" />
+              <Image src={MEDIA.aboutFounderDetails[1].src} alt={MEDIA.aboutFounderDetails[1].alt} fill sizes="(min-width:1024px) 20vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[1].src)} className="object-cover" />
             </ClipReveal>
           </div>
         </div>
@@ -114,7 +118,7 @@ export default function AboutPage() {
       {/* Atelier + process */}
       <section className="mx-auto grid max-w-[1600px] items-center gap-12 px-5 py-24 sm:px-10 lg:grid-cols-12 lg:px-16 lg:py-36">
         <ClipReveal from="left" className="relative aspect-[4/3] w-full bg-bone lg:col-span-7">
-          <Image src="/images/brand/logo1.jpg" alt="A woven momen. clothing label stitched into a garment" fill sizes="(min-width:1024px) 55vw, 100vw" className="object-cover" />
+          <Image src={MEDIA.aboutAtelier.src} alt={MEDIA.aboutAtelier.alt} fill sizes="(min-width:1024px) 55vw, 100vw" placeholder={placeholderFor(MEDIA.aboutAtelier.src)} style={focal(MEDIA.aboutAtelier).style} className={`object-cover ${focal(MEDIA.aboutAtelier).className}`} />
         </ClipReveal>
         <div className="lg:col-span-4 lg:col-start-9">
           <p className="label text-clay">The made-to-measure process</p>

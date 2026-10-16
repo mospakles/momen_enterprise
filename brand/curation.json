@@ -1,0 +1,1794 @@
+[
+ {
+  "src": "2piecelong.png",
+  "name": "twopiece-long-white-stone",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a white and stone long-sleeve mandarin shirt and wide trousers",
+  "file": "twopiece-long-white-stone.png"
+ },
+ {
+  "src": "2piecelong1.png",
+  "name": "twopiece-long-onyx",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a onyx long-sleeve mandarin shirt and wide trousers",
+  "file": "twopiece-long-onyx.png"
+ },
+ {
+  "src": "2piecelong2.png",
+  "name": "twopiece-long-cocoa",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a cocoa long-sleeve mandarin shirt and wide trousers",
+  "file": "twopiece-long-cocoa.png"
+ },
+ {
+  "src": "2piecelong3.png",
+  "name": "twopiece-long-olive",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a olive long-sleeve mandarin shirt and wide trousers",
+  "file": "twopiece-long-olive.png"
+ },
+ {
+  "src": "2piecelong6.png",
+  "name": "twopiece-long-midnight",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a midnight long-sleeve mandarin shirt and wide trousers",
+  "file": "twopiece-long-midnight.png"
+ },
+ {
+  "src": "2pieceshort.png",
+  "name": "twopiece-short-olive",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a olive linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-olive.png"
+ },
+ {
+  "src": "2pieceshort10.png",
+  "name": "twopiece-short-midnight",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a midnight linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-midnight.png"
+ },
+ {
+  "src": "2pieceshort11.png",
+  "name": "twopiece-short-teal",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a teal linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-teal.png"
+ },
+ {
+  "src": "2pieceshort12.png",
+  "name": "twopiece-short-onyx",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a onyx linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-onyx.png"
+ },
+ {
+  "src": "2pieceshort13.png",
+  "name": "twopiece-short-white",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a white linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-white.png"
+ },
+ {
+  "src": "2pieceshort14.png",
+  "name": "twopiece-short-navy-trim",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a navy trim linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-navy-trim.png"
+ },
+ {
+  "src": "2pieceshort15.png",
+  "name": "twopiece-short-mint",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a mint linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-mint.png"
+ },
+ {
+  "src": "2pieceshort2.png",
+  "name": "twopiece-short-sand",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a sand linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-sand.png"
+ },
+ {
+  "src": "2pieceshort3.png",
+  "name": "twopiece-short-wine",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a wine linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-wine.png"
+ },
+ {
+  "src": "2pieceshort4.png",
+  "name": "twopiece-short-scarlet",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a scarlet linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-scarlet.png"
+ },
+ {
+  "src": "2pieceshort5.png",
+  "name": "twopiece-short-cream",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a cream linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-cream.png"
+ },
+ {
+  "src": "2pieceshort6.png",
+  "name": "twopiece-short-blush",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a blush linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-blush.png"
+ },
+ {
+  "src": "2pieceshort7.png",
+  "name": "twopiece-short-cocoa",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a cocoa linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-cocoa.png"
+ },
+ {
+  "src": "2pieceshort8.png",
+  "name": "twopiece-short-sky",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a sky linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-sky.png"
+ },
+ {
+  "src": "2pieceshort9.png",
+  "name": "twopiece-short-forest",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a forest linen short-sleeve shirt and matching shorts beside a stone arch",
+  "file": "twopiece-short-forest.png"
+ },
+ {
+  "src": "agbada.png",
+  "name": "agbada-burgundy-studio",
+  "grade": "B",
+  "category": "agbada",
+  "alt": "Man in a burgundy agbada with gold embroidery and cap in window light",
+  "file": "agbada-burgundy-studio.png"
+ },
+ {
+  "src": "agbada10.png",
+  "name": "agbada-cocoa",
+  "grade": "B",
+  "category": "agbada",
+  "alt": "Man in a brown agbada with gold embroidery and cap in window light",
+  "file": "agbada-cocoa.png"
+ },
+ {
+  "src": "agbada11.png",
+  "name": "agbada-emerald",
+  "grade": "A",
+  "category": "agbada",
+  "alt": "Man in a emerald agbada with embroidered chest panel in window light",
+  "file": "agbada-emerald.png"
+ },
+ {
+  "src": "agbada12.png",
+  "name": "agbada-wine",
+  "grade": "A",
+  "category": "agbada",
+  "alt": "Man in a wine agbada with gold embroidery in window light",
+  "file": "agbada-wine.png"
+ },
+ {
+  "src": "agbada2.png",
+  "name": "agbada-ivory-gold",
+  "grade": "B",
+  "category": "agbada",
+  "alt": "Man in a ivory agbada with gold trim in window light",
+  "file": "agbada-ivory-gold.png"
+ },
+ {
+  "src": "agbada5.png",
+  "name": "agbada-pearl",
+  "grade": "B",
+  "category": "agbada",
+  "alt": "Man in a pearl-white agbada with tonal embroidery in window light",
+  "file": "agbada-pearl.png"
+ },
+ {
+  "src": "agbada6.png",
+  "name": "agbada-ivory-onyx",
+  "grade": "B",
+  "category": "agbada",
+  "alt": "Man in a white agbada with black geometric embroidery in window light",
+  "file": "agbada-ivory-onyx.png"
+ },
+ {
+  "src": "agbada7.png",
+  "name": "agbada-ivory-gold-bloom",
+  "grade": "A",
+  "category": "agbada",
+  "alt": "Man in a white agbada with gold floral embroidery in window light",
+  "file": "agbada-ivory-gold-bloom.png"
+ },
+ {
+  "src": "agbada8.png",
+  "name": "agbada-gold",
+  "grade": "A",
+  "category": "agbada",
+  "alt": "Man in a gold agbada with tonal embroidery and cap in window light",
+  "file": "agbada-gold.png"
+ },
+ {
+  "src": "agbada9.png",
+  "name": "agbada-burnt-orange",
+  "grade": "B",
+  "category": "agbada",
+  "alt": "Man in a burnt-orange agbada and cap in window light",
+  "file": "agbada-burnt-orange.png"
+ },
+ {
+  "src": "agbbada4.png",
+  "name": "agbada-olive",
+  "grade": "B",
+  "category": "agbada",
+  "alt": "Man in an olive agbada with gold embroidery and cap",
+  "file": "agbada-olive.png"
+ },
+ {
+  "src": "kaftan.png",
+  "name": "kaftan-camel",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a camel kaftan and trousers",
+  "file": "kaftan-camel.png"
+ },
+ {
+  "src": "kaftan1.png",
+  "name": "kaftan-charcoal",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a charcoal kaftan and trousers",
+  "file": "kaftan-charcoal.png"
+ },
+ {
+  "src": "kaftan10.png",
+  "name": "kaftan-embroidered-cocoa",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a brown kaftan with tonal chest embroidery",
+  "file": "kaftan-embroidered-cocoa.png"
+ },
+ {
+  "src": "kaftan11.png",
+  "name": "kaftan-embroidered-midnight",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a navy kaftan with tonal embroidery and sunglasses",
+  "file": "kaftan-embroidered-midnight.png"
+ },
+ {
+  "src": "kaftan12.png",
+  "name": "kaftan-navy",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a navy kaftan with chest pocket",
+  "file": "kaftan-navy.png"
+ },
+ {
+  "src": "kaftan13.png",
+  "name": "kaftan-steel-blue",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a steel-blue kaftan and trousers",
+  "file": "kaftan-steel-blue.png"
+ },
+ {
+  "src": "kaftan4.png",
+  "name": "kaftan-sand",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a sand kaftan and trousers",
+  "file": "kaftan-sand.png"
+ },
+ {
+  "src": "kaftan5.png",
+  "name": "kaftan-burnt-orange-grey",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a burnt-orange kaftan on a grey backdrop",
+  "file": "kaftan-burnt-orange-grey.png"
+ },
+ {
+  "src": "kaftan6.png",
+  "name": "kaftan-white-cap",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a white kaftan with black cap",
+  "file": "kaftan-white-cap.png"
+ },
+ {
+  "src": "kaftan7.png",
+  "name": "kaftan-onyx-cap",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a all-black kaftan and cap",
+  "file": "kaftan-onyx-cap.png"
+ },
+ {
+  "src": "kaftan8.png",
+  "name": "kaftan-embroidered-taupe",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a taupe kaftan with embroidered chest",
+  "file": "kaftan-embroidered-taupe.png"
+ },
+ {
+  "src": "kaftan9.png",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Byte-identical duplicate of kaftan8"
+ },
+ {
+  "src": "ladiesankarapant.png",
+  "name": "womens-ankara-wide-leg-sunburst",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in a black tank and sunburst ankara wide-leg trousers",
+  "file": "womens-ankara-wide-leg-sunburst.png"
+ },
+ {
+  "src": "ladiesankarapant1.png",
+  "name": "womens-ankara-wide-leg-bloom",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in a black tank and bloom ankara wide-leg trousers",
+  "file": "womens-ankara-wide-leg-bloom.png"
+ },
+ {
+  "src": "ladiesankarapant2.png",
+  "name": "womens-ankara-wide-leg-ember",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in a black tank and ember ankara wide-leg trousers",
+  "file": "womens-ankara-wide-leg-ember.png"
+ },
+ {
+  "src": "ladiesankarapant3.png",
+  "name": "womens-ankara-wide-leg-indigo-sun",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in a black tank and indigo sun ankara wide-leg trousers",
+  "file": "womens-ankara-wide-leg-indigo-sun.png"
+ },
+ {
+  "src": "ladiesankarapant4.png",
+  "name": "womens-ankara-wide-leg-lagoon",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in a black tank and lagoon ankara wide-leg trousers",
+  "file": "womens-ankara-wide-leg-lagoon.png"
+ },
+ {
+  "src": "ladiesankarapant5.png",
+  "name": "womens-ankara-wide-leg-garden",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in a black tank and garden ankara wide-leg trousers",
+  "file": "womens-ankara-wide-leg-garden.png"
+ },
+ {
+  "src": "ladiesankarashort.png",
+  "name": "womens-ankara-cargo-short-marigold",
+  "grade": "B",
+  "category": "womens-shorts",
+  "alt": "Woman in a black tank and marigold ankara cargo shorts",
+  "file": "womens-ankara-cargo-short-marigold.png"
+ },
+ {
+  "src": "ladiesankarashort1.png",
+  "name": "womens-ankara-cargo-short-saffron",
+  "grade": "B",
+  "category": "womens-shorts",
+  "alt": "Woman in a black tank and saffron ankara cargo shorts",
+  "file": "womens-ankara-cargo-short-saffron.png"
+ },
+ {
+  "src": "ladiesankarashort2.png",
+  "name": "womens-ankara-cargo-short-fern",
+  "grade": "B",
+  "category": "womens-shorts",
+  "alt": "Woman in a black tank and fern ankara cargo shorts",
+  "file": "womens-ankara-cargo-short-fern.png"
+ },
+ {
+  "src": "ladiesankarashort3.png",
+  "name": "womens-ankara-cargo-short-amber",
+  "grade": "B",
+  "category": "womens-shorts",
+  "alt": "Woman in a black tank and amber ankara cargo shorts",
+  "file": "womens-ankara-cargo-short-amber.png"
+ },
+ {
+  "src": "ladiesankarashort4.png",
+  "name": "womens-ankara-cargo-short-olive-leaf",
+  "grade": "B",
+  "category": "womens-shorts",
+  "alt": "Woman in a black tank and olive leaf ankara cargo shorts",
+  "file": "womens-ankara-cargo-short-olive-leaf.png"
+ },
+ {
+  "src": "ladiesankarashort5.png",
+  "name": "womens-ankara-cargo-short-terracotta",
+  "grade": "B",
+  "category": "womens-shorts",
+  "alt": "Woman in a black tank and terracotta ankara cargo shorts",
+  "file": "womens-ankara-cargo-short-terracotta.png"
+ },
+ {
+  "src": "ladiesankarashort6.png",
+  "name": "womens-ankara-cargo-short-tangerine",
+  "grade": "B",
+  "category": "womens-shorts",
+  "alt": "Woman in a black tank and tangerine ankara cargo shorts",
+  "file": "womens-ankara-cargo-short-tangerine.png"
+ },
+ {
+  "src": "logo.PNG",
+  "name": "brand-hang-tag-charcoal-cloth",
+  "grade": "B",
+  "category": "brand",
+  "alt": "A momen. clothing hang tag resting on charcoal cloth",
+  "file": "brand-hang-tag-charcoal-cloth.png"
+ },
+ {
+  "src": "logo1.PNG",
+  "name": "brand-woven-label",
+  "grade": "A",
+  "category": "brand",
+  "alt": "A woven momen. clothing label stitched into a brown jacket",
+  "file": "brand-woven-label.png"
+ },
+ {
+  "src": "logo2.PNG",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Clinical white card mock-up, off-palette; kept only as the source the site's wordmark was traced from"
+ },
+ {
+  "src": "logo3.PNG",
+  "name": "brand-hang-tag-white-garment",
+  "grade": "B",
+  "category": "brand",
+  "alt": "A black momen. hang tag on a folded white garment",
+  "file": "brand-hang-tag-white-garment.png"
+ },
+ {
+  "src": "me.jpg",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Founder portrait carries the photographer's 'Fabs Lens' watermark — request clean files"
+ },
+ {
+  "src": "me1.jpg",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Founder portrait carries the photographer's 'Fabs Lens' watermark — request clean files"
+ },
+ {
+  "src": "me2.jpg",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Founder portrait carries the photographer's 'Fabs Lens' watermark — request clean files"
+ },
+ {
+  "src": "mee.jpg",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Founder portrait carries the photographer's 'Fabs Lens' watermark — request clean files"
+ },
+ {
+  "src": "meee.jpg",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Founder portrait carries the photographer's 'Fabs Lens' watermark — request clean files"
+ },
+ {
+  "src": "meeee.jpg",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Founder portrait carries the photographer's 'Fabs Lens' watermark — request clean files"
+ },
+ {
+  "src": "Motun.jpg",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Founder portrait carries a photographer's credit mark in the corner — request clean files"
+ },
+ {
+  "src": "Motunn.jpg",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Founder portrait carries a photographer's credit mark in the corner — request clean files"
+ },
+ {
+  "src": "Motunnn.jpg",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Founder portrait carries a photographer's credit mark in the corner — request clean files"
+ },
+ {
+  "src": "menankara.png",
+  "name": "ankara-cargo-kente",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a plain tee and kente ankara cargo trousers",
+  "file": "ankara-cargo-kente.png"
+ },
+ {
+  "src": "menankara1.png",
+  "name": "ankara-cargo-monochrome",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a plain tee and monochrome ankara cargo trousers",
+  "file": "ankara-cargo-monochrome.png"
+ },
+ {
+  "src": "menankara3.png",
+  "name": "ankara-cargo-kente-gold",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a plain tee and kente gold ankara cargo trousers",
+  "file": "ankara-cargo-kente-gold.png"
+ },
+ {
+  "src": "menankara4.png",
+  "name": "ankara-cargo-onyx-geo",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a plain tee and onyx geo ankara cargo trousers",
+  "file": "ankara-cargo-onyx-geo.png"
+ },
+ {
+  "src": "menankara5.png",
+  "name": "ankara-cargo-grey-geo",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a plain tee and grey geo ankara cargo trousers",
+  "file": "ankara-cargo-grey-geo.png"
+ },
+ {
+  "src": "menankara6.png",
+  "name": "ankara-cargo-burgundy-geo",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a plain tee and burgundy geo ankara cargo trousers",
+  "file": "ankara-cargo-burgundy-geo.png"
+ },
+ {
+  "src": "menankara7.png",
+  "name": "ankara-cargo-green-sun",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a plain tee and green sun ankara cargo trousers",
+  "file": "ankara-cargo-green-sun.png"
+ },
+ {
+  "src": "menankara8.png",
+  "name": "ankara-cargo-orange-geo",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a plain tee and orange geo ankara cargo trousers",
+  "file": "ankara-cargo-orange-geo.png"
+ },
+ {
+  "src": "menankara2.png",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Byte-identical duplicate of menankara1"
+ },
+ {
+  "src": "menasooke.png",
+  "name": "asooke-cargo-rust-stripe",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in rust stripe aso-oke cargo trousers",
+  "file": "asooke-cargo-rust-stripe.png"
+ },
+ {
+  "src": "menasooke1.png",
+  "name": "asooke-cargo-green-stripe",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in green stripe aso-oke cargo trousers",
+  "file": "asooke-cargo-green-stripe.png"
+ },
+ {
+  "src": "menasooke13.png",
+  "name": "asooke-cargo-olive-stripe",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in olive stripe aso-oke cargo trousers",
+  "file": "asooke-cargo-olive-stripe.png"
+ },
+ {
+  "src": "menasooke2.png",
+  "name": "asooke-cargo-onyx-gold",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in onyx gold aso-oke cargo trousers",
+  "file": "asooke-cargo-onyx-gold.png"
+ },
+ {
+  "src": "menasooke3.png",
+  "name": "asooke-cargo-forest-onyx",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in forest onyx aso-oke cargo trousers",
+  "file": "asooke-cargo-forest-onyx.png"
+ },
+ {
+  "src": "menasooke4.png",
+  "name": "asooke-cargo-grey-stripe",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in grey stripe aso-oke cargo trousers",
+  "file": "asooke-cargo-grey-stripe.png"
+ },
+ {
+  "src": "menasooke5.png",
+  "name": "asooke-cargo-burgundy-stripe",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in burgundy stripe aso-oke cargo trousers",
+  "file": "asooke-cargo-burgundy-stripe.png"
+ },
+ {
+  "src": "shirt.png",
+  "name": "shirt-jacquard-rust",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a rust jacquard mandarin-collar shirt and pleated trousers",
+  "file": "shirt-jacquard-rust.png"
+ },
+ {
+  "src": "shirt1.png",
+  "name": "shirt-jacquard-forest",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a forest-green jacquard mandarin-collar shirt and pleated trousers",
+  "file": "shirt-jacquard-forest.png"
+ },
+ {
+  "src": "shirt2.png",
+  "name": "shirt-jacquard-cobalt",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a cobalt jacquard mandarin-collar shirt and pleated trousers",
+  "file": "shirt-jacquard-cobalt.png"
+ },
+ {
+  "src": "shirt3.png",
+  "name": "shirt-linen-sky",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a sky-blue linen mandarin-collar shirt and pleated trousers",
+  "file": "shirt-linen-sky.png"
+ },
+ {
+  "src": "shirt4.png",
+  "name": "shirt-linen-blush",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a blush linen mandarin-collar shirt and pleated trousers",
+  "file": "shirt-linen-blush.png"
+ },
+ {
+  "src": "shirt5.png",
+  "name": "shirt-linen-sage",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a sage linen mandarin-collar shirt and pleated trousers",
+  "file": "shirt-linen-sage.png"
+ },
+ {
+  "src": "shirt6.png",
+  "name": "shirt-linen-stone",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a stone linen mandarin-collar shirt and pleated trousers",
+  "file": "shirt-linen-stone.png"
+ },
+ {
+  "src": "womenankara.png",
+  "name": "womens-ankara-set-paprika",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a paprika ankara crop top and wide-leg trousers",
+  "file": "womens-ankara-set-paprika.png"
+ },
+ {
+  "src": "womenankara1.png",
+  "name": "womens-ankara-set-emerald",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in an emerald ankara crop top and wide-leg trousers",
+  "file": "womens-ankara-set-emerald.png"
+ },
+ {
+  "src": "womenasooke.png",
+  "name": "womens-asooke-bandeau-set-cobalt",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a cobalt bandeau and striped aso-oke wide-leg trousers",
+  "file": "womens-asooke-bandeau-set-cobalt.png"
+ },
+ {
+  "src": "Bespoke Nigerian Kaftan Fitting.png",
+  "name": "bespoke-fitting-ivory-kaftan-wide",
+  "grade": "A",
+  "category": "bespoke",
+  "alt": "A tailor measures a client's sleeve in an ivory kaftan in a sunlit atelier",
+  "file": "bespoke-fitting-ivory-kaftan-wide.png"
+ },
+ {
+  "src": "Black Nigerian Agbada Elegance.png",
+  "name": "agbada-onyx",
+  "grade": "A",
+  "category": "agbada",
+  "alt": "Man in a black agbada with tonal embroidery and black cap",
+  "file": "agbada-onyx.png"
+ },
+ {
+  "src": "Brick red unisex Nigerian fashion set.png",
+  "name": "womens-linen-wide-leg-set-brick",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a brick-red linen camp-collar shirt and wide trousers",
+  "file": "womens-linen-wide-leg-set-brick.png"
+ },
+ {
+  "src": "Burgundy Ankara Cargo Look.png",
+  "name": "ankara-cargo-burgundy-tan",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a burgundy tee and burgundy-and-tan ankara cargo trousers",
+  "file": "ankara-cargo-burgundy-tan.png"
+ },
+ {
+  "src": "Burgundy Aso-Oke editorial look.png",
+  "name": "asooke-wide-leg-burgundy",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a burgundy tee and burgundy-striped aso-oke wide-leg trousers",
+  "file": "asooke-wide-leg-burgundy.png"
+ },
+ {
+  "src": "Burnt orange Nigerian kaftan editorial.png",
+  "name": "kaftan-burnt-orange",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a burnt-orange kaftan and trousers",
+  "file": "kaftan-burnt-orange.png"
+ },
+ {
+  "src": "Charcoal Aso-Oke Editorial Look.png",
+  "name": "asooke-wide-leg-charcoal",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a charcoal tee and charcoal-striped aso-oke wide-leg trousers",
+  "file": "asooke-wide-leg-charcoal.png"
+ },
+ {
+  "src": "Charcoal Senator Style, Nigerian Luxury.png",
+  "name": "senator-charcoal",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a charcoal senator kaftan and cap",
+  "file": "senator-charcoal.png"
+ },
+ {
+  "src": "Chocolate Brown Nigerian Jalabia.png",
+  "name": "jalabia-chocolate",
+  "grade": "B",
+  "category": "jalabia",
+  "alt": "Man in a chocolate-brown jalabia and cap",
+  "file": "jalabia-chocolate.png"
+ },
+ {
+  "src": "Cocoa Ankara cargo look.png",
+  "name": "ankara-cargo-cocoa",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a brown tee and cocoa ankara cargo trousers",
+  "file": "ankara-cargo-cocoa.png"
+ },
+ {
+  "src": "Cocoa Aso-Oke, Modern African Menswear.png",
+  "name": "asooke-wide-leg-cocoa",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a brown tee and cocoa-striped aso-oke wide-leg trousers",
+  "file": "asooke-wide-leg-cocoa.png"
+ },
+ {
+  "src": "Contemporary Aso-Oke menswear.png",
+  "name": "asooke-wide-leg-natural",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in an ivory tee and natural-striped aso-oke wide-leg trousers",
+  "file": "asooke-wide-leg-natural.png"
+ },
+ {
+  "src": "Contemporary Nigerian Elegance in Warm Stone.png",
+  "name": "campaign-ivory-kaftan-white-agbada",
+  "grade": "A",
+  "category": "campaign",
+  "alt": "Two men in an ivory kaftan and a white agbada in a sunlit stone courtyard",
+  "file": "campaign-ivory-kaftan-white-agbada.png"
+ },
+ {
+  "src": "Crafting Luxury in the Sunlit Studio.png",
+  "name": "atelier-tailor-sewing-cocoa",
+  "grade": "B",
+  "category": "atelier",
+  "alt": "A tailor sews cocoa cloth at a machine beside folded fabric and shears",
+  "file": "atelier-tailor-sewing-cocoa.png"
+ },
+ {
+  "src": "Crafting Nigerian luxury, stitch by stitch.png",
+  "name": "atelier-tailors-at-work-wide",
+  "grade": "A",
+  "category": "atelier",
+  "alt": "Tailors at work at sewing machines in a sunlit momen. atelier",
+  "file": "atelier-tailors-at-work-wide.png"
+ },
+ {
+  "src": "Cream and gold ceremonial jalabia.png",
+  "name": "jalabia-ceremonial-cream-gold",
+  "grade": "A",
+  "category": "jalabia",
+  "alt": "Man in a cream jalabia with gold embroidery and cap",
+  "file": "jalabia-ceremonial-cream-gold.png"
+ },
+ {
+  "src": "Dusty Pink and Cocoa Brown Ensemble.png",
+  "name": "womens-linen-shirt-rose-cocoa-shorts",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a rose linen shirt and cocoa shorts with sneakers",
+  "file": "womens-linen-shirt-rose-cocoa-shorts.png"
+ },
+ {
+  "src": "Dusty pink shirt, cocoa tailored shorts.png",
+  "name": "womens-linen-shirt-rose-cocoa-shorts-heels",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a rose linen shirt and cocoa tailored shorts with heels",
+  "file": "womens-linen-shirt-rose-cocoa-shorts-heels.png"
+ },
+ {
+  "src": "Dusty rose and charcoal elegance.png",
+  "name": "linen-shirt-rose-charcoal-trousers",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a rose camp-collar shirt and charcoal trousers",
+  "file": "linen-shirt-rose-charcoal-trousers.png"
+ },
+ {
+  "src": "Dusty rose and midnight blue linen.png",
+  "name": "linen-shirt-rose-navy-shorts",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a rose camp-collar shirt and navy shorts",
+  "file": "linen-shirt-rose-navy-shorts.png"
+ },
+ {
+  "src": "Earth-Toned Aso-Oke Wide-Leg Trousers.png",
+  "name": "womens-asooke-wide-leg-amber",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in a brown tee and amber-striped aso-oke wide-leg trousers",
+  "file": "womens-asooke-wide-leg-amber.png"
+ },
+ {
+  "src": "Earth-toned Aso-Oke wide-leg elegance.png",
+  "name": "womens-asooke-wide-leg-cocoa",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in a stone tee and cocoa-striped aso-oke wide-leg trousers",
+  "file": "womens-asooke-wide-leg-cocoa.png"
+ },
+ {
+  "src": "Earthy Aso-Oke Wide-Leg Elegance.png",
+  "name": "womens-asooke-wide-leg-terracotta",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in a brown tank and terracotta-striped aso-oke wide-leg trousers",
+  "file": "womens-asooke-wide-leg-terracotta.png"
+ },
+ {
+  "src": "Elegant Pink Two-Piece Set.png",
+  "name": "womens-linen-short-set-blush",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a blush linen shirt and shorts set",
+  "file": "womens-linen-short-set-blush.png"
+ },
+ {
+  "src": "Emerald Nigerian Agbada Elegance.png",
+  "name": "agbada-emerald-beige",
+  "grade": "A",
+  "category": "agbada",
+  "alt": "Man in an emerald agbada with tonal embroidery and cap",
+  "file": "agbada-emerald-beige.png"
+ },
+ {
+  "src": "Emerald Nigerian Jalabia Portrait.png",
+  "name": "jalabia-emerald",
+  "grade": "B",
+  "category": "jalabia",
+  "alt": "Man in an emerald jalabia with tonal embroidery",
+  "file": "jalabia-emerald.png"
+ },
+ {
+  "src": "Emerald Threads in a Nigerian Atelier.png",
+  "name": "atelier-tailor-sewing-emerald",
+  "grade": "A",
+  "category": "atelier",
+  "alt": "A tailor sews emerald cloth at a machine, a gown on the mannequin behind",
+  "file": "atelier-tailor-sewing-emerald.png"
+ },
+ {
+  "src": "Emerald Yoruba Elegance in Sunlit Courtyard.png",
+  "name": "hero-emerald-agbada-courtyard",
+  "grade": "A",
+  "category": "campaign",
+  "alt": "A man in an emerald agbada and cap walks through a sunlit stone courtyard",
+  "file": "hero-emerald-agbada-courtyard.png"
+ },
+ {
+  "src": "Forest Green Wide-Leg Aso-Oke.png",
+  "name": "asooke-wide-leg-forest",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a green tee and forest-striped aso-oke wide-leg trousers",
+  "file": "asooke-wide-leg-forest.png"
+ },
+ {
+  "src": "Forest green Nigerian kaftan editorial.png",
+  "name": "kaftan-embroidered-forest",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a forest-green kaftan with embroidered chest",
+  "file": "kaftan-embroidered-forest.png"
+ },
+ {
+  "src": "Golden agbada in a sunlit Yoruba courtyard.png",
+  "name": "hero-gold-agbada-courtyard",
+  "grade": "A",
+  "category": "campaign",
+  "alt": "A man in a gold agbada and cap stands in a sunlit stone courtyard",
+  "file": "hero-gold-agbada-courtyard.png"
+ },
+ {
+  "src": "Ivory Green Tailored Look.png",
+  "name": "camp-collar-set-mint",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a mint camp-collar shirt and matching trousers",
+  "file": "camp-collar-set-mint.png"
+ },
+ {
+  "src": "Ivory Kaftan, Chocolate Agbada.png",
+  "name": "campaign-ivory-kaftan-chocolate-agbada",
+  "grade": "A",
+  "category": "campaign",
+  "alt": "Two men in an ivory kaftan and a chocolate agbada in a sunlit colonnade",
+  "file": "campaign-ivory-kaftan-chocolate-agbada.png"
+ },
+ {
+  "src": "Ivory Nigerian Jalabia Editorial Portrait.png",
+  "name": "jalabia-ivory",
+  "grade": "B",
+  "category": "jalabia",
+  "alt": "Man in an ivory jalabia with tonal embroidery and cap",
+  "file": "jalabia-ivory.png"
+ },
+ {
+  "src": "Ivory Shirt, Tailored Black Shorts.png",
+  "name": "womens-linen-shirt-ivory-black-shorts",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in an ivory linen shirt and black tailored shorts",
+  "file": "womens-linen-shirt-ivory-black-shorts.png"
+ },
+ {
+  "src": "Ivory and midnight linen ensemble.png",
+  "name": "linen-shirt-ivory-navy-shorts",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in an ivory camp-collar shirt and navy shorts",
+  "file": "linen-shirt-ivory-navy-shorts.png"
+ },
+ {
+  "src": "Luxury Beige Nigerian Kaftan Editorial.png",
+  "name": "kaftan-embroidered-beige",
+  "grade": "A",
+  "category": "kaftans",
+  "alt": "Man in a beige kaftan with embroidered placket and trousers",
+  "file": "kaftan-embroidered-beige.png"
+ },
+ {
+  "src": "Luxury Black Jalabia Editorial.png",
+  "name": "jalabia-onyx",
+  "grade": "B",
+  "category": "jalabia",
+  "alt": "Man in a black jalabia and cap",
+  "file": "jalabia-onyx.png"
+ },
+ {
+  "src": "Luxury Black Leather Crossbody Bag.png",
+  "name": "bag-crossbody-black",
+  "grade": "B",
+  "category": "bags",
+  "alt": "Black pebbled-leather crossbody bag on a stone plinth",
+  "file": "bag-crossbody-black.png"
+ },
+ {
+  "src": "Luxury Black Two-Piece in Beige Studio.png",
+  "name": "camp-collar-set-onyx",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a black camp-collar shirt and trousers",
+  "file": "camp-collar-set-onyx.png"
+ },
+ {
+  "src": "Luxury Brown Leather Oxford Dress Shoes.png",
+  "name": "shoes-oxford-cognac",
+  "grade": "B",
+  "category": "footwear",
+  "alt": "Cognac leather cap-toe oxford shoes",
+  "file": "shoes-oxford-cognac.png"
+ },
+ {
+  "src": "Luxury Brown Leather Penny Loafers.png",
+  "name": "shoes-penny-loafer-cognac",
+  "grade": "B",
+  "category": "footwear",
+  "alt": "Cognac leather penny loafers",
+  "file": "shoes-penny-loafer-cognac.png"
+ },
+ {
+  "src": "Luxury Nigerian Black Kaftan Editorial.png",
+  "name": "kaftan-geometric-onyx",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a black kaftan with a geometric print panel",
+  "file": "kaftan-geometric-onyx.png"
+ },
+ {
+  "src": "Luxury Nigerian leather palm sandals.png",
+  "name": "sandals-palm-cross-strap-brown",
+  "grade": "B",
+  "category": "footwear",
+  "alt": "Brown leather cross-strap palm sandals",
+  "file": "sandals-palm-cross-strap-brown.png"
+ },
+ {
+  "src": "Luxury Off-White Menswear Lookbook.png",
+  "name": "camp-collar-set-ivory-alt",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in an off-white camp-collar shirt and trousers",
+  "file": "camp-collar-set-ivory-alt.png"
+ },
+ {
+  "src": "Luxury Stone and Leather Bracelet Trio.png",
+  "name": "bracelet-trio-stone-leather",
+  "grade": "B",
+  "category": "other-accessories",
+  "alt": "Onyx, tiger's-eye and braided leather bracelets on stone",
+  "file": "bracelet-trio-stone-leather.png"
+ },
+ {
+  "src": "Luxury brown leather briefcase.png",
+  "name": "bag-briefcase-brown",
+  "grade": "B",
+  "category": "bags",
+  "alt": "Brown leather briefcase with shoulder strap on a stone plinth",
+  "file": "bag-briefcase-brown.png"
+ },
+ {
+  "src": "Luxury burgundy Nigerian agbada campaign.png",
+  "name": "agbada-burgundy",
+  "grade": "A",
+  "category": "agbada",
+  "alt": "Man in a burgundy agbada with embroidery and cap",
+  "file": "agbada-burgundy.png"
+ },
+ {
+  "src": "Luxury mocha linen set.png",
+  "name": "linen-short-set-mocha",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a mocha linen camp-collar shirt and shorts",
+  "file": "linen-short-set-mocha.png"
+ },
+ {
+  "src": "Luxury navy Nigerian agbada portrait.png",
+  "name": "agbada-navy",
+  "grade": "A",
+  "category": "agbada",
+  "alt": "Man in a navy agbada with tonal embroidery and cap",
+  "file": "agbada-navy.png"
+ },
+ {
+  "src": "Luxury tailoring in a Nigerian atelier.png",
+  "name": "atelier-tailors-navy-cocoa-wide",
+  "grade": "A",
+  "category": "atelier",
+  "alt": "Tailors sewing navy and cocoa cloth in a busy atelier",
+  "file": "atelier-tailors-navy-cocoa-wide.png"
+ },
+ {
+  "src": "Luxury white leather Nigerian palm sandals.png",
+  "name": "sandals-palm-woven-white",
+  "grade": "B",
+  "category": "footwear",
+  "alt": "White leather woven palm sandals",
+  "file": "sandals-palm-woven-white.png"
+ },
+ {
+  "src": "Luxury woven brown leather sandals.png",
+  "name": "sandals-palm-woven-brown",
+  "grade": "B",
+  "category": "footwear",
+  "alt": "Brown leather woven palm sandals",
+  "file": "sandals-palm-woven-brown.png"
+ },
+ {
+  "src": "MOMEN Bespoke Tailoring in Warm Light.png",
+  "name": "hero-bespoke-fitting-warm-light",
+  "grade": "A",
+  "category": "bespoke",
+  "alt": "A tailor measures a client's shoulders in an ivory kaftan in warm light",
+  "file": "hero-bespoke-fitting-warm-light.png"
+ },
+ {
+  "src": "MOMEN Nigerian Luxury Accessories Still Life.png",
+  "name": "accessories-still-life",
+  "grade": "A",
+  "category": "accessories",
+  "alt": "Fila caps, loafers, crossbody bag, watch, sunglasses and belt arranged on stone",
+  "file": "accessories-still-life.png"
+ },
+ {
+  "src": "MOMEN Nigerian menswear campaign trio.png",
+  "name": "campaign-trio-onyx-beige-white",
+  "grade": "A",
+  "category": "campaign",
+  "alt": "Three men in black, beige and white momen. pieces in a stone hall",
+  "file": "campaign-trio-onyx-beige-white.png"
+ },
+ {
+  "src": "MOMEN_ Modern African luxury trio.png",
+  "name": "campaign-trio-with-ankara",
+  "grade": "A",
+  "category": "campaign",
+  "alt": "Two men and a woman in linen, ankara wide-leg trousers and a navy kaftan",
+  "file": "campaign-trio-with-ankara.png"
+ },
+ {
+  "src": "MOMEN’s luxury Nigerian menswear trio.png",
+  "name": "campaign-trio-grey-beige-olive",
+  "grade": "A",
+  "category": "campaign",
+  "alt": "Three men in grey, beige and olive momen. pieces beside stone columns",
+  "file": "campaign-trio-grey-beige-olive.png"
+ },
+ {
+  "src": "Midnight Blue Linen Shirt And Shorts.png",
+  "name": "linen-short-set-midnight",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a midnight-blue linen camp-collar shirt and shorts",
+  "file": "linen-short-set-midnight.png"
+ },
+ {
+  "src": "Midnight Blue Two-Piece Elegance.png",
+  "name": "camp-collar-set-midnight",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a midnight-blue camp-collar shirt and trousers",
+  "file": "camp-collar-set-midnight.png"
+ },
+ {
+  "src": "Midnight Blue and Ivory Linen.png",
+  "name": "linen-shirt-midnight-ivory-shorts",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a midnight-blue camp-collar shirt and ivory shorts",
+  "file": "linen-shirt-midnight-ivory-shorts.png"
+ },
+ {
+  "src": "Midnight blue Nigerian jalabia.png",
+  "name": "jalabia-midnight",
+  "grade": "B",
+  "category": "jalabia",
+  "alt": "Man in a midnight-blue jalabia and cap",
+  "file": "jalabia-midnight.png"
+ },
+ {
+  "src": "Midnight blue and sand beige style.png",
+  "name": "linen-shirt-midnight-sand-trousers",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a midnight-blue camp-collar shirt and sand trousers",
+  "file": "linen-shirt-midnight-sand-trousers.png"
+ },
+ {
+  "src": "Minimalist White Nigerian Co-Ord Set.png",
+  "name": "womens-linen-wide-leg-set-white",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a white linen camp-collar shirt and wide trousers",
+  "file": "womens-linen-wide-leg-set-white.png"
+ },
+ {
+  "src": "Mocha Brown Coordinated Menswear.png",
+  "name": "camp-collar-set-mocha",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a mocha camp-collar shirt and trousers",
+  "file": "camp-collar-set-mocha.png"
+ },
+ {
+  "src": "Mocha Pink Linen Tailoring.png",
+  "name": "linen-short-set-rose",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a rose linen camp-collar shirt and shorts",
+  "file": "linen-short-set-rose.png"
+ },
+ {
+  "src": "Mocha White Luxury Menswear.png",
+  "name": "camp-collar-set-ivory",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in an ivory camp-collar shirt and trousers",
+  "file": "camp-collar-set-ivory.png"
+ },
+ {
+  "src": "Mocha green luxury menswear.png",
+  "name": "camp-collar-set-olive",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in an olive camp-collar shirt and trousers",
+  "file": "camp-collar-set-olive.png"
+ },
+ {
+  "src": "Mocha rose menswear in soft light.png",
+  "name": "camp-collar-set-rose",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a rose camp-collar shirt and trousers",
+  "file": "camp-collar-set-rose.png"
+ },
+ {
+  "src": "Modern Aso-Oke in Warm Stripes.png",
+  "name": "asooke-two-piece-warm-stripe",
+  "grade": "A",
+  "category": "casual-wear",
+  "alt": "Man in a matching warm-striped aso-oke shirt and wide trousers",
+  "file": "asooke-two-piece-warm-stripe.png"
+ },
+ {
+  "src": "Modern Nigerian Menswear in Teal Ankara.png",
+  "name": "ankara-tailored-trouser-teal",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a teal tee and teal ankara tailored trousers",
+  "file": "ankara-tailored-trouser-teal.png"
+ },
+ {
+  "src": "Modern teal Ankara cargo look.png",
+  "name": "ankara-cargo-teal",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a teal tee and teal ankara cargo trousers",
+  "file": "ankara-cargo-teal.png"
+ },
+ {
+  "src": "Modern terracotta Aso-Oke ensemble.png",
+  "name": "asooke-wide-leg-terracotta",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a terracotta tee and terracotta-striped aso-oke wide-leg trousers",
+  "file": "asooke-wide-leg-terracotta.png"
+ },
+ {
+  "src": "Momen_ Effortless African tailoring.png",
+  "name": "campaign-linen-couple",
+  "grade": "A",
+  "category": "campaign",
+  "alt": "A man and a woman in mocha and stone linen sets in a sunlit hall",
+  "file": "campaign-linen-couple.png"
+ },
+ {
+  "src": "Mustard monochrome wide-leg set.png",
+  "name": "womens-linen-wide-leg-set-mustard",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a mustard linen camp-collar shirt and wide trousers",
+  "file": "womens-linen-wide-leg-set-mustard.png"
+ },
+ {
+  "src": "Mustard yellow tailored two-piece set.png",
+  "name": "womens-linen-short-set-mustard",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a mustard linen shirt and shorts set",
+  "file": "womens-linen-short-set-mustard.png"
+ },
+ {
+  "src": "Muted pink unisex two-piece fashion portrait.png",
+  "name": "womens-linen-wide-leg-set-blush",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a blush linen camp-collar shirt and wide trousers",
+  "file": "womens-linen-wide-leg-set-blush.png"
+ },
+ {
+  "src": "Navy Ankara Cargo Streetwear.png",
+  "name": "ankara-cargo-navy",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a navy tee and navy-and-rust ankara cargo trousers",
+  "file": "ankara-cargo-navy.png"
+ },
+ {
+  "src": "Nigerian Ankara Trousers, Modern Elegance.png",
+  "name": "ankara-tailored-trouser-emerald-gold",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a black shirt and emerald-and-gold ankara tailored trousers",
+  "file": "ankara-tailored-trouser-emerald-gold.png"
+ },
+ {
+  "src": "Nigerian Atelier of Tailored Elegance.png",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Near-duplicate of 'Crafting Nigerian luxury, stitch by stitch' (same two-sewers composition); kept the sharper, warmer frame"
+ },
+ {
+  "src": "Nigerian Black-on-Black Luxury Menswear.png",
+  "name": "kaftan-embroidered-onyx",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a black kaftan with tonal embroidery",
+  "file": "kaftan-embroidered-onyx.png"
+ },
+ {
+  "src": "Nigerian Luxury Atelier in Motion.png",
+  "name": "atelier-wide-negative-space",
+  "grade": "A",
+  "category": "atelier",
+  "alt": "Tailors at work at the far end of a long sunlit atelier",
+  "file": "atelier-wide-negative-space.png"
+ },
+ {
+  "src": "Nigerian Tailor Crafting a Cream Kaftan.png",
+  "name": "atelier-tailor-embroidering-cream-kaftan",
+  "grade": "A",
+  "category": "atelier",
+  "alt": "A tailor sews an embroidered cream kaftan at his machine",
+  "file": "atelier-tailor-embroidering-cream-kaftan.png"
+ },
+ {
+  "src": "Nigerian Tailor Crafting a Luxury Kaftan.png",
+  "name": null,
+  "grade": "C",
+  "category": "rejected",
+  "alt": "",
+  "reason": "Near-duplicate of 'Nigerian Tailor Crafting a Cream Kaftan' (same tailor, same kaftan, a step later); kept the closer frame"
+ },
+ {
+  "src": "Nigerian Tailors Crafting Luxury Together.png",
+  "name": "atelier-cutting-asooke-and-navy",
+  "grade": "A",
+  "category": "atelier",
+  "alt": "Two tailors measure aso-oke and cut navy cloth at a pattern table",
+  "file": "atelier-cutting-asooke-and-navy.png"
+ },
+ {
+  "src": "Nigerian White Senator Elegance.png",
+  "name": "senator-white",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a white senator kaftan with embroidered knot detail",
+  "file": "senator-white.png"
+ },
+ {
+  "src": "Nigerian designer crafting ivory couture.png",
+  "name": "atelier-designer-sewing-ivory",
+  "grade": "A",
+  "category": "atelier",
+  "alt": "A designer sews ivory cloth at a machine, a draped bodice on the mannequin behind",
+  "file": "atelier-designer-sewing-ivory.png"
+ },
+ {
+  "src": "Nigerian model in olive two-piece.png",
+  "name": "womens-linen-wide-leg-set-olive",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in an olive linen camp-collar shirt and wide trousers",
+  "file": "womens-linen-wide-leg-set-olive.png"
+ },
+ {
+  "src": "Off-White Two-Piece Studio Look.png",
+  "name": "womens-linen-short-set-ivory",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in an off-white linen shirt and shorts set",
+  "file": "womens-linen-short-set-ivory.png"
+ },
+ {
+  "src": "Off-white shirt, black wide-leg trousers.png",
+  "name": "womens-linen-shirt-ivory-black-trousers",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in an off-white linen shirt and black wide trousers",
+  "file": "womens-linen-shirt-ivory-black-trousers.png"
+ },
+ {
+  "src": "Olive Ankara Cargo Ensemble.png",
+  "name": "ankara-cargo-olive",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in an olive tee and olive ankara cargo trousers",
+  "file": "ankara-cargo-olive.png"
+ },
+ {
+  "src": "Olive Aso-Oke Wide-Leg Elegance.png",
+  "name": "womens-asooke-wide-leg-olive",
+  "grade": "B",
+  "category": "womens-trousers",
+  "alt": "Woman in an olive tank and olive-striped aso-oke wide-leg trousers",
+  "file": "womens-asooke-wide-leg-olive.png"
+ },
+ {
+  "src": "Olive green two-piece editorial look.png",
+  "name": "camp-collar-set-olive-alt",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in an olive camp-collar shirt and trousers",
+  "file": "camp-collar-set-olive-alt.png"
+ },
+ {
+  "src": "Powder Blue Two-Piece Studio Look.png",
+  "name": "womens-linen-short-set-powder",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a powder-blue linen shirt and shorts set",
+  "file": "womens-linen-short-set-powder.png"
+ },
+ {
+  "src": "Powder Blue Unisex Two-Piece.png",
+  "name": "womens-linen-wide-leg-set-powder",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a powder-blue linen camp-collar shirt and wide trousers",
+  "file": "womens-linen-wide-leg-set-powder.png"
+ },
+ {
+  "src": "Powder Blue and Navy Linen Ensemble.png",
+  "name": "womens-linen-shirt-powder-navy-trousers",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a powder-blue linen shirt and navy wide trousers",
+  "file": "womens-linen-shirt-powder-navy-trousers.png"
+ },
+ {
+  "src": "Powder Blue and Navy Studio Style.png",
+  "name": "womens-linen-shirt-powder-navy-shorts",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a powder-blue linen shirt and navy shorts",
+  "file": "womens-linen-shirt-powder-navy-shorts.png"
+ },
+ {
+  "src": "Premium black leather Nigerian palm sandals.png",
+  "name": "sandals-palm-cross-strap-black",
+  "grade": "B",
+  "category": "footwear",
+  "alt": "Black leather cross-strap palm sandals",
+  "file": "sandals-palm-cross-strap-black.png"
+ },
+ {
+  "src": "Pristine White Nigerian Kaftan Editorial.png",
+  "name": "kaftan-white-pocket-square",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a white kaftan with pocket square and trousers",
+  "file": "kaftan-white-pocket-square.png"
+ },
+ {
+  "src": "Refined Black Two-Piece Studio Look.png",
+  "name": "womens-linen-wide-leg-set-onyx",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in a black linen camp-collar shirt and wide trousers",
+  "file": "womens-linen-wide-leg-set-onyx.png"
+ },
+ {
+  "src": "Refined Ivory and Mocha Menswear.png",
+  "name": "linen-shirt-ivory-mocha-trousers",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in an ivory camp-collar shirt and mocha trousers",
+  "file": "linen-shirt-ivory-mocha-trousers.png"
+ },
+ {
+  "src": "Refined Nigerian kaftan in beige.png",
+  "name": "senator-beige",
+  "grade": "B",
+  "category": "kaftans",
+  "alt": "Man in a beige senator kaftan with pocket square",
+  "file": "senator-beige.png"
+ },
+ {
+  "src": "Refined black leather briefcase.png",
+  "name": "bag-briefcase-black",
+  "grade": "B",
+  "category": "bags",
+  "alt": "Black pebbled-leather briefcase on a stone plinth",
+  "file": "bag-briefcase-black.png"
+ },
+ {
+  "src": "Refined stone and leather bracelets.png",
+  "name": "bracelet-trio-stone-leather-alt",
+  "grade": "B",
+  "category": "other-accessories",
+  "alt": "Onyx, tiger's-eye and braided leather bracelets in sunlight",
+  "file": "bracelet-trio-stone-leather-alt.png"
+ },
+ {
+  "src": "Relaxed Mustard-Ivory Linen Ensemble.png",
+  "name": "womens-linen-shirt-mustard-ivory-trousers",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a mustard linen shirt and ivory wide trousers",
+  "file": "womens-linen-shirt-mustard-ivory-trousers.png"
+ },
+ {
+  "src": "Rose and Chocolate Linen Ensemble.png",
+  "name": "womens-linen-shirt-rose-chocolate-trousers",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a rose linen shirt and chocolate wide trousers",
+  "file": "womens-linen-shirt-rose-chocolate-trousers.png"
+ },
+ {
+  "src": "Sage Linen Set with White Sneakers.png",
+  "name": "linen-short-set-sage",
+  "grade": "B",
+  "category": "casual-wear",
+  "alt": "Man in a sage linen camp-collar shirt and shorts with sneakers",
+  "file": "linen-short-set-sage.png"
+ },
+ {
+  "src": "Sage and Ivory Nigerian Resortwear.png",
+  "name": "womens-linen-shirt-sage-ivory-shorts-heels",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a sage linen shirt and ivory shorts with heels",
+  "file": "womens-linen-shirt-sage-ivory-shorts-heels.png"
+ },
+ {
+  "src": "Sage and ivory linen ensemble.png",
+  "name": "womens-linen-shirt-sage-ivory-trousers",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a sage linen shirt and ivory wide trousers",
+  "file": "womens-linen-shirt-sage-ivory-trousers.png"
+ },
+ {
+  "src": "Sage and ivory luxury menswear.png",
+  "name": "linen-shirt-sage-ivory-trousers",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a sage camp-collar shirt and ivory trousers",
+  "file": "linen-shirt-sage-ivory-trousers.png"
+ },
+ {
+  "src": "Sage and ivory tailored studio look.png",
+  "name": "womens-linen-shirt-sage-ivory-shorts",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a sage linen shirt and ivory shorts with sneakers",
+  "file": "womens-linen-shirt-sage-ivory-shorts.png"
+ },
+ {
+  "src": "Sand and midnight linen ensemble.png",
+  "name": "linen-shirt-sand-navy-shorts",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a sand camp-collar shirt and navy shorts",
+  "file": "linen-shirt-sand-navy-shorts.png"
+ },
+ {
+  "src": "Sophisticated Brown Leather Crossbody Bag.png",
+  "name": "bag-crossbody-brown",
+  "grade": "B",
+  "category": "bags",
+  "alt": "Brown leather crossbody messenger bag on a stone plinth",
+  "file": "bag-crossbody-brown.png"
+ },
+ {
+  "src": "Tailored Navy Ankara Trousers.png",
+  "name": "ankara-tailored-trouser-navy",
+  "grade": "B",
+  "category": "pants",
+  "alt": "Man in a navy tee and navy-and-amber ankara tailored trousers",
+  "file": "ankara-tailored-trouser-navy.png"
+ },
+ {
+  "src": "Terracotta and Cream Linen Elegance.png",
+  "name": "womens-linen-shirt-terracotta-ivory-trousers",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a terracotta linen shirt and ivory wide trousers",
+  "file": "womens-linen-shirt-terracotta-ivory-trousers.png"
+ },
+ {
+  "src": "Terracotta and Ivory Menswear Editorial.png",
+  "name": "linen-shirt-terracotta-ivory-trousers",
+  "grade": "B",
+  "category": "shirts",
+  "alt": "Man in a terracotta camp-collar shirt and ivory trousers",
+  "file": "linen-shirt-terracotta-ivory-trousers.png"
+ },
+ {
+  "src": "Terracotta and sand Nigerian tailoring.png",
+  "name": "womens-linen-shirt-terracotta-sand-shorts",
+  "grade": "B",
+  "category": "women",
+  "alt": "Woman in a terracotta linen shirt and sand shorts",
+  "file": "womens-linen-shirt-terracotta-sand-shorts.png"
+ },
+ {
+  "src": "Warm Ivory Unisex Studio Ensemble.png",
+  "name": "womens-linen-wide-leg-set-ivory",
+  "grade": "B",
+  "category": "womens-sets",
+  "alt": "Woman in an ivory linen camp-collar shirt and wide trousers",
+  "file": "womens-linen-wide-leg-set-ivory.png"
+ },
+ {
+  "src": "White Nigerian Agbada Elegance.png",
+  "name": "agbada-white-tonal",
+  "grade": "A",
+  "category": "agbada",
+  "alt": "Man in a white agbada with tonal embroidery and white cap",
+  "file": "agbada-white-tonal.png"
+ },
+ {
+  "src": "White Nigerian Kaftan with Geometric Prints.png",
+  "name": "kaftan-geometric-white",
+  "grade": "A",
+  "category": "kaftans",
+  "alt": "Man in a white kaftan with geometric print panel and cuffs",
+  "file": "kaftan-geometric-white.png"
+ },
+ {
+  "src": "Woven indigo Aso-Oke ensemble.png",
+  "name": "asooke-wide-leg-indigo",
+  "grade": "A",
+  "category": "pants",
+  "alt": "Man in a navy tee and indigo-striped aso-oke wide-leg trousers",
+  "file": "asooke-wide-leg-indigo.png"
+ },
+ {
+  "src": "blacktradcap.png",
+  "name": "cap-fila-onyx",
+  "grade": "B",
+  "category": "caps",
+  "alt": "Black woven fila cap on a stone plinth",
+  "file": "cap-fila-onyx.png"
+ },
+ {
+  "src": "browntradcap.png",
+  "name": "cap-fila-cocoa",
+  "grade": "B",
+  "category": "caps",
+  "alt": "Cocoa woven fila cap on a stone plinth",
+  "file": "cap-fila-cocoa.png"
+ },
+ {
+  "src": "goldtradcap.png",
+  "name": "cap-fila-gold",
+  "grade": "B",
+  "category": "caps",
+  "alt": "Gold woven fila cap on a stone plinth",
+  "file": "cap-fila-gold.png"
+ },
+ {
+  "src": "tradcaps.png",
+  "name": "cap-fila-navy",
+  "grade": "B",
+  "category": "caps",
+  "alt": "Navy and ivory woven fila cap on a stone plinth",
+  "file": "cap-fila-navy.png"
+ },
+ {
+  "src": "tradcaps1.png",
+  "name": "cap-fila-wine",
+  "grade": "B",
+  "category": "caps",
+  "alt": "Wine and ivory woven fila cap on a stone plinth",
+  "file": "cap-fila-wine.png"
+ },
+ {
+  "src": "tradcaps2.png",
+  "name": "cap-fila-emerald",
+  "grade": "B",
+  "category": "caps",
+  "alt": "Emerald and ivory woven fila cap on a stone plinth",
+  "file": "cap-fila-emerald.png"
+ },
+ {
+  "src": "tradcaps3.png",
+  "name": "cap-fila-onyx-ivory",
+  "grade": "B",
+  "category": "caps",
+  "alt": "Black and ivory woven fila cap on a stone plinth",
+  "file": "cap-fila-onyx-ivory.png"
+ },
+ {
+  "src": "tradcaps4.png",
+  "name": "cap-fila-silver",
+  "grade": "B",
+  "category": "caps",
+  "alt": "Silver-grey woven fila cap on a stone plinth",
+  "file": "cap-fila-silver.png"
+ }
+]

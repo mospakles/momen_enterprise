@@ -6,18 +6,20 @@
 
 import { Suspense, useMemo, useState } from "react";
 import Image from "next/image";
+import { MEDIA, focal } from "@/components/journey/media";
+import { placeholderFor } from "@/lib/brand-images";
 import Link from "next/link";
 import { useAdminStore } from "@/lib/admin/store";
 import { formatNaira } from "@/lib/format";
 
 const GARMENT_TYPES: { key: string; label: string; categorySlug?: string; garment?: string; image: string }[] = [
-  { key: "kaftan", label: "Kaftan", categorySlug: "kaftans", image: "/images/brand/kaftan4.jpg" },
-  { key: "senator", label: "Senator", categorySlug: "senator", image: "/images/brand/kaftan1.jpg" },
-  { key: "agbada", label: "Agbada", categorySlug: "agbada", image: "/images/brand/agbada7.jpg" },
-  { key: "jalabia", label: "Jalabia", categorySlug: "jalabia", image: "/images/brand/kaftan9.jpg" },
-  { key: "shirt", label: "Shirt", categorySlug: "shirts", image: "/images/brand/shirt5.jpg" },
-  { key: "pants", label: "Pants", categorySlug: "pants", image: "/images/brand/menasooke13.jpg" },
-  { key: "two-piece", label: "Two-Piece", garment: "set", image: "/images/brand/2pieceshort5.jpg" },
+  { key: "kaftan", label: "Kaftan", categorySlug: "kaftans", image: "/images/brand/senator-beige.jpg" },
+  { key: "senator", label: "Senator", categorySlug: "senator", image: "/images/brand/senator-charcoal.jpg" },
+  { key: "agbada", label: "Agbada", categorySlug: "agbada", image: "/images/brand/agbada-white-tonal.jpg" },
+  { key: "jalabia", label: "Jalabia", categorySlug: "jalabia", image: "/images/brand/jalabia-ivory.jpg" },
+  { key: "shirt", label: "Shirt", categorySlug: "shirts", image: "/images/brand/shirt-linen-sage.jpg" },
+  { key: "pants", label: "Pants", categorySlug: "pants", image: "/images/brand/asooke-wide-leg-natural.jpg" },
+  { key: "two-piece", label: "Two-Piece", garment: "set", image: "/images/brand/camp-collar-set-ivory.jpg" },
 ];
 
 export default function MadeToMeasurePage() {
@@ -45,7 +47,7 @@ function MtmContent() {
   return (
     <div>
       <div className="relative flex h-[46vh] min-h-[320px] items-end overflow-hidden bg-charcoal">
-        <Image src="/images/brand/agbada11.jpg" alt="A man in an emerald agbada with an embroidered chest panel" fill preload sizes="100vw" className="object-cover object-[50%_22%] opacity-70" />
+        <Image src={MEDIA.madeToMeasureHero.src} alt={MEDIA.madeToMeasureHero.alt} fill preload sizes="100vw" placeholder={placeholderFor(MEDIA.madeToMeasureHero.src)} style={focal(MEDIA.madeToMeasureHero).style} className={`object-cover opacity-80 ${focal(MEDIA.madeToMeasureHero).className}`} />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 to-transparent" />
         <div className="relative mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
           <p className="eyebrow text-brass-light">Made-to-Measure</p>
@@ -74,7 +76,7 @@ function MtmContent() {
               className={`group relative overflow-hidden border text-left ${activeType === t.key ? "border-brass" : "border-line hover:border-ink"}`}
             >
               <div className="relative aspect-[4/5]">
-                <Image src={t.image} alt={t.label} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="180px" />
+                <Image src={t.image} alt={`${t.label} — made to measure`} fill placeholder={placeholderFor(t.image)} className="object-cover object-[50%_18%] transition-transform duration-500 group-hover:scale-105" sizes="180px" />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/70 to-transparent" />
                 <p className="absolute inset-x-0 bottom-1.5 text-center font-display text-xs text-ivory sm:text-sm">{t.label}</p>
               </div>

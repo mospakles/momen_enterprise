@@ -22,6 +22,8 @@ import { trapFocus, useDialog } from "@/lib/a11y";
 import { useScrollLock } from "@/lib/motion/hooks";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 import type { CartItem } from "@/lib/types";
+import { MEDIA } from "@/components/journey/media";
+import { placeholderFor } from "@/lib/brand-images";
 
 const needsMeasurements = (item: CartItem) =>
   item.product.productionType === "made-to-measure" &&
@@ -466,11 +468,12 @@ function EmptyBag({ onClose }: { onClose: () => void }) {
     <div className="flex flex-1 flex-col">
       <div className="relative mx-6 mt-6 aspect-[4/3] overflow-hidden bg-bone">
         <Image
-          src="/images/brand/kaftan4.jpg"
+          src={MEDIA.emptyBag.src}
           alt=""
+          placeholder={placeholderFor(MEDIA.emptyBag.src)}
           fill
           sizes="420px"
-          className="object-cover object-top"
+          className="object-cover object-[50%_25%]"
         />
       </div>
       <div className="px-6 py-8">

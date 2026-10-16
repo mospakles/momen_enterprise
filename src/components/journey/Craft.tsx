@@ -7,7 +7,8 @@ import { Reveal } from "@/lib/motion/Reveal";
 import { SplitText } from "@/lib/motion/SplitText";
 import { useIsDesktop, usePrefersReducedMotion } from "@/lib/motion/hooks";
 import FabricLens from "./FabricLens";
-import { MEDIA } from "./media";
+import { MEDIA, focal } from "./media";
+import { placeholderFor } from "@/lib/brand-images";
 
 const STEPS = [
   { n: "01", title: "Measure", body: "Twenty-odd measurements, taken or guided, then checked twice. The pattern is drafted for one body." },
@@ -91,7 +92,9 @@ function ProcessStrip() {
               alt={MEDIA.process[i].alt}
               fill
               sizes="(min-width: 1024px) 34vw, 78vw"
-              className="object-cover grayscale-[35%] transition-[transform,filter] duration-[1.4s] ease-house group-hover:scale-[1.04] group-hover:grayscale-0"
+              placeholder={placeholderFor(MEDIA.process[i].src)}
+              style={focal(MEDIA.process[i]).style}
+              className={`object-cover ${focal(MEDIA.process[i]).className} grayscale-[35%] transition-[transform,filter] duration-[1.4s] ease-house group-hover:scale-[1.04] group-hover:grayscale-0`}
             />
             <span className="display absolute left-5 top-3 text-[5.5rem] italic leading-none text-bone [text-shadow:0_2px_24px_rgba(18,17,14,0.45)]">
               {step.n}

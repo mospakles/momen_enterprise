@@ -35,3 +35,6 @@ next-env.d.ts
 
 # Local backup written by server/prisma/scripts/apply-brand-photos.ts
 server/prisma/scripts/brand-photos.backup.json
+
+# Images graded C during curation (kept, never served) — see brand/CURATION.md
+/_rejected/

@@ -16,6 +16,7 @@ import { apiRequest } from "@/lib/api";
 import { itemFromProduct, track } from "@/lib/analytics";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 import { SplitText } from "@/lib/motion/SplitText";
+import { placeholderFor } from "@/lib/brand-images";
 import type { Order } from "@/lib/types";
 
 function ConfirmationContent() {
@@ -160,7 +161,7 @@ function ConfirmationContent() {
               <li key={i.id} className="flex gap-3 text-sm">
                 {i.product.images?.[0] && (
                   <span className="relative h-16 w-12 shrink-0 overflow-hidden bg-bone">
-                    <Image src={i.product.images[0]} alt="" fill sizes="48px" className="object-cover" />
+                    <Image src={i.product.images[0]} alt="" fill sizes="48px" placeholder={placeholderFor(i.product.images[0])} className="object-cover" />
                   </span>
                 )}
                 <span className="flex-1">
@@ -189,7 +190,7 @@ function ConfirmationContent() {
       {recommendation && (
         <section aria-labelledby="rec-heading" className="mt-24 grid items-center gap-10 border-t border-line pt-16 sm:grid-cols-2">
           <Link href={`/product/${recommendation.slug}`} className="group relative block aspect-[4/5] overflow-hidden bg-bone">
-            <Image src={recommendation.images[0]} alt={recommendation.name} fill sizes="(min-width:640px) 45vw, 100vw" className="object-cover transition-transform duration-[1.2s] ease-house group-hover:scale-[1.04]" />
+            <Image src={recommendation.images[0]} alt={recommendation.name} fill sizes="(min-width:640px) 45vw, 100vw" placeholder={placeholderFor(recommendation.images[0])} className="object-cover transition-transform duration-[1.2s] ease-house group-hover:scale-[1.04]" />
           </Link>
           <div>
             <p className="label text-clay">For your next occasion</p>

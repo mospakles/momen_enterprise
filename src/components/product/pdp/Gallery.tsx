@@ -6,6 +6,7 @@
 // with keyboard, swipe and tap-to-zoom.
 
 import Image from "next/image";
+import { placeholderFor } from "@/lib/brand-images";
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { trapFocus, useDialog } from "@/lib/a11y";
@@ -102,7 +103,7 @@ export const Gallery = forwardRef<HTMLDivElement, { media: Media[]; name: string
               {item.type === "video" ? (
                 <video src={item.src} className="h-full w-full object-cover" muted playsInline autoPlay loop aria-hidden />
               ) : (
-                <Image src={item.src} alt={i === 0 ? name : ""} fill sizes="100vw" preload={i === 0} className="object-cover" />
+                <Image src={item.src} alt={i === 0 ? name : ""} fill sizes="100vw" preload={i === 0} placeholder={placeholderFor(item.src)} className="object-cover" />
               )}
             </button>
           ))}
@@ -153,6 +154,7 @@ function ZoomFrame({ item, alt, priority, onOpen }: { item: Media; alt: string; 
         alt={alt}
         fill
         preload={priority}
+        placeholder={placeholderFor(item.src)}
         sizes="(min-width: 1024px) 55vw, 100vw"
         className="object-cover transition-transform duration-500 ease-house"
         style={{ transformOrigin: origin, transform: zoom ? "scale(1.9)" : "scale(1)" }}

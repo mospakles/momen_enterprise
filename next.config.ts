@@ -1,16 +1,28 @@
 import type { NextConfig } from "next";
+import legacyBrandPaths from "./brand/legacy-map.json";
 
 const nextConfig: NextConfig = {
   // Railway runs the app from a container. Standalone output keeps the
   // production image small and includes only the files the Next server needs.
   output: "standalone",
   images: {
+    // Serve modern formats; the JPEGs in public/images/brand are the fallback.
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "picsum.photos" },
       // Placeholder editorial photography for the brand journey — see
       // src/components/journey/media.ts. Remove once brand shoots are in.
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
+  },
+  // Brand photos were renamed in the curation pass (brand/curation.json);
+  // old URLs redirect to the new names.
+  async redirects() {
+    return Object.entries(legacyBrandPaths as Record<string, string>).map(([source, destination]) => ({
+      source,
+      destination,
+      permanent: true,
+    }));
   },
 };
 

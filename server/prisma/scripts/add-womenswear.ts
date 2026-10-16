@@ -16,17 +16,19 @@ const prisma = new PrismaClient();
 const img = (name: string) => `/images/brand/${name}.jpg`;
 
 const CATEGORIES = [
-  { slug: 'women', name: 'Women', description: 'Ankara and aso-oke pieces for her, cut in Lagos.', image: img('womenankara1'), sortOrder: 20 },
-  { slug: 'womens-trousers', name: "Women's Trousers", image: img('ladiesankarapant3'), sortOrder: 21, parent: 'women' },
-  { slug: 'womens-shorts', name: "Women's Shorts", image: img('ladiesankarashort2'), sortOrder: 22, parent: 'women' },
-  { slug: 'womens-sets', name: "Women's Sets", image: img('womenasooke'), sortOrder: 23, parent: 'women' },
+  { slug: 'women', name: 'Women', description: 'Ankara, aso-oke and linen pieces for her, cut in Lagos.', image: img('womens-linen-wide-leg-set-powder'), sortOrder: 20 },
+  { slug: 'womens-trousers', name: "Women's Trousers", image: img('womens-asooke-wide-leg-amber'), sortOrder: 21, parent: 'women' },
+  { slug: 'womens-shorts', name: "Women's Shorts", image: img('womens-ankara-cargo-short-fern'), sortOrder: 22, parent: 'women' },
+  { slug: 'womens-sets', name: "Women's Sets", image: img('womens-asooke-bandeau-set-cobalt'), sortOrder: 23, parent: 'women' },
 ];
 
 interface Print {
   name: string;
   hex: string;
-  photo: string;
+  /** Main shot first, then any further shots of this colour. */
+  photos: string[];
 }
+const pr = (name: string, hex: string, ...photos: string[]): Print => ({ name, hex, photos });
 
 const PRODUCTS: {
   slug: string;
@@ -41,74 +43,87 @@ const PRODUCTS: {
   prints: Print[];
 }[] = [
   {
-    slug: 'adaeze-ankara-wide-leg-trouser',
-    name: 'Adaeze Ankara Wide-Leg Trouser',
-    sku: 'MOM-W-TRS-001',
-    category: 'womens-trousers',
-    price: 48000,
-    garment: Garment.trouser,
+    slug: 'adaeze-ankara-wide-leg-trouser', name: 'Adaeze Ankara Wide-Leg Trouser', sku: 'MOM-W-TRS-001', category: 'womens-trousers', price: 48000, garment: Garment.trouser,
     short: 'High-waisted wide-leg trouser in bold ankara.',
-    description:
-      'A high-rise, wide-leg trouser cut from wax-print ankara, with side pockets and a clean flat front. Each print is a small run — when a cloth is gone, it is gone.',
+    description: 'A high-rise, wide-leg trouser cut from wax-print ankara, with side pockets and a clean flat front. Each print is a small run — when a cloth is gone, it is gone.',
     details: ['High-rise waist with concealed zip', 'Wide leg, full length', 'Side-seam pockets', '100% cotton wax print'],
     prints: [
-      { name: 'Sunburst', hex: '#C2662D', photo: 'ladiesankarapant' },
-      { name: 'Bloom', hex: '#B4472F', photo: 'ladiesankarapant1' },
-      { name: 'Ember', hex: '#7A2534', photo: 'ladiesankarapant2' },
-      { name: 'Indigo Sun', hex: '#2E3E7A', photo: 'ladiesankarapant3' },
-      { name: 'Lagoon', hex: '#1F6F6B', photo: 'ladiesankarapant4' },
-      { name: 'Garden', hex: '#6B3A6E', photo: 'ladiesankarapant5' },
+      pr('Indigo Sun', '#2E3E7A', 'womens-ankara-wide-leg-indigo-sun'), pr('Sunburst', '#C2662D', 'womens-ankara-wide-leg-sunburst'),
+      pr('Bloom', '#B4472F', 'womens-ankara-wide-leg-bloom'), pr('Ember', '#7A2534', 'womens-ankara-wide-leg-ember'),
+      pr('Lagoon', '#1F6F6B', 'womens-ankara-wide-leg-lagoon'), pr('Garden', '#6B3A6E', 'womens-ankara-wide-leg-garden'),
     ],
   },
   {
-    slug: 'temi-ankara-cargo-short',
-    name: 'Temi Ankara Cargo Short',
-    sku: 'MOM-W-SHT-001',
-    category: 'womens-shorts',
-    price: 38000,
-    garment: Garment.trouser,
+    slug: 'ireti-aso-oke-wide-leg-trouser', name: 'Ireti Aso-Oke Wide-Leg Trouser', sku: 'MOM-W-TRS-002', category: 'womens-trousers', price: 58000, garment: Garment.trouser,
+    short: 'High-waisted wide-leg trouser in striped aso-oke.',
+    description: 'Hand-woven aso-oke cut into a high-waisted, pleated wide-leg trouser. The stripe runs the full length of the leg for a long, easy line.',
+    details: ['High-rise, pleated front', 'Wide leg, full length', 'Hand-woven aso-oke', 'Dry clean recommended'],
+    prints: [
+      pr('Amber Stripe', '#A8742E', 'womens-asooke-wide-leg-amber'), pr('Cocoa Stripe', '#6B4630', 'womens-asooke-wide-leg-cocoa'),
+      pr('Terracotta Stripe', '#A04A2C', 'womens-asooke-wide-leg-terracotta'), pr('Olive Stripe', '#6B6A3A', 'womens-asooke-wide-leg-olive'),
+    ],
+  },
+  {
+    slug: 'temi-ankara-cargo-short', name: 'Temi Ankara Cargo Short', sku: 'MOM-W-SHT-001', category: 'womens-shorts', price: 38000, garment: Garment.trouser,
     short: 'Relaxed cargo short in ankara wax print.',
-    description:
-      'A relaxed, mid-thigh cargo short in ankara wax print, with patch pockets and a belted waist. Made for long Lagos afternoons.',
+    description: 'A relaxed, mid-thigh cargo short in ankara wax print, with patch pockets and a belted waist. Made for long Lagos afternoons.',
     details: ['Mid-rise, mid-thigh length', 'Cargo patch pockets', 'Belt loops', '100% cotton wax print'],
     prints: [
-      { name: 'Marigold', hex: '#C98A2B', photo: 'ladiesankarashort' },
-      { name: 'Saffron', hex: '#D9831F', photo: 'ladiesankarashort1' },
-      { name: 'Fern', hex: '#3E6B3A', photo: 'ladiesankarashort2' },
-      { name: 'Amber', hex: '#B5651D', photo: 'ladiesankarashort3' },
-      { name: 'Olive Leaf', hex: '#6B6236', photo: 'ladiesankarashort4' },
-      { name: 'Terracotta', hex: '#A04A2C', photo: 'ladiesankarashort5' },
-      { name: 'Tangerine', hex: '#D9732B', photo: 'ladiesankarashort6' },
+      pr('Fern', '#3E6B3A', 'womens-ankara-cargo-short-fern'), pr('Marigold', '#C98A2B', 'womens-ankara-cargo-short-marigold'),
+      pr('Saffron', '#D9831F', 'womens-ankara-cargo-short-saffron'), pr('Amber', '#B5651D', 'womens-ankara-cargo-short-amber'),
+      pr('Olive Leaf', '#6B6236', 'womens-ankara-cargo-short-olive-leaf'), pr('Terracotta', '#A04A2C', 'womens-ankara-cargo-short-terracotta'),
+      pr('Tangerine', '#D9732B', 'womens-ankara-cargo-short-tangerine'),
     ],
   },
   {
-    slug: 'kemi-ankara-crop-top-trouser-set',
-    name: 'Kemi Ankara Crop Top & Trouser Set',
-    sku: 'MOM-W-SET-001',
-    category: 'womens-sets',
-    price: 72000,
-    garment: Garment.set,
-    short: 'Matching ankara crop top and wide-leg trouser.',
-    description:
-      'A two-piece in one print: a fitted crop top and a high-waisted wide-leg trouser. Wear it together for the occasion, apart for everything after.',
-    details: ['Fitted crop top with back zip', 'High-waisted wide-leg trouser', 'Sold as a set', '100% cotton wax print'],
+    slug: 'ada-linen-wide-leg-set', name: 'Ada Linen Wide-Leg Set', sku: 'MOM-W-SET-003', category: 'womens-sets', price: 68000, garment: Garment.set,
+    short: 'Camp-collar linen shirt and matching wide trouser.',
+    description: 'A relaxed camp-collar shirt and a high-waisted wide trouser in the same washed linen. One piece of thinking, beautifully done.',
+    details: ['Two-piece: shirt and wide trousers', 'Washed linen', 'Camp collar, chest pocket', 'Machine wash cold'],
     prints: [
-      { name: 'Paprika', hex: '#B8501F', photo: 'womenankara' },
-      { name: 'Emerald', hex: '#1E6B45', photo: 'womenankara1' },
+      pr('Powder Blue', '#A9C6E8', 'womens-linen-wide-leg-set-powder'), pr('Mustard', '#D4A82E', 'womens-linen-wide-leg-set-mustard'),
+      pr('Blush', '#E8B9BF', 'womens-linen-wide-leg-set-blush'), pr('Olive', '#6B6A3A', 'womens-linen-wide-leg-set-olive'),
+      pr('Ivory', '#EFE8DA', 'womens-linen-wide-leg-set-ivory'), pr('White', '#F6F4EF', 'womens-linen-wide-leg-set-white'),
+      pr('Onyx', '#1A1A1A', 'womens-linen-wide-leg-set-onyx'), pr('Brick', '#A54A3A', 'womens-linen-wide-leg-set-brick'),
     ],
   },
   {
-    slug: 'bisi-aso-oke-bandeau-set',
-    name: 'Bisi Aso-Oke Bandeau Set',
-    sku: 'MOM-W-SET-002',
-    category: 'womens-sets',
-    price: 85000,
-    garment: Garment.set,
+    slug: 'ada-linen-short-set', name: 'Ada Linen Short Set', sku: 'MOM-W-SET-004', category: 'womens-sets', price: 55000, garment: Garment.set,
+    short: 'Camp-collar linen shirt and matching short.',
+    description: 'Our camp-collar linen shirt with a matching relaxed short — the set for warm weekends and slow holidays.',
+    details: ['Two-piece: shirt and shorts', 'Washed linen', 'Camp collar, chest pocket', 'Machine wash cold'],
+    prints: [
+      pr('Mustard', '#D4A82E', 'womens-linen-short-set-mustard'), pr('Blush', '#E8B9BF', 'womens-linen-short-set-blush'),
+      pr('Powder Blue', '#A9C6E8', 'womens-linen-short-set-powder'), pr('Ivory', '#EFE8DA', 'womens-linen-short-set-ivory'),
+    ],
+  },
+  {
+    slug: 'ife-camp-collar-linen-shirt', name: 'Ife Camp-Collar Linen Shirt', sku: 'MOM-W-SHT-002', category: 'women', price: 36000, garment: Garment.top,
+    short: 'Relaxed camp-collar shirt in washed linen.',
+    description: 'A relaxed camp-collar shirt in washed linen, shown with our wide trousers and shorts. The shirt that goes with everything else you own.',
+    details: ['Washed linen', 'Camp collar, chest pocket', 'Relaxed fit', 'Machine wash cold'],
+    prints: [
+      pr('Sage', '#A7B79A', 'womens-linen-shirt-sage-ivory-trousers', 'womens-linen-shirt-sage-ivory-shorts', 'womens-linen-shirt-sage-ivory-shorts-heels'),
+      pr('Rose', '#C98F8C', 'womens-linen-shirt-rose-chocolate-trousers', 'womens-linen-shirt-rose-cocoa-shorts', 'womens-linen-shirt-rose-cocoa-shorts-heels'),
+      pr('Terracotta', '#B4522A', 'womens-linen-shirt-terracotta-ivory-trousers', 'womens-linen-shirt-terracotta-sand-shorts'),
+      pr('Powder Blue', '#A9C6E8', 'womens-linen-shirt-powder-navy-trousers', 'womens-linen-shirt-powder-navy-shorts'),
+      pr('Ivory', '#EFE8DA', 'womens-linen-shirt-ivory-black-trousers', 'womens-linen-shirt-ivory-black-shorts'),
+      pr('Mustard', '#D4A82E', 'womens-linen-shirt-mustard-ivory-trousers'),
+    ],
+  },
+  {
+    slug: 'kemi-ankara-crop-top-trouser-set', name: 'Kemi Ankara Crop Top & Trouser Set', sku: 'MOM-W-SET-001', category: 'womens-sets', price: 72000, garment: Garment.set,
+    short: 'Matching ankara crop top and wide-leg trouser.',
+    description: 'A two-piece in one print: a fitted crop top and a high-waisted wide-leg trouser. Wear it together for the occasion, apart for everything after.',
+    details: ['Fitted crop top with back zip', 'High-waisted wide-leg trouser', 'Sold as a set', '100% cotton wax print'],
+    prints: [pr('Paprika', '#B8501F', 'womens-ankara-set-paprika'), pr('Emerald', '#1E6B45', 'womens-ankara-set-emerald')],
+  },
+  {
+    slug: 'bisi-aso-oke-bandeau-set', name: 'Bisi Aso-Oke Bandeau Set', sku: 'MOM-W-SET-002', category: 'womens-sets', price: 85000, garment: Garment.set,
     short: 'Aso-oke bandeau top with wide striped trouser.',
-    description:
-      'Hand-woven aso-oke, cut into a structured bandeau and a fluid wide-leg trouser with the stripe running long. Heritage cloth, worn lightly.',
+    description: 'Hand-woven aso-oke, cut into a structured bandeau and a fluid wide-leg trouser with the stripe running long. Heritage cloth, worn lightly.',
     details: ['Structured bandeau top', 'High-waisted wide-leg trouser', 'Hand-woven aso-oke', 'Dry clean recommended'],
-    prints: [{ name: 'Cobalt', hex: '#1F3A8A', photo: 'womenasooke' }],
+    prints: [pr('Cobalt', '#1F3A8A', 'womens-asooke-bandeau-set-cobalt')],
   },
 ];
 
@@ -141,14 +156,15 @@ async function apply() {
   );
 
   for (const p of PRODUCTS) {
-    const images = p.prints.map((print) => img(print.photo));
+    // Gallery: each print's main shot first, then the extra shots.
+    const images = [...p.prints.map((print) => img(print.photos[0])), ...p.prints.flatMap((print) => print.photos.slice(1).map(img))];
     const data = {
       name: p.name,
       sku: p.sku,
       categoryId: ids[p.category],
       price: p.price,
       images,
-      hoverImage: images[1] ?? null,
+      hoverImage: p.prints[0].photos[1] ? img(p.prints[0].photos[1]) : images[1] ?? null,
       productionType: 'ready_to_wear' as const,
       productType: 'ready_to_wear' as const,
       gender: 'women' as const,
@@ -175,7 +191,7 @@ async function apply() {
     // Replace nested lists so re-runs stay in sync with this file.
     await prisma.productColorVariant.deleteMany({ where: { productId: product.id } });
     await prisma.productColorVariant.createMany({
-      data: p.prints.map((print, i) => ({ productId: product.id, name: print.name, hex: print.hex, sortOrder: i, images: [img(print.photo)] })),
+      data: p.prints.map((print, i) => ({ productId: product.id, name: print.name, hex: print.hex, sortOrder: i, images: print.photos.map(img) })),
     });
     await prisma.productSize.deleteMany({ where: { productId: product.id } });
     await prisma.productSize.createMany({

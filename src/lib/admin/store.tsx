@@ -42,6 +42,17 @@ import type {
   Testimonial,
 } from "./types";
 import { apiAssetUrl, apiRequest } from "@/lib/api";
+import { resolveImage } from "@/lib/brand-images";
+
+/** Maps brand photo paths renamed in the curation pass to their new names. */
+function withCurrentImages(p: Product): Product {
+  return {
+    ...p,
+    images: p.images.map((src) => resolveImage(src)),
+    hoverImage: resolveImage(p.hoverImage),
+    colors: p.colors.map((c) => (c.images ? { ...c, images: c.images.map((src) => resolveImage(src)) } : c)),
+  };
+}
 import { toast } from "@/lib/toast";
 
 function usePersistentState<T>(_key: string, initial: T) {
@@ -396,9 +407,9 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       loadedNavigation,
       loadedSettings,
     ] = results;
-    setProducts(productPage.items);
-    setCollections(loadedCollections.map((item) => ({ ...item, seo: item.seo ?? {} })));
-    setCategories(loadedCategories.map((item) => ({ ...item, seo: item.seo ?? {} })));
+    setProducts(productPage.items.map(withCurrentImages));
+    setCollections(loadedCollections.map((item) => ({ ...item, image: resolveImage(item.image), seo: item.seo ?? {} })));
+    setCategories(loadedCategories.map((item) => ({ ...item, image: resolveImage(item.image), seo: item.seo ?? {} })));
     setFabrics(loadedFabrics.map(normalizeFabric));
     setColorSwatches(loadedColors);
     setSizeOptions(loadedSizes);
@@ -451,7 +462,7 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
     ]);
     const value = <T,>(index: number): T | undefined => requests[index].status === "fulfilled" ? requests[index].value as T : undefined;
     const adminProducts = value<{ items: Product[] }>(0);
-    if (adminProducts) setProducts(adminProducts.items);
+    if (adminProducts) setProducts(adminProducts.items.map(withCurrentImages));
     const adminCollections = value<Collection[]>(1);
     if (adminCollections) setCollections(adminCollections.map((item) => ({ ...item, seo: item.seo ?? {} })));
     const adminCategories = value<Category[]>(2);

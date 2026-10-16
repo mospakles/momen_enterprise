@@ -11,7 +11,7 @@ import { SplitText } from "@/lib/motion/SplitText";
 import { Magnetic } from "@/lib/motion/Magnetic";
 import { useCurtainNavigate } from "@/lib/motion/Curtain";
 import { usePrefersReducedMotion } from "@/lib/motion/hooks";
-import { MEDIA } from "./media";
+import { MEDIA, focal } from "./media";
 
 const GARMENTS = ["Agbada", "Kaftan", "Senator", "Jalabia", "Aso-oke", "Brocade", "Linen"];
 
@@ -25,7 +25,7 @@ export default function ShopHandoff() {
   return (
     <section ref={ref} data-tone="dark" aria-labelledby="handoff-heading" className="relative overflow-hidden bg-night text-bone">
       <m.div className="absolute inset-0 opacity-35" style={{ scale }}>
-        <Image src={MEDIA.handoff.src} alt="" fill sizes="100vw" className="object-cover object-top" />
+        <Image src={MEDIA.handoff.src} alt="" fill sizes="100vw" style={focal(MEDIA.handoff).style} className={`object-cover ${focal(MEDIA.handoff).className}`} />
       </m.div>
       <div className="absolute inset-0 bg-linear-to-b from-night via-night/60 to-night" />
 

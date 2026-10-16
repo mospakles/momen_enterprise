@@ -1,4 +1,6 @@
 "use client";
+import AuthShell from "@/components/auth/AuthShell";
+import { MEDIA } from "@/components/journey/media";
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
@@ -42,7 +44,7 @@ function SignupContent() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-16 sm:px-6">
+    <AuthShell image={MEDIA.auth.signup}>
       <div className="mb-8 text-center">
         <p className="eyebrow text-clay">Join Momen</p>
         <h1 className="mt-2 font-display text-3xl">Create Your Account</h1>
@@ -106,6 +108,6 @@ function SignupContent() {
           Sign in
         </Link>
       </p>
-    </div>
+    </AuthShell>
   );
 }

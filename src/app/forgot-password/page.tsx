@@ -1,4 +1,6 @@
 "use client";
+import AuthShell from "@/components/auth/AuthShell";
+import { MEDIA } from "@/components/journey/media";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -19,7 +21,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-16">
+    <AuthShell image={MEDIA.auth.recover}>
       <p className="eyebrow text-clay">Account recovery</p>
       <h1 className="mt-2 font-display text-3xl">Reset your password</h1>
       {sent ? (
@@ -31,6 +33,6 @@ export default function ForgotPasswordPage() {
         </form>
       )}
       <Link href="/login" className="mt-6 text-sm text-brass hover:underline">Back to sign in</Link>
-    </div>
+    </AuthShell>
   );
 }
