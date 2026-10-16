@@ -66,16 +66,14 @@ export default function AboutPage() {
       <section aria-labelledby="founder-heading" className="mx-auto max-w-[1600px] px-5 py-24 sm:px-10 lg:grid lg:grid-cols-12 lg:gap-10 lg:px-16 lg:py-36">
         <div className="lg:col-span-5">
           <ClipReveal className="relative aspect-[4/5] w-full bg-bone">
-            {/* Founder portraits are awaiting clean (unwatermarked) files — see
-                brand/CURATION.md. The atelier stands in until then. */}
             <Image src={MEDIA.aboutFounder.src} alt={MEDIA.aboutFounder.alt} fill sizes="(min-width:1024px) 40vw, 100vw" placeholder={placeholderFor(MEDIA.aboutFounder.src)} style={focal(MEDIA.aboutFounder).style} className={`object-cover ${focal(MEDIA.aboutFounder).className}`} />
           </ClipReveal>
           <div className="mt-4 grid grid-cols-2 gap-4">
             <ClipReveal className="relative aspect-square w-full bg-bone" delay={0.15}>
-              <Image src={MEDIA.aboutFounderDetails[0].src} alt={MEDIA.aboutFounderDetails[0].alt} fill sizes="(min-width:1024px) 20vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[0].src)} className="object-cover" />
+              <Image src={MEDIA.aboutFounderDetails[0].src} alt={MEDIA.aboutFounderDetails[0].alt} fill sizes="(min-width:1024px) 20vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[0].src)} style={focal(MEDIA.aboutFounderDetails[0]).style} className={`object-cover ${focal(MEDIA.aboutFounderDetails[0]).className}`} />
             </ClipReveal>
             <ClipReveal className="relative aspect-square w-full bg-bone" delay={0.25}>
-              <Image src={MEDIA.aboutFounderDetails[1].src} alt={MEDIA.aboutFounderDetails[1].alt} fill sizes="(min-width:1024px) 20vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[1].src)} className="object-cover" />
+              <Image src={MEDIA.aboutFounderDetails[1].src} alt={MEDIA.aboutFounderDetails[1].alt} fill sizes="(min-width:1024px) 20vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[1].src)} style={focal(MEDIA.aboutFounderDetails[1]).style} className={`object-cover ${focal(MEDIA.aboutFounderDetails[1]).className}`} />
             </ClipReveal>
           </div>
         </div>

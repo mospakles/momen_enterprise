@@ -223,6 +223,9 @@ Totals: 33 A · 177 B · 14 C.
 | Olive Aso-Oke Wide-Leg Elegance.png | `womens-asooke-wide-leg-olive` | B | womens-trousers | product: ireti-aso-oke-wide-leg-trouser |
 | Earthy Aso-Oke Wide-Leg Elegance.png | `womens-asooke-wide-leg-terracotta` | B | womens-trousers | product: ireti-aso-oke-wide-leg-trouser |
 
+| founder-portrait-laughing-studio.jpg | `founder-portrait-laughing-studio` | A | founder | site: aboutFounder |
+| founder-portrait-hands-on-heart.jpg | `founder-portrait-hands-on-heart` | A | founder | site: aboutFounderDetails |
+
 ## Rejected (in `/_rejected/`)
 
 | Original | Reason |
@@ -254,7 +257,7 @@ Totals: 33 A · 177 B · 14 C.
 
 ## Gaps
 
-- **Founder portraits**: all six carry a photographer watermark. Clean files would restore the About founder image.
+- **Founder portraits**: resolved — clean portraits `founder-portrait-laughing-studio` and `founder-portrait-hands-on-heart` now lead the About founder section (the watermarked set stays in `/_rejected/`).
 - **Craft close-ups**: real measuring-tape, pattern-paper and stitching macros; current craft frames are mid-distance.
 - **Accessories on model**: every accessory is a still life. Belts, watches, wallets, pocket squares and cufflinks have no photos at all.
 - **Placeholder products still live**: woven-raffia-cap, traditional-beaded-sandals, full-grain-leather-belt, signature-leather-wallet, silk-pocket-square, cufflink-set, ibrahim-contemporary-jalabia, musa-embroidered-jalabia.

@@ -1790,5 +1790,21 @@
   "category": "caps",
   "alt": "Silver-grey woven fila cap on a stone plinth",
   "file": "cap-fila-silver.png"
+ },
+ {
+  "src": "founder-portrait-laughing-studio.jpg",
+  "name": "founder-portrait-laughing-studio",
+  "grade": "A",
+  "category": "founder",
+  "alt": "Motunrayo Odusina, founder of momen., laughing in a black and magenta printed one-shoulder peplum dress",
+  "file": "founder-portrait-laughing-studio.jpg"
+ },
+ {
+  "src": "founder-portrait-hands-on-heart.jpg",
+  "name": "founder-portrait-hands-on-heart",
+  "grade": "A",
+  "category": "founder",
+  "alt": "Motunrayo Odusina, founder of momen., hands on heart in a black and magenta printed peplum dress, gold rings",
+  "file": "founder-portrait-hands-on-heart.jpg"
  }
 ]

@@ -83,12 +83,12 @@ export const MEDIA = {
   // ── Inner pages ────────────────────────────────────────────────────────────
   shopHero: { src: b("hero-emerald-agbada-courtyard"), alt: "A man in an emerald agbada walks through a sunlit stone courtyard", pos: "84% 40%", posMobile: "87% 35%" },
   aboutHero: { src: b("campaign-ivory-kaftan-chocolate-agbada"), alt: "Two men in an ivory kaftan and a chocolate agbada in a sunlit colonnade", pos: "74% 40%", posMobile: "76% 35%" },
-  aboutFounder: { src: b("atelier-tailors-at-work-wide"), alt: "Tailors at work at their machines in the momen. atelier", pos: "52% 50%" },
+  aboutFounder: { src: b("founder-portrait-laughing-studio"), alt: "Motunrayo Odusina, founder of momen., laughing in a black and magenta printed one-shoulder peplum dress", pos: "55% 30%" },
   aboutFounderDetails: [
+    { src: b("founder-portrait-hands-on-heart"), alt: "Motunrayo Odusina, hands on heart, in a black and magenta printed peplum dress and gold rings", pos: "50% 24%" },
     { src: b("atelier-tailor-sewing-cocoa"), alt: "A tailor sews cocoa cloth, tape and shears at hand", pos: "50% 40%" },
-    { src: b("brand-hang-tag-charcoal-cloth"), alt: "A momen. clothing hang tag resting on charcoal cloth", pos: "50% 50%" },
   ],
-  aboutAtelier: { src: b("atelier-tailors-navy-cocoa-wide"), alt: "Tailors sewing navy and cocoa cloth in the atelier", pos: "50% 45%" },
+  aboutAtelier: { src: b("atelier-tailors-at-work-wide"), alt: "Tailors at work at their machines in the momen. atelier", pos: "52% 50%" },
   madeToMeasureHero: { src: b("hero-bespoke-fitting-warm-light"), alt: "A tailor measures a client's shoulders in an ivory kaftan in warm light", pos: "58% 35%", posMobile: "60% 35%" },
   shopFeatures: {
     wedding: { src: b("campaign-ivory-kaftan-white-agbada"), alt: "Two men in an ivory kaftan and a white agbada in a sunlit courtyard", pos: "74% 40%" },
