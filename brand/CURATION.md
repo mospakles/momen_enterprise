@@ -223,7 +223,8 @@ Totals: 33 A · 177 B · 14 C.
 | Olive Aso-Oke Wide-Leg Elegance.png | `womens-asooke-wide-leg-olive` | B | womens-trousers | product: ireti-aso-oke-wide-leg-trouser |
 | Earthy Aso-Oke Wide-Leg Elegance.png | `womens-asooke-wide-leg-terracotta` | B | womens-trousers | product: ireti-aso-oke-wide-leg-trouser |
 
-| founder-portrait-laughing-studio.jpg | `founder-portrait-laughing-studio` | A | founder | site: aboutFounder |
+| founder-portrait-laughing-amber.jpg | `founder-portrait-laughing-amber` | A | founder | site: aboutFounder (lead; carries the Fabs Lens credit — swap for a clean export when available) |
+| founder-portrait-laughing-studio.jpg | `founder-portrait-laughing-studio` | A | founder | site: aboutFounderDetails |
 | founder-portrait-hands-on-heart.jpg | `founder-portrait-hands-on-heart` | A | founder | site: aboutFounderDetails |
 
 ## Rejected (in `/_rejected/`)

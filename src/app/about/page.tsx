@@ -64,21 +64,21 @@ export default function AboutPage() {
 
       {/* About the house — founder */}
       <section aria-labelledby="founder-heading" className="mx-auto max-w-[1600px] px-5 py-24 sm:px-10 lg:grid lg:grid-cols-12 lg:gap-10 lg:px-16 lg:py-36">
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-6">
           <ClipReveal className="relative aspect-[4/5] w-full bg-bone">
-            <Image src={MEDIA.aboutFounder.src} alt={MEDIA.aboutFounder.alt} fill sizes="(min-width:1024px) 40vw, 100vw" placeholder={placeholderFor(MEDIA.aboutFounder.src)} style={focal(MEDIA.aboutFounder).style} className={`object-cover ${focal(MEDIA.aboutFounder).className}`} />
+            <Image src={MEDIA.aboutFounder.src} alt={MEDIA.aboutFounder.alt} fill sizes="(min-width:1024px) 48vw, 100vw" placeholder={placeholderFor(MEDIA.aboutFounder.src)} style={focal(MEDIA.aboutFounder).style} className={`object-cover ${focal(MEDIA.aboutFounder).className}`} />
           </ClipReveal>
           <div className="mt-4 grid grid-cols-2 gap-4">
-            <ClipReveal className="relative aspect-square w-full bg-bone" delay={0.15}>
-              <Image src={MEDIA.aboutFounderDetails[0].src} alt={MEDIA.aboutFounderDetails[0].alt} fill sizes="(min-width:1024px) 20vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[0].src)} style={focal(MEDIA.aboutFounderDetails[0]).style} className={`object-cover ${focal(MEDIA.aboutFounderDetails[0]).className}`} />
+            <ClipReveal className="relative aspect-[4/5] w-full bg-bone" delay={0.15}>
+              <Image src={MEDIA.aboutFounderDetails[0].src} alt={MEDIA.aboutFounderDetails[0].alt} fill sizes="(min-width:1024px) 24vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[0].src)} style={focal(MEDIA.aboutFounderDetails[0]).style} className={`object-cover ${focal(MEDIA.aboutFounderDetails[0]).className}`} />
             </ClipReveal>
-            <ClipReveal className="relative aspect-square w-full bg-bone" delay={0.25}>
-              <Image src={MEDIA.aboutFounderDetails[1].src} alt={MEDIA.aboutFounderDetails[1].alt} fill sizes="(min-width:1024px) 20vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[1].src)} style={focal(MEDIA.aboutFounderDetails[1]).style} className={`object-cover ${focal(MEDIA.aboutFounderDetails[1]).className}`} />
+            <ClipReveal className="relative aspect-[4/5] w-full bg-bone" delay={0.25}>
+              <Image src={MEDIA.aboutFounderDetails[1].src} alt={MEDIA.aboutFounderDetails[1].alt} fill sizes="(min-width:1024px) 24vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[1].src)} style={focal(MEDIA.aboutFounderDetails[1]).style} className={`object-cover ${focal(MEDIA.aboutFounderDetails[1]).className}`} />
             </ClipReveal>
           </div>
         </div>
 
-        <div className="mt-14 lg:col-span-6 lg:col-start-7 lg:mt-0 lg:pt-16">
+        <div className="mt-14 lg:col-span-5 lg:col-start-8 lg:mt-0 lg:sticky lg:top-28 lg:self-start lg:pt-16">
           <p className="label text-clay">About the house — the founder</p>
           <SplitText as="h2" text={FOUNDER.heading} className="display mt-5 text-[clamp(2.4rem,5vw,4.5rem)]" />
           <span id="founder-heading" className="sr-only">About the founder</span>
