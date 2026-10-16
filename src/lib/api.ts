@@ -29,6 +29,26 @@ function authAudience(path: string): "admin" | "customer" {
   return path.startsWith("/admin/") ? "admin" : "customer";
 }
 
+// One refresh per audience at a time: a burst of parallel 401s (the admin
+// store loads ~30 endpoints at once) shares a single refresh call instead of
+// each firing its own and tripping the API's rate limit.
+const pendingRefresh: Partial<Record<"admin" | "customer", Promise<boolean>>> = {};
+
+function refreshSession(audience: "admin" | "customer") {
+  pendingRefresh[audience] ??= fetch(`${API_BASE_URL}${audience === "admin" ? "/admin/auth/refresh" : "/auth/refresh"}`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  })
+    .then((r) => r.ok)
+    .catch(() => false)
+    .finally(() => {
+      delete pendingRefresh[audience];
+    });
+  return pendingRefresh[audience];
+}
+
 async function rawRequest<T>(path: string, options: RequestOptions, retried: boolean): Promise<T> {
   const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const headers = new Headers(options.headers);
@@ -49,15 +69,7 @@ async function rawRequest<T>(path: string, options: RequestOptions, retried: boo
   });
 
   if (response.status === 401 && !retried && !options.skipRefresh) {
-    const audience = authAudience(path);
-    const refreshPath = audience === "admin" ? "/admin/auth/refresh" : "/auth/refresh";
-    const refreshed = await fetch(`${API_BASE_URL}${refreshPath}`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
-    if (refreshed.ok) return rawRequest<T>(path, options, true);
+    if (await refreshSession(authAudience(path))) return rawRequest<T>(path, options, true);
   }
 
   if (!response.ok) {

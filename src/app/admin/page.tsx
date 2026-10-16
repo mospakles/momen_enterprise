@@ -72,7 +72,7 @@ export default function AdminDashboard() {
     revenueOrders.forEach((o) =>
       o.items.forEach((it) => {
         const amount = it.product.price * it.quantity;
-        const collectionSlug = it.product.collectionSlugs[0];
+        const collectionSlug = it.product.collectionSlugs?.[0];
         const collectionName = catalogCollections.find((c) => c.slug === collectionSlug)?.name ?? "Uncategorized";
         collectionRevenue.set(collectionName, (collectionRevenue.get(collectionName) ?? 0) + amount);
         productRevenue.set(it.product.name, (productRevenue.get(it.product.name) ?? 0) + amount);

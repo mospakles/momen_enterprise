@@ -430,6 +430,13 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
   ]);
 
   const loadAdminData = useCallback(async () => {
+    // Signed-out visitors (e.g. on /admin/login) would otherwise fire ~30
+    // requests that all 401 — check the session once first.
+    try {
+      await apiRequest("/admin/auth/me");
+    } catch {
+      return;
+    }
     const requests = await Promise.allSettled([
       apiRequest<{ items: Product[] }>("/admin/products?pageSize=1000"),
       apiRequest<Collection[]>("/admin/collections"),
@@ -464,9 +471,9 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
     const adminProducts = value<{ items: Product[] }>(0);
     if (adminProducts) setProducts(adminProducts.items.map(withCurrentImages));
     const adminCollections = value<Collection[]>(1);
-    if (adminCollections) setCollections(adminCollections.map((item) => ({ ...item, seo: item.seo ?? {} })));
+    if (adminCollections) setCollections(adminCollections.map((item) => ({ ...item, image: resolveImage(item.image), seo: item.seo ?? {} })));
     const adminCategories = value<Category[]>(2);
-    if (adminCategories) setCategories(adminCategories.map((item) => ({ ...item, seo: item.seo ?? {} })));
+    if (adminCategories) setCategories(adminCategories.map((item) => ({ ...item, image: resolveImage(item.image), seo: item.seo ?? {} })));
     const loadedCustomers = value<Record<string, unknown>[]>(3);
     if (loadedCustomers) setCustomers(loadedCustomers.map(normalizeCustomer));
     const loadedUsers = value<AdminUser[]>(4);
@@ -530,7 +537,9 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       }
     };
     void load();
-    const onAuth = () => void loadAdminData();
+    const onAuth = () => {
+      if (window.location.pathname.startsWith("/admin")) void loadAdminData();
+    };
     window.addEventListener("momen:auth-changed", onAuth);
     return () => { active = false; window.removeEventListener("momen:auth-changed", onAuth); };
   }, [loadPublicData, loadAdminData]);
