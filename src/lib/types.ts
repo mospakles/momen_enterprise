@@ -385,10 +385,3 @@ export interface Address {
   phone: string;
 }
 
-export interface ProductionSettings {
-  standardDays: [number, number];
-  expressDays: [number, number];
-  standardFee: number;
-  expressFee: number;
-  regions: string[];
-}

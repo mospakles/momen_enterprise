@@ -24,7 +24,8 @@ const TABS = [
 ];
 
 export default function AdminSettingsPage() {
-  const { systemSettings, setSystemSettings, productionSettings } = useAdminStore();
+  const { systemSettings, setSystemSettings, deliveryZones } = useAdminStore();
+  const activeZones = deliveryZones.filter((z) => z.active);
   const { can } = useAdminAuth();
   const audit = useAudit();
   const [tab, setTab] = useState("general");
@@ -122,13 +123,29 @@ export default function AdminSettingsPage() {
 
         {tab === "production" && (
           <Card>
-            <SectionTitle>Production &amp; Delivery Defaults</SectionTitle>
-            <div className="space-y-2 text-sm text-ink/70">
-              <p>Standard production: {productionSettings.standardDays[0]}–{productionSettings.standardDays[1]} business days</p>
-              <p>Express production: {productionSettings.expressDays[0]}–{productionSettings.expressDays[1]} business days</p>
-              <p>Standard delivery fee: {formatNaira(productionSettings.standardFee)}</p>
-              <p>Express production fee: {formatNaira(productionSettings.expressFee)}</p>
-            </div>
+            <SectionTitle>Production &amp; Delivery</SectionTitle>
+            <p className="text-xs text-ink/55">What checkout charges right now, from your active delivery zones.</p>
+            {activeZones.length === 0 ? (
+              <p className="mt-4 bg-error/5 p-4 text-sm text-error">
+                No active delivery zone — checkout can&apos;t quote delivery yet.{" "}
+                <Link href="/admin/delivery" className="underline">Add a zone</Link>
+              </p>
+            ) : (
+              <div className="mt-4 divide-y divide-line border-y border-line">
+                {activeZones.map((z) => (
+                  <dl key={z.id} className="grid gap-x-6 gap-y-1.5 py-4 text-sm sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <dt className="font-medium text-ink">{z.name}</dt>
+                      <dd className="text-xs text-ink/55">{z.countries.join(", ") || "No countries assigned"}</dd>
+                    </div>
+                    <ZoneRow label="Standard" value={`${z.standardDays[0]}–${z.standardDays[1]} business days · ${formatNaira(z.standardFee)}`} />
+                    <ZoneRow label="Express" value={z.expressAvailable ? `${z.expressDays[0]}–${z.expressDays[1]} business days · +${formatNaira(z.expressFee)}` : "Not offered"} />
+                    <ZoneRow label="Free delivery" value={z.freeDeliveryThreshold !== undefined ? `On orders over ${formatNaira(z.freeDeliveryThreshold)}` : "Not offered"} />
+                    <ZoneRow label="Pickup" value={z.pickupAvailable ? `${z.pickupLocation || "Available"} · ${z.pickupFee ? formatNaira(z.pickupFee) : "free"}` : "Not offered"} />
+                  </dl>
+                ))}
+              </div>
+            )}
             <p className="mt-4 text-xs text-ink/45">
               Full timeline rules, per-zone delivery fees, and express eligibility are managed on the{" "}
               <Link href="/admin/production" className="text-brass hover:underline">Production</Link> and{" "}
@@ -177,6 +194,15 @@ export default function AdminSettingsPage() {
           <Button className="mt-5" onClick={save}>Save Changes</Button>
         )}
       </div>
+    </div>
+  );
+}
+
+function ZoneRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-3">
+      <dt className="w-24 shrink-0 text-ink/50">{label}</dt>
+      <dd className="text-ink/80">{value}</dd>
     </div>
   );
 }

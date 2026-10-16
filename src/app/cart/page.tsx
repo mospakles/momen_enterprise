@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { useAdminStore } from "@/lib/admin/store";
+import { useDeliverySettings } from "@/lib/delivery";
 import { formatNaira } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import MeasurementStatus from "@/components/shop/MeasurementStatus";
@@ -11,7 +11,7 @@ import MeasurementStatus from "@/components/shop/MeasurementStatus";
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, subtotal, isReady } = useCart();
-  const { productionSettings } = useAdminStore();
+  const delivery = useDeliverySettings();
 
   if (!isReady) return <div className="mx-auto max-w-5xl px-4 py-20" />;
 
@@ -28,7 +28,9 @@ export default function CartPage() {
     );
   }
 
-  const deliveryFee = productionSettings.standardFee;
+  // Same rule as the bag and checkout: the zone's fee, free above its threshold.
+  const freeDelivery = delivery.freeDeliveryThreshold !== undefined && subtotal >= delivery.freeDeliveryThreshold;
+  const deliveryFee = freeDelivery ? 0 : delivery.standardFee;
   const total = subtotal + deliveryFee;
 
   return (
@@ -103,7 +105,7 @@ export default function CartPage() {
           <p className="eyebrow mb-4">Order Summary</p>
           <div className="space-y-2.5 text-sm">
             <Row label="Subtotal" value={formatNaira(subtotal)} />
-            <Row label="Delivery Fee" value={formatNaira(deliveryFee)} />
+            <Row label="Delivery Fee" value={freeDelivery ? "Free" : deliveryFee ? `From ${formatNaira(deliveryFee)}` : "Calculated at checkout"} muted={!freeDelivery && !deliveryFee} />
             <Row label="Express Production Fee" value="Calculated at checkout" muted />
             <Row label="Discount" value="—" muted />
           </div>

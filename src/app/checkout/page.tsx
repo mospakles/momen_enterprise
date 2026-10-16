@@ -8,12 +8,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
 import { useCart } from "@/lib/cart-context";
 import { useOrders } from "@/lib/orders-context";
-import { useAdminStore } from "@/lib/admin/store";
+import { useDeliverySettings } from "@/lib/delivery";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 import { useCheckoutPrefs } from "@/lib/checkout-prefs";
 import { formatNaira, addBusinessDays, formatDateRange } from "@/lib/format";
@@ -62,7 +62,6 @@ function validateAddress(a: Address): Errors {
 export default function CheckoutPage() {
   const { items, subtotal, clearCart, isReady } = useCart();
   const { addOrder } = useOrders();
-  const { deliveryZones, productionSettings } = useAdminStore();
   const { currentUser, refreshProfile } = useCustomerAuth();
   const { prefs, update: updatePrefs, clear: clearPrefs } = useCheckoutPrefs();
   const router = useRouter();
@@ -166,24 +165,9 @@ export default function CheckoutPage() {
   }, [step]);
 
   // Delivery pricing/timelines come from the admin-configured zone matching
-  // the customer's country — falling back to the global production defaults
-  // (Settings → Production & Delivery) when no specific zone applies. This is
-  // the live link between /admin/delivery and the storefront checkout.
-  const zone = useMemo(
-    () => deliveryZones.find((z) => z.active && z.countries.includes(address.country)),
-    [deliveryZones, address.country]
-  );
-  const settings = {
-    standardDays: zone?.standardDays ?? productionSettings.standardDays,
-    expressDays: zone?.expressDays ?? productionSettings.expressDays,
-    standardFee: zone?.standardFee ?? productionSettings.standardFee,
-    expressFee: zone?.expressFee ?? productionSettings.expressFee,
-    expressAvailable: zone?.expressAvailable ?? true,
-    freeDeliveryThreshold: zone?.freeDeliveryThreshold,
-    pickupAvailable: zone?.pickupAvailable ?? false,
-    pickupLocation: zone?.pickupLocation,
-    pickupFee: zone?.pickupFee ?? 0,
-  };
+  // the customer's country (Admin → Delivery).
+  const settings = useDeliverySettings(address.country);
+  const { zone } = settings;
 
   // If the destination's zone doesn't support express, fall back to standard
   // for all downstream calculations/display without needing to correct state

@@ -13,7 +13,7 @@
 // read the same context.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import type { Category, Collection, ColorSwatch, CustomizationGroup, Fabric, MeasurementFieldDef, Product, ProductionSettings, SizeOption } from "@/lib/types";
+import type { Category, Collection, ColorSwatch, CustomizationGroup, Fabric, MeasurementFieldDef, Product, SizeOption } from "@/lib/types";
 import type {
   AdminUser,
   AuditLogEntry,
@@ -52,10 +52,6 @@ const EMPTY_SYSTEM_SETTINGS: SystemSettings = {
   checkout: { guestCheckoutEnabled: true, minimumOrderValue: 0 },
   notifications: { emailFromName: "Momen", emailFromAddress: "", smsEnabled: false },
   integrations: { analyticsProvider: "", emailProvider: "", shippingProvider: "", cloudStorageProvider: "" },
-};
-
-const EMPTY_PRODUCTION_SETTINGS: ProductionSettings = {
-  standardDays: [0, 0], expressDays: [0, 0], standardFee: 0, expressFee: 0, regions: [],
 };
 
 function mutationFailed(error: unknown) {
@@ -199,7 +195,6 @@ interface AdminStoreValue {
   /** Global standard/express production timeline + fee defaults — the base
    * case for checkout when no more-specific `productionTimelineRules` /
    * `deliveryZones` entry applies. Editing this updates the storefront. */
-  productionSettings: ProductionSettings;
 
   systemHealthChecks: SystemHealthCheck[];
 }
@@ -323,7 +318,6 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
 
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(EMPTY_SYSTEM_SETTINGS);
-  const productionSettings = EMPTY_PRODUCTION_SETTINGS;
 
   const isReady = apiReady;
 
@@ -816,7 +810,6 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       homepageSections, setHomepageSections,
       mediaAssets, uploadMediaAsset, addExternalMediaAsset, deleteMediaAsset,
       systemSettings, setSystemSettings,
-      productionSettings,
       systemHealthChecks: healthChecks,
     }),
     [
@@ -840,7 +833,7 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       blogPosts, upsertBlogPost, deleteBlogPost, banners, upsertBanner, deleteBanner,
       navigationItems, setNavigationItems, homepageSections, setHomepageSections,
       mediaAssets, uploadMediaAsset, addExternalMediaAsset, deleteMediaAsset, systemSettings, setSystemSettings,
-      productionSettings, healthChecks,
+      healthChecks,
     ]
   );
 
