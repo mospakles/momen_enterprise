@@ -181,6 +181,9 @@ export interface Category {
   sortOrder: number;
   publishStatus: PublishStatus;
   seo: SEO;
+  /** Measurements this style needs when cut to measure (e.g. Agbada: robe,
+   * inner top and trousers). Products can override; empty = garment default. */
+  measurementFieldKeys?: string[];
 }
 
 export type MeasurementField =
@@ -189,8 +192,12 @@ export type MeasurementField =
   | "waist"
   | "hip"
   | "shoulder"
+  | "sleeveShort"
+  | "sleeveThreeQuarter"
   | "sleeveLength"
   | "bicep"
+  | "roundSleeveThreeQuarter"
+  | "roundSleeveLong"
   | "armhole"
   | "wrist"
   | "length"

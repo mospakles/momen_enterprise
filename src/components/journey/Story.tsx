@@ -1,106 +1,24 @@
-"use client";
-
-// "Who we are" — on desktop the image column stays pinned while four short
-// chapters scroll past; each chapter swaps the pinned image with a mask
-// reveal. On mobile each chapter carries its own image inline.
-
 import Image from "next/image";
-import { useState } from "react";
-import { m } from "motion/react";
-import { ClipReveal, Reveal } from "@/lib/motion/Reveal";
-import { SplitText } from "@/lib/motion/SplitText";
-import { EASE_HOUSE } from "@/lib/motion/ease";
-import { MEDIA, focal } from "./media";
-import { placeholderFor } from "@/lib/brand-images";
-
-const CHAPTERS = [
-  {
-    kicker: "I — The cloth",
-    title: "It begins with the cloth.",
-    body: "Aso-oke woven in narrow strips and joined by hand. Brocade with weight to it. Linen that breathes in the Lagos heat. We choose fabric the way our fathers did: by touch, then by eye.",
-  },
-  {
-    kicker: "II — The hands",
-    title: "Then, the hands.",
-    body: "Every piece passes through the hands of a tailor who knows the difference a quarter-inch makes. Measured, chalked, cut and sewn in our Lagos atelier — never rushed.",
-  },
-  {
-    kicker: "III — The line",
-    title: "A modern line.",
-    body: "The agbada, the kaftan, the jalabia — garments with centuries behind them, drawn with a cleaner shoulder and a sharper fall. Heritage, edited.",
-  },
-  {
-    kicker: "IV — The man",
-    title: "Made for the man you are.",
-    body: "Not a costume for the occasion. Clothes that sit as easily at a wedding as at a Wednesday — worn with the quiet confidence of something made for you.",
-  },
-];
+import Link from "next/link";
+import { campaignPhoto } from "@/lib/campaign-catalogue";
 
 export default function Story() {
-  const [active, setActive] = useState(0);
-
   return (
-    <section aria-labelledby="story-heading" className="relative bg-ivory">
-      <div className="px-5 pb-10 pt-28 sm:px-10 lg:px-16 lg:pt-40">
-        <p className="label text-clay">Who we are</p>
-        <SplitText
-          as="h2"
-          text={"A house built on\ncloth, hands and time."}
-          className="display mt-5 max-w-[18ch] text-[clamp(2.4rem,6vw,5.5rem)]"
-        />
-        <span id="story-heading" className="sr-only">Who we are</span>
+    <section className="grid bg-[#ded6c8] lg:grid-cols-2" aria-labelledby="cloth-heading">
+      <div className="relative aspect-[5/4] min-h-72 lg:aspect-auto">
+        <Image src={campaignPhoto("patchwork-trousers-detail")} alt="Colourful woven aso-oke patches on the leg of a pair of trousers"
+          fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover object-[50%_63%]" />
       </div>
-
-      <div className="lg:grid lg:grid-cols-2">
-        {/* Pinned image column (desktop) */}
-        <div className="relative hidden lg:block">
-          <div className="sticky top-0 h-screen p-16 pr-8">
-            <div className="relative h-full w-full overflow-hidden bg-bone">
-              {MEDIA.story.map((image, i) => (
-                <m.div
-                  key={image.src + i}
-                  className="absolute inset-0"
-                  initial={false}
-                  animate={{ clipPath: i <= active ? "inset(0% 0% 0% 0%)" : "inset(100% 0% 0% 0%)" }}
-                  transition={{ duration: 1.1, ease: EASE_HOUSE }}
-                >
-                  <m.div
-                    className="absolute inset-0"
-                    initial={false}
-                    animate={{ scale: i === active ? 1 : 1.12 }}
-                    transition={{ duration: 1.6, ease: EASE_HOUSE }}
-                  >
-                    <Image src={image.src} alt={i === active ? image.alt : ""} fill sizes="50vw" placeholder={placeholderFor(image.src)} className={`object-cover ${focal(image).className}`} style={focal(image).style} />
-                  </m.div>
-                </m.div>
-              ))}
-              <p className="label absolute bottom-5 left-5 z-10 bg-ivory/85 px-2.5 py-1.5 text-ink">
-                {String(active + 1).padStart(2, "0")} / {String(CHAPTERS.length).padStart(2, "0")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Chapters */}
-        <div className="px-5 sm:px-10 lg:px-16">
-          {CHAPTERS.map((chapter, i) => (
-            <m.article
-              key={chapter.kicker}
-              className="flex flex-col justify-center py-14 lg:min-h-screen lg:py-0"
-              onViewportEnter={() => setActive(i)}
-              viewport={{ amount: 0.55 }}
-            >
-              <ClipReveal className="relative mb-8 aspect-[4/5] w-full bg-bone lg:hidden">
-                <Image src={MEDIA.story[i].src} alt={MEDIA.story[i].alt} fill sizes="100vw" placeholder={placeholderFor(MEDIA.story[i].src)} className={`object-cover ${focal(MEDIA.story[i]).className}`} style={focal(MEDIA.story[i]).style} />
-              </ClipReveal>
-              <Reveal>
-                <p className="label text-clay">{chapter.kicker}</p>
-                <h3 className="display mt-5 max-w-[14ch] text-[clamp(2rem,4.2vw,3.75rem)]">{chapter.title}</h3>
-                <p className="mt-6 max-w-md text-[0.95rem] leading-relaxed text-ink/70">{chapter.body}</p>
-              </Reveal>
-            </m.article>
-          ))}
-        </div>
+      <div className="px-6 py-11 sm:p-12 lg:p-[clamp(3rem,7vw,7rem)]">
+        <h2 id="cloth-heading" className="display text-4xl sm:text-5xl">The cloth sets the tone</h2>
+        <p className="mt-5 max-w-lg text-base leading-relaxed text-ink/75">
+          Ankara brings pattern to the trousers. Aso-oke appears as colourful patches and as a striped panel across an ivory linen tee.
+        </p>
+        <h3 className="mt-9 font-display text-2xl">Make it yours</h3>
+        <p className="mt-3 max-w-lg text-base leading-relaxed text-ink/75">
+          Choose a kaftan, jalabia, two-piece set, linen tee or fila through Bespoke. We’ll talk through your measurements and the details you want.
+        </p>
+        <Link href="/made-to-measure" className="mt-6 inline-block border-b border-current pb-1 text-sm font-medium">Browse Bespoke styles</Link>
       </div>
     </section>
   );

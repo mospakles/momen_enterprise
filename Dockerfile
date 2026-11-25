@@ -7,6 +7,10 @@ FROM dependencies AS builder
 COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Public address of the shop (canonical links, sitemap, link previews).
+# Only the live domain is opened to search engines (see src/app/robots.ts).
+ARG NEXT_PUBLIC_SITE_URL=https://momenclothing.com
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN test -n "$NEXT_PUBLIC_API_URL" \
   || (echo "NEXT_PUBLIC_API_URL is required at build time" >&2; exit 1)
 RUN npm run build -- --webpack

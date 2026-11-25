@@ -6,6 +6,16 @@ import type { CartItem, Product } from "./types";
 
 const norm = (value: string | undefined) => (value ?? "").replace(/_/g, "-");
 
+/** What the customer actually pays per unit. The API charges
+ * `salePrice ?? price`, so every displayed price must use this too. */
+export const effectivePrice = (p: Pick<Product, "price" | "salePrice">) => p.salePrice ?? p.price;
+/** The struck-through "was" price, when there is one. */
+export const wasPrice = (p: Pick<Product, "price" | "salePrice" | "compareAtPrice">) => {
+  const now = effectivePrice(p);
+  const was = now < p.price ? p.price : p.compareAtPrice;
+  return was != null && was > now ? was : undefined;
+};
+
 /** Sizing mode with hyphens ("made-to-measure", "both", "one-size", "standard"). */
 export const sizingModeOf = (p: Product) => norm(p.sizingMode);
 export const isMadeToMeasure = (p: Product) => norm(p.productionType) === "made-to-measure";

@@ -16,19 +16,19 @@ const COLUMNS = [
   {
     title: "Shop",
     links: [
-      { href: "/shop", label: "All pieces" },
-      { href: "/collections", label: "Collections" },
-      { href: "/collections/new-arrivals", label: "New arrivals" },
-      { href: "/accessories", label: "Accessories" },
+      { href: "/shop", label: "Shop Ready-to-Wear" },
       { href: "/made-to-measure", label: "Bespoke" },
+      { href: "/collections", label: "Collections" },
+      { href: "/lookbook", label: "Lookbook" },
+      { href: "/shop?category=fila", label: "Fila" },
+      { href: "/measurements", label: "Size & measurement guide" },
     ],
   },
   {
     title: "The house",
     links: [
-      { href: "/about", label: "About momen." },
+      { href: "/about", label: "About" },
       { href: "/journal", label: "Journal" },
-      { href: "/measurements", label: "Measure at home" },
       { href: "/contact", label: "Contact" },
     ],
   },
@@ -39,7 +39,6 @@ const COLUMNS = [
       { href: "/shipping-policy", label: "Delivery" },
       { href: "/returns-policy", label: "Returns & exchanges" },
       { href: "/account", label: "Your account" },
-      { href: "/admin/login", label: "Admin login" },
     ],
   },
 ];

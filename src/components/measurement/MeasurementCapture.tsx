@@ -1,192 +1,222 @@
 "use client";
 
+// Collects measurements for one product: from a saved profile, or through the
+// guided flow. Which measurements are asked for comes from the product's
+// style (see resolveMeasurementPlan). The draft (values, unit and step) is
+// kept in localStorage under `storageKey`, so leaving and coming back never
+// loses anything.
+
 import { useEffect, useMemo, useState } from "react";
-import { Garment, MeasurementField, MeasurementUnit, MeasurementValues } from "@/lib/types";
+import type { MeasurementUnit, MeasurementValues, Product } from "@/lib/types";
 import { useAdminStore } from "@/lib/admin/store";
 import { useMeasurements } from "@/lib/measurement-context";
-import ManualMeasurementForm from "./ManualMeasurementForm";
-import GuidedMeasurementFlow from "./GuidedMeasurementFlow";
+import { useCustomerAuth } from "@/lib/customer-auth-context";
+import { convertValues, fieldGuide, fieldProblem, resolveMeasurementPlan } from "@/lib/measurement-guide";
+import GuidedMeasurementFlow, { type FlowPosition } from "./GuidedMeasurementFlow";
 
-type Mode = "choose" | "profile" | "manual" | "guided";
+export interface MeasurementPayload {
+  mode: "profile" | "manual";
+  profileId?: string;
+  values?: MeasurementValues;
+  unit: MeasurementUnit;
+}
+
+type Mode = "profile" | "flow";
+interface Draft {
+  values: MeasurementValues;
+  unit: MeasurementUnit;
+  position: FlowPosition;
+  /** Unset until the customer picks; then profiles are offered first. */
+  mode?: Mode;
+}
 
 export default function MeasurementCapture({
-  garment,
+  product,
   storageKey,
   onSaved,
-  fieldOverride,
+  finishLabel,
 }: {
-  garment: Garment;
+  product: Product;
   storageKey: string;
-  onSaved: (payload: { mode: "profile" | "manual"; profileId?: string; values?: MeasurementValues; unit: MeasurementUnit }) => void;
-  /** Per-product measurement field override configured in the admin Products
-   * editor — falls back to the garment's admin-configured default fields. */
-  fieldOverride?: MeasurementField[];
+  onSaved: (payload: MeasurementPayload) => void;
+  finishLabel?: string;
 }) {
   const { profiles, createProfile } = useMeasurements();
-  const { measurementFieldDefs } = useAdminStore();
-  const fields = useMemo(
-    () =>
-      // An empty override (the API default) means "use the garment's fields".
-      (fieldOverride?.length ? fieldOverride : undefined) ??
-      measurementFieldDefs
-        .filter((d) => d.garments.includes(garment))
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((d) => d.key),
-    [fieldOverride, measurementFieldDefs, garment]
-  );
-  const [mode, setMode] = useState<Mode>("choose");
-  const [unit, setUnit] = useState<MeasurementUnit>("cm");
-  const [values, setValues] = useState<MeasurementValues>({});
-  const [profileId, setProfileId] = useState<string | undefined>(profiles[0]?.id);
+  const { currentUser } = useCustomerAuth();
+  const { categories, measurementFieldDefs: defs } = useAdminStore();
+  const plan = useMemo(() => resolveMeasurementPlan(product, categories, defs), [product, categories, defs]);
+
+  const [draft, setDraft] = useState<Draft>({ values: {}, unit: "cm", position: { stage: "intro", index: 0 } });
+  const [hydrated, setHydrated] = useState(false);
+  const [profileId, setProfileId] = useState<string | undefined>();
   const [saveToAccount, setSaveToAccount] = useState(true);
-  const [savedLabel, setSavedLabel] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState<string | null>(null);
 
   useEffect(() => {
-    const raw = localStorage.getItem(storageKey);
-    if (raw) {
-      try {
-        const draft = JSON.parse(raw);
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating draft from localStorage on mount
-        setValues(draft.values ?? {});
-        setUnit(draft.unit ?? "cm");
-        if (draft.mode) setMode(draft.mode);
-      } catch {}
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let restored: Partial<Draft> = {};
+    try {
+      restored = JSON.parse(localStorage.getItem(storageKey) ?? "{}");
+    } catch {}
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring the saved draft once, after mount
+    setDraft((d) => ({
+      values: restored.values ?? d.values,
+      unit: restored.unit === "in" ? "in" : "cm",
+      position: restored.position ?? d.position,
+      mode: restored.mode ?? d.mode,
+    }));
+    setHydrated(true);
+  }, [storageKey]);
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify({ values, unit, mode }));
-  }, [values, unit, mode, storageKey]);
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(draft));
+    } catch {}
+  }, [draft, hydrated, storageKey]);
 
-  function handleChange(field: MeasurementField, value: number | undefined) {
-    setValues((prev) => ({ ...prev, [field]: value }));
+  // Offer saved profiles first when the customer has any.
+  const mode: Mode = profiles.length > 0 ? draft.mode ?? "profile" : "flow";
+  const selected = profiles.find((p) => p.id === profileId) ?? profiles[0];
+  const profileGaps = selected
+    ? plan.fields.filter((k) => {
+        const p = fieldProblem(fieldGuide(k, defs, plan), selected.values[k], selected.unit);
+        return p === "missing" || p === "invalid";
+      })
+    : [];
+
+  const update = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
+
+  async function finish() {
+    const values = Object.fromEntries(plan.fields.filter((k) => Number(draft.values[k]) > 0).map((k) => [k, draft.values[k]])) as MeasurementValues;
+    setBusy(true);
+    try {
+      if (currentUser && saveToAccount) {
+        await createProfile(`${plan.styleName} measurements · ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`, draft.unit, values);
+      }
+      setSaved("Measurements saved for this piece.");
+      onSaved({ mode: "manual", values, unit: draft.unit });
+    } finally {
+      setBusy(false);
+    }
   }
 
-  // Every field marked required in the admin (all of them, if none are flagged)
-  // needs a positive value before the measurements can be saved.
-  const requiredFields = useMemo(() => {
-    const flagged = fields.filter((f) => measurementFieldDefs.find((d) => d.key === f)?.required);
-    return flagged.length ? flagged : fields;
-  }, [fields, measurementFieldDefs]);
-  const missing = requiredFields.filter((f) => !(Number(values[f]) > 0));
-  const labelOf = (f: MeasurementField) => measurementFieldDefs.find((d) => d.key === f)?.label ?? f;
+  if (!hydrated) return <div className="min-h-64 animate-pulse bg-bone/50" aria-hidden />;
 
-  function finalizeManual() {
-    if (missing.length || fields.length === 0) {
-      // From the guided flow, land on the form so the gaps are visible.
-      setMode("manual");
-      return;
-    }
-    if (saveToAccount) {
-      createProfile(`Measurements — ${new Date().toLocaleDateString()}`, unit, values);
-    }
-    setSavedLabel("Measurements captured for this order.");
-    onSaved({ mode: "manual", values, unit });
-  }
-
-  if (mode === "choose") {
+  if (plan.fields.length === 0) {
     return (
-      <div className="border border-line p-5">
-        <p className="eyebrow mb-1">How would you like to provide your measurements?</p>
-        <p className="mb-4 text-xs text-ink/50">This piece is made-to-measure — we&apos;ll cut it to your exact form.</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {profiles.length > 0 && (
-            <button
-              onClick={() => setMode("profile")}
-              className="border border-line p-4 text-left hover:border-brass"
-            >
-              <p className="text-sm font-medium">Use a saved profile</p>
-              <p className="mt-1 text-xs text-ink/60">Choose from your {profiles.length} saved measurement profile(s).</p>
-            </button>
-          )}
-          <button onClick={() => setMode("manual")} className="border border-line p-4 text-left hover:border-brass">
-            <p className="text-sm font-medium">I already have my measurements</p>
-            <p className="mt-1 text-xs text-ink/60">Enter measurements directly into a form.</p>
-          </button>
-          <button onClick={() => setMode("guided")} className="border border-line p-4 text-left hover:border-brass sm:col-span-2">
-            <p className="text-sm font-medium">Help me take my measurements</p>
-            <p className="mt-1 text-xs text-ink/60">A guided, illustrated, step-by-step process.</p>
-          </button>
-        </div>
+      <div className="border border-line p-5 text-sm">
+        <p className="font-medium">We couldn&rsquo;t load the measurement guide.</p>
+        <p className="mt-1 text-ink/65">Refresh the page. If it keeps happening, contact us and a tailor will take your measurements with you.</p>
       </div>
     );
   }
 
   return (
-    <div className="border border-line p-5">
-      <button onClick={() => setMode("choose")} className="eyebrow mb-4 text-clay hover:text-brass">
-        ← Change method
-      </button>
-
-      {mode === "profile" && (
-        <div>
-          <p className="eyebrow mb-3">Select a Measurement Profile</p>
-          <div className="space-y-2">
-            {profiles.map((p) => (
-              <label
-                key={p.id}
-                className={`flex cursor-pointer items-center justify-between border px-4 py-3 text-sm ${
-                  profileId === p.id ? "border-brass bg-ivory-deep/40" : "border-line"
-                }`}
-              >
-                <span>
-                  <input
-                    type="radio"
-                    name="profile"
-                    className="mr-3 accent-brass"
-                    checked={profileId === p.id}
-                    onChange={() => setProfileId(p.id)}
-                  />
-                  {p.label}
-                </span>
-                <span className="text-xs text-ink/50">Updated {new Date(p.updatedAt).toLocaleDateString()}</span>
-              </label>
-            ))}
-          </div>
-          <button
-            onClick={() => {
-              setSavedLabel("Profile linked to this order.");
-              onSaved({ mode: "profile", profileId, unit });
-            }}
-            disabled={!profileId}
-            className="eyebrow mt-4 bg-ink px-5 py-2.5 text-ivory hover:bg-brass disabled:opacity-40"
-          >
-            Use This Profile
-          </button>
+    <div className="border border-line bg-ivory p-4 sm:p-6">
+      {profiles.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2 border-b border-line pb-4" role="tablist" aria-label="How to add measurements">
+          {(
+            [
+              ["profile", "Use saved measurements"],
+              ["flow", "Measure now"],
+            ] as const
+          ).map(([m, text]) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => update({ mode: m })}
+              className={`min-h-10 border px-4 py-2 text-sm transition-colors ${mode === m ? "border-ink bg-ink text-ivory" : "border-line text-ink/70 hover:border-ink"}`}
+            >
+              {text}
+            </button>
+          ))}
         </div>
       )}
 
-      {mode === "manual" && (
+      {mode === "profile" && selected && (
         <div>
-          <ManualMeasurementForm fields={fields} values={values} unit={unit} onChange={handleChange} onUnitChange={setUnit} />
-          <label className="mt-4 flex items-center gap-2 text-xs text-ink/60">
-            <input type="checkbox" checked={saveToAccount} onChange={(e) => setSaveToAccount(e.target.checked)} className="accent-brass" />
-            Save these measurements to my account for future orders
-          </label>
-          <button onClick={finalizeManual} disabled={missing.length > 0 || fields.length === 0} className="eyebrow mt-4 bg-ink px-5 py-2.5 text-ivory hover:bg-brass disabled:opacity-40">
-            Save Measurements
-          </button>
-          {fields.length === 0 ? (
-            <p className="mt-2 text-xs text-error">We couldn&apos;t load the measurement form — refresh the page, or contact us and we&apos;ll take them with you.</p>
+          <p className="label text-clay">Your saved measurements</p>
+          <div className="mt-3 space-y-2" role="radiogroup" aria-label="Saved measurement profiles">
+            {profiles.map((p) => (
+              <label key={p.id} className={`flex min-h-12 cursor-pointer items-center justify-between gap-3 border px-4 py-3 text-sm ${selected.id === p.id ? "border-ink bg-bone/50" : "border-line"}`}>
+                <span className="flex items-center gap-3">
+                  <input type="radio" name={`${storageKey}-profile`} className="accent-[var(--color-ink)]" checked={selected.id === p.id} onChange={() => setProfileId(p.id)} />
+                  {p.label}
+                </span>
+                <span className="text-xs text-ink/50">Updated {new Date(p.updatedAt).toLocaleDateString("en-GB")}</span>
+              </label>
+            ))}
+          </div>
+
+          {profileGaps.length > 0 ? (
+            <div className="mt-4 border-l-2 border-terracotta bg-bone/60 px-4 py-3 text-sm">
+              <p>
+                A {plan.styleName.toLowerCase()} needs {profileGaps.length} measurement{profileGaps.length > 1 ? "s" : ""} this profile doesn&rsquo;t have:{" "}
+                {profileGaps.map((k) => fieldGuide(k, defs, plan).label).join(", ")}.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const known = Object.fromEntries(Object.entries(selected.values).filter(([k]) => plan.fields.includes(k)));
+                  update({ mode: "flow", unit: selected.unit, values: { ...convertValues(draft.values, draft.unit, selected.unit), ...known }, position: { stage: "measure", index: plan.fields.indexOf(profileGaps[0]) } });
+                }}
+                className="mt-3 min-h-11 bg-ink px-5 py-2.5 text-sm text-ivory hover:bg-terracotta"
+              >
+                Add the missing measurements
+              </button>
+            </div>
           ) : (
-            missing.length > 0 && <p className="mt-2 text-xs text-ink/55">Still needed: {missing.map(labelOf).join(", ")}.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setSaved(`Using “${selected.label}”.`);
+                onSaved({ mode: "profile", profileId: selected.id, unit: selected.unit });
+              }}
+              className="mt-5 min-h-12 bg-ink px-7 py-3.5 text-sm tracking-wide text-ivory hover:bg-terracotta"
+            >
+              Use these measurements
+            </button>
           )}
         </div>
       )}
 
-      {mode === "guided" && (
+      {mode === "flow" && (
         <GuidedMeasurementFlow
-          fields={fields}
-          values={values}
-          unit={unit}
-          onChange={handleChange}
-          onUnitChange={setUnit}
-          onComplete={finalizeManual}
+          plan={plan}
+          defs={defs}
+          values={draft.values}
+          unit={draft.unit}
+          position={draft.position}
+          onPositionChange={(position) => update({ position })}
+          onChange={(key, v) => setDraft((d) => ({ ...d, values: { ...d.values, [key]: v } }))}
+          onUnitChange={(unit) => setDraft((d) => (d.unit === unit ? d : { ...d, unit, values: convertValues(d.values, d.unit, unit) }))}
+          onFinish={() => void finish()}
+          finishLabel={finishLabel}
+          busy={busy}
+          footer={
+            currentUser ? (
+              <label className="mt-5 flex items-center gap-3 text-sm text-ink/75">
+                <input type="checkbox" checked={saveToAccount} onChange={(e) => setSaveToAccount(e.target.checked)} className="h-4 w-4 accent-[var(--color-ink)]" />
+                Also save to my account for future orders
+              </label>
+            ) : (
+              <p className="mt-5 text-xs text-ink/55">Tip: create an account at checkout and we&rsquo;ll keep these for your next order.</p>
+            )
+          }
         />
       )}
 
-      {savedLabel && <p className="mt-4 text-xs text-brass">✓ {savedLabel}</p>}
+      {saved && (
+        <p role="status" className="mt-5 border-t border-line pt-4 text-sm text-ink">
+          <span className="text-brass" aria-hidden>
+            ✓{" "}
+          </span>
+          {saved}
+        </p>
+      )}
     </div>
   );
 }

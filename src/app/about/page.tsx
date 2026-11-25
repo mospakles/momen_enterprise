@@ -5,10 +5,12 @@ import { Reveal, ClipReveal } from "@/lib/motion/Reveal";
 import { SplitText } from "@/lib/motion/SplitText";
 import { MEDIA, focal } from "@/components/journey/media";
 import { placeholderFor } from "@/lib/brand-images";
+import PhotoStrip from "@/components/campaign/PhotoStrip";
+import { shots } from "@/lib/campaign-shots";
 
 export const metadata: Metadata = {
   title: "The house — momen.",
-  description: "momen. is an African clothing house in Lagos: heritage garments cut with a modern hand, ready-to-wear and made to measure.",
+  description: "A Lagos clothing house working with Ankara, aso-oke and linen across ready-to-wear and bespoke.",
 };
 
 // ── Founder copy ─────────────────────────────────────────────────────────────
@@ -119,25 +121,26 @@ export default function AboutPage() {
           <Image src={MEDIA.aboutAtelier.src} alt={MEDIA.aboutAtelier.alt} fill sizes="(min-width:1024px) 55vw, 100vw" placeholder={placeholderFor(MEDIA.aboutAtelier.src)} style={focal(MEDIA.aboutAtelier).style} className={`object-cover ${focal(MEDIA.aboutAtelier).className}`} />
         </ClipReveal>
         <div className="lg:col-span-4 lg:col-start-9">
-          <p className="label text-clay">The made-to-measure process</p>
-          <h2 className="display mt-5 text-[clamp(2rem,3.6vw,3.2rem)]">From your numbers to a pattern of one.</h2>
+          <h2 className="display text-[clamp(2rem,3.6vw,3.2rem)]">Make a piece your own</h2>
           <Reveal>
             <p className="mt-6 text-sm leading-relaxed text-ink/70">
-              You choose a piece, share measurements you already have or work through our guided steps, and our pattern cutters translate
-              those numbers into a paper pattern unique to you. Every piece is then cut, sewn and finished by hand — checked at three stages
-              before it ships.
+              Explore our bespoke kaftan, jalabia, two-piece set, linen tee with aso-oke detailing and fila. Choose a style and tell us how you’d like it to fit.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link href="/made-to-measure" className="bg-ink px-6 py-3.5 text-sm tracking-wide text-ivory transition-colors hover:bg-terracotta">
-                Book a fitting
+                Explore Bespoke
               </Link>
               <Link href="/shop" className="label link-line self-center text-ink">
-                Enter the collection
+                Shop Ready-to-Wear
               </Link>
             </div>
           </Reveal>
         </div>
       </section>
+      <PhotoStrip title="The house, in pictures" shots={shots(
+        "ivory-and-blue-sets", "burgundy-robe-studio", "patterned-trousers-group-front", "blue-geometric-set-seated",
+        "cobalt-trousers-duo-front", "ivory-woven-panel-shirt-front", "patchwork-trousers-full-length", "landscape-print-shirt-front", "white-cap-profile",
+      )} className="bg-ivory" />
     </div>
   );
 }

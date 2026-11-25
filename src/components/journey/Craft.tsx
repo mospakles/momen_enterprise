@@ -10,11 +10,12 @@ import FabricLens from "./FabricLens";
 import { MEDIA, focal } from "./media";
 import { placeholderFor } from "@/lib/brand-images";
 
+// One caption per photo in MEDIA.process, describing what it shows.
 const STEPS = [
-  { n: "01", title: "Measure", body: "Twenty-odd measurements, taken or guided, then checked twice. The pattern is drafted for one body." },
-  { n: "02", title: "Cut", body: "Chalk on cloth, shears through it. Patterned fabric is matched across every seam before a single cut." },
-  { n: "03", title: "Sew", body: "Machine where it's strongest, by hand where it shows. Embroidery is placed, never printed." },
-  { n: "04", title: "Finish", body: "Hems felled, buttons hand-sewn, every thread clipped. Pressed, inspected, folded in tissue." },
+  { n: "01", title: "Texture", body: "A textured ivory polo with matching trousers. The weave gives a simple, relaxed shape its depth." },
+  { n: "02", title: "Patchwork", body: "Colourful patches of woven aso-oke pieced together into a single pair of trousers." },
+  { n: "03", title: "Woven panels", body: "Diagonal bands of burgundy and grey aso-oke wrapped across an ivory linen tee." },
+  { n: "04", title: "Contrast cuffs", body: "Cobalt Ankara finished with deep striped aso-oke cuffs and a fringed hem." },
 ];
 
 export default function Craft() {
@@ -46,7 +47,7 @@ export default function Craft() {
   );
 }
 
-/** Measure → cut → sew → finish. On desktop the strip is pinned and vertical
+/** Four close-up details from the campaign. On desktop the strip is pinned and vertical
  * scroll drives it sideways; on touch or with reduced motion it becomes a
  * native swipeable row. */
 function ProcessStrip() {
@@ -78,10 +79,10 @@ function ProcessStrip() {
   const cards = (
     <>
       <div className="flex w-[78vw] shrink-0 snap-start flex-col justify-end pr-6 sm:w-[46vw] lg:w-[30vw] lg:pr-16">
-        <p className="label text-clay">The making</p>
-        <h3 className="display mt-5 text-[clamp(2.2rem,4.5vw,4rem)]">Four steps. No shortcuts.</h3>
+        <p className="label text-clay">The details</p>
+        <h3 className="display mt-5 text-[clamp(2.2rem,4.5vw,4rem)]">Up close.</h3>
         <p className="mt-5 max-w-xs text-sm leading-relaxed text-ink/70">
-          From your first measurement to the tissue paper, every momen. piece takes the same unhurried road.
+          Texture, woven aso-oke and finishing: the details that make each momen. piece.
         </p>
       </div>
       {STEPS.map((step, i) => (

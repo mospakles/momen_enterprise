@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  /* Fixed header height (welcome bar + navigation); Navbar measures and
+     updates it. These defaults avoid a jump before it does. */
+  --header-h: 100px;
   /* Momen design tokens */
   --font-display: "Fraunces Variable", "Fraunces", serif;
   --font-body: "Manrope Variable", "Manrope", sans-serif;
@@ -35,6 +38,10 @@
 
   --ease-house: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-curtain: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+@media (min-width: 1024px) {
+  :root { --header-h: 108px; }
 }
 
 @theme inline {
@@ -114,6 +121,13 @@
   }
   .fade-up {
     animation: fadeUp 0.7s ease both;
+  }
+  .tape-in {
+    animation: tapeIn 0.45s var(--ease-house) both;
+  }
+  @keyframes tapeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(14px); }

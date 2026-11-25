@@ -5,7 +5,7 @@
 // (desktop) or on long-press / the + button (touch). Customizable pieces
 // point to "Design yours" instead, since they need the wizard.
 
-import Image from "next/image";
+import SmartImage from "@/components/ui/SmartImage";
 import { placeholderFor } from "@/lib/brand-images";
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -14,7 +14,7 @@ import { Product } from "@/lib/types";
 import { formatNaira } from "@/lib/format";
 import { useCart } from "@/lib/cart-context";
 import { useUI } from "@/lib/ui-context";
-import { isMadeToMeasure, isOneSize, stockState } from "@/lib/product-utils";
+import { effectivePrice, isMadeToMeasure, isOneSize, stockState, wasPrice } from "@/lib/product-utils";
 import { track } from "@/lib/analytics";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 
@@ -29,9 +29,10 @@ export default function ProductCard({ product, priority = false, sizes = "(min-w
   const soldOut = stock === "sold-out";
   const second = product.hoverImage ?? product.images[1];
   const oneSize = isOneSize(product);
+  const was = wasPrice(product);
 
   function quickAdd(size: string) {
-    addItem(product, size, product.colors[0]?.name ?? "", 1);
+    addItem(product, size, product.colors[0]?.name ?? "", 1, "standard");
     flyToBag(product.images[0], imageRef.current?.getBoundingClientRect());
     setQuick(false);
   }
@@ -59,7 +60,7 @@ export default function ProductCard({ product, priority = false, sizes = "(min-w
         onContextMenu={(e) => quick && e.preventDefault()}
       >
         <Link href={`/product/${product.slug}`} aria-label={product.name} data-cursor="View" className="absolute inset-0">
-          <Image
+          <SmartImage
             src={product.images[0]}
             alt={product.name}
             fill
@@ -69,7 +70,7 @@ export default function ProductCard({ product, priority = false, sizes = "(min-w
             className={`object-cover transition-[opacity,transform] duration-900 ease-house group-hover:scale-[1.03] ${second ? "group-hover:opacity-0" : ""}`}
           />
           {second && (
-            <Image
+            <SmartImage
               src={second}
               alt=""
               fill
@@ -142,9 +143,12 @@ export default function ProductCard({ product, priority = false, sizes = "(min-w
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-[0.92rem] leading-snug text-ink">{product.name}</h3>
           <div className="shrink-0 text-right">
-            <p className="text-[0.92rem]">{formatNaira(product.price)}</p>
-            {product.compareAtPrice && product.compareAtPrice > product.price && (
-              <p className="text-xs text-ink/40 line-through">{formatNaira(product.compareAtPrice)}</p>
+            <p className="text-[0.92rem]">{formatNaira(effectivePrice(product))}</p>
+            {was !== undefined && (
+              <p className="text-xs text-ink/40 line-through">
+                <span className="sr-only">Was </span>
+                {formatNaira(was)}
+              </p>
             )}
           </div>
         </div>

@@ -12,6 +12,7 @@
  * PRICES ARE PROPOSALS — confirm them in Admin → Products before launch.
  */
 import { Garment, PrismaClient, PublishStatus } from '@prisma/client';
+import { linkStyleMeasurements } from '../style-measurements';
 
 const prisma = new PrismaClient();
 const img = (name: string) => `/images/brand/${name}.jpg`;
@@ -382,7 +383,8 @@ async function apply() {
   for (const p of PRODUCTS) {
     const r = await upsertProduct(p, categoryIds, collectionIds, sizeOptions, tags);
     console.log(`${r.existing ? 'updated' : 'created'} ${p.slug} (${p.colours.length} colours, ${r.photos} photos)`);
-  }
+  }  // Bespoke styles need their measurement sets (only where none are configured).
+  await linkStyleMeasurements(prisma);
 }
 
 async function revert() {

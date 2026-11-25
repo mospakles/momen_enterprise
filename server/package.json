@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
+    "db:campaign": "ts-node prisma/scripts/import-campaign.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {

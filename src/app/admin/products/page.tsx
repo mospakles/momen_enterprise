@@ -14,6 +14,7 @@ import { DataTable, Column } from "@/components/admin/ui/DataTable";
 import { FilterBar, SearchInput, FilterSelect } from "@/components/admin/ui/FilterBar";
 import { Field, NumberField, SelectField, TextareaField, Toggle, TagInput, CheckboxRow } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
+import { measurementFieldsFor, pieceOf } from "@/lib/measurement-guide";
 
 function genId() {
   return `p-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -261,13 +262,12 @@ function ProductDrawer({
   onDelete?: () => void;
   canEdit: boolean;
 }) {
-  const { measurementFieldDefs, sizeOptions } = useAdminStore();
+  const { measurementFieldDefs, sizeOptions, categories: allCategories } = useAdminStore();
   const [form, setForm] = useState<Product>(product ?? emptyProduct());
   const [tab, setTab] = useState("details");
-  const defaultFields = measurementFieldDefs
-    .filter((d) => d.garments.includes(form.garment))
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((d) => d.key);
+  // What the product's style (category) asks for when it has no override.
+  const defaultFields = measurementFieldsFor({ ...form, measurementFieldKeys: [] }, allCategories, measurementFieldDefs);
+  const styleName = allCategories.find((c) => c.slug === form.category || c.id === form.category)?.name ?? "this garment type";
   const activeFields = form.measurementFieldKeys?.length ? form.measurementFieldKeys : defaultFields;
 
   function set<K extends keyof Product>(key: K, value: Product[K]) {
@@ -384,8 +384,8 @@ function ProductDrawer({
               label="Size Chart (optional)"
               value={form.sizeChart ?? ""}
               onChange={(v) => set("sizeChart", v || undefined)}
-              rows={4}
-              hint="Shown to customers as a size guide on the product page. Plain text or simple HTML."
+              rows={6}
+              hint={'Shown in the product\'s size guide. Write one row per size with | between columns and it becomes a table with a "find my size" helper. First line e.g. "Body measurements (cm)" or "Garment measurements (cm)", then "Size | Chest | Waist | Length", then "M | 96-101 | 82-87 | 74". Use verified figures only.'}
             />
 
             <Card>
@@ -565,27 +565,37 @@ function ProductDrawer({
 
         {tab === "measurements" && (
           <>
-            <p className="text-xs text-ink/45">
-              By default, required measurements come from the garment type ({form.garment}). Override which fields apply to this specific product below.
+            <p className="text-xs leading-relaxed text-ink/55">
+              Customers are asked for these measurements, one at a time with the illustrated guide, grouped into robe, top and trousers.
+              {form.measurementFieldKeys?.length
+                ? " This product has its own selection."
+                : ` It currently uses the ${styleName} default, set in Catalog → Categories.`}
             </p>
+            {form.measurementFieldKeys?.length ? (
+              <button type="button" onClick={() => set("measurementFieldKeys", [])} className="mt-2 text-xs text-brass underline underline-offset-2">
+                Use the {styleName} default instead ({defaultFields.length} fields)
+              </button>
+            ) : null}
             {!isMadeToMeasure(form) ? (
               <EmptyState title="Not a made-to-measure product" description="Measurement fields only apply to made-to-measure items." />
             ) : (
               <div className="space-y-1.5">
-                {defaultFields.map((key) => (
-                  <label key={key} className="flex items-center gap-2 border-b border-line py-1.5 text-sm last:border-0">
+                {[...measurementFieldDefs].sort((a, b) => a.sortOrder - b.sortOrder).map((definition) => (
+                  <label key={definition.key} className="flex items-center gap-2 border-b border-line py-1.5 text-sm last:border-0">
                     <input
                       type="checkbox"
-                      checked={activeFields.includes(key)}
+                      checked={activeFields.includes(definition.key)}
                       onChange={(e) => {
-                        const next = e.target.checked ? [...activeFields, key] : activeFields.filter((k) => k !== key);
+                        const next = e.target.checked ? [...activeFields, definition.key] : activeFields.filter((k: string) => k !== definition.key);
                         set("measurementFieldKeys", next);
                       }}
                       className="accent-brass"
                     />
-                    {key}
+                    <span>{definition.label}</span>
+                    <span className="ml-auto text-xs capitalize text-ink/40">{{ outer: "Agbada robe", top: "Top", trouser: "Trousers", other: "Other" }[pieceOf(definition.key, definition)]}</span>
                   </label>
                 ))}
+                <p className="pt-2 text-xs text-ink/45">{activeFields.length} fields selected. Edit wording or ranges in Measurements.</p>
               </div>
             )}
           </>

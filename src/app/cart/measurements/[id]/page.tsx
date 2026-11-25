@@ -4,7 +4,7 @@
 // checkout when a made-to-measure piece is waiting on them. Saving attaches
 // them to that bag item and returns the customer to where they came from.
 
-import Image from "next/image";
+import SmartImage from "@/components/ui/SmartImage";
 import Link from "next/link";
 import { Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -52,7 +52,7 @@ function ItemMeasurements() {
 
       <div className="mt-10 flex items-center gap-4 border-y border-line py-5">
         <div className="relative h-24 w-[4.5rem] shrink-0 overflow-hidden bg-bone">
-          <Image src={product.images[0]} alt={product.name} fill sizes="72px" placeholder={placeholderFor(product.images[0])} className="object-cover" />
+          <SmartImage src={product.images[0]} alt={product.name} fill sizes="72px" placeholder={placeholderFor(product.images[0])} className="object-cover" />
         </div>
         <div className="text-sm">
           <p className="display text-xl">{product.name}</p>
@@ -65,9 +65,8 @@ function ItemMeasurements() {
 
       <div className="mt-8">
         <MeasurementCapture
-          garment={product.garment}
+          product={product}
           storageKey={`measure-draft-item-${item.id}`}
-          fieldOverride={product.measurementFieldKeys}
           onSaved={(payload) => {
             setItemMeasurement(item.id, payload);
             toast("Measurements saved", { description: `${product.name} is ready for checkout.`, variant: "success" });

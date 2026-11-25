@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EmailSenderService } from '../notifications/email-sender.service';
 import { MEDIA_UPLOAD_DIR } from '../cms/media/media-storage.config';
 import type { CreateContactMessageDto } from './dto/platform.dto';
+import { DEFAULT_SUPPORT_PHONE } from '../common/storefront-offer';
 
 const PLATFORM_SETTINGS_KEY = 'platform';
 
@@ -16,7 +17,7 @@ const DEFAULT_PLATFORM_SETTINGS = {
     logoUrl: '',
     faviconUrl: '',
     supportEmail: 'hello@momen.style',
-    supportPhone: '+2348147441749',
+    supportPhone: DEFAULT_SUPPORT_PHONE,
     instagram: 'https://www.instagram.com/momen__clothings/',
     tiktok: 'https://www.tiktok.com/@momen',
     pinterest: '',

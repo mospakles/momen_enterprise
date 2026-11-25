@@ -680,6 +680,9 @@ model OrderLineItem {
   measurementProfile   MeasurementProfile? @relation(fields: [measurementProfileId], references: [id], onDelete: SetNull)
   measurementValues    Json? // immutable snapshot used for production
   measurementUnit      MeasurementUnit?
+  /// "standard" | "measure" — how the customer chose to have the piece cut.
+  /// Null for orders placed before this was recorded (fall back to sizingMode).
+  fit                  String?
 }
 
 model OrderTimelineEntry {

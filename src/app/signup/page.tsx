@@ -8,6 +8,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 import { Button } from "@/components/ui/Button";
 
+/** Only same-origin paths ("/x", not "//host" or "/\\host") are allowed as a post-auth redirect. */
+function safeNext(value: string | null) {
+  return value && value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\") ? value : "/account";
+}
+
 export default function SignupPage() {
   return (
     <Suspense fallback={null}>
@@ -20,7 +25,7 @@ function SignupContent() {
   const { signup, currentUser, isReady } = useCustomerAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/account";
+  const next = safeNext(searchParams.get("next"));
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -57,6 +62,7 @@ function SignupContent() {
             <span className="text-xs text-ink/60">Full Name</span>
             <input
               required
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
@@ -66,6 +72,7 @@ function SignupContent() {
             <span className="text-xs text-ink/60">Email</span>
             <input
               type="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -76,6 +83,7 @@ function SignupContent() {
             <span className="text-xs text-ink/60">Phone (optional)</span>
             <input
               type="tel"
+              autoComplete="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
@@ -85,6 +93,7 @@ function SignupContent() {
             <span className="text-xs text-ink/60">Password</span>
             <input
               type="password"
+              autoComplete="new-password"
               required
               minLength={8}
               value={password}

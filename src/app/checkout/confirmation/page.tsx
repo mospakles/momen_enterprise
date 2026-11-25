@@ -3,21 +3,19 @@
 // The order confirmation, written as a note from the house: what happens
 // next, when it arrives, how to follow it, and one piece worth considering.
 
-import Image from "next/image";
+import SmartImage from "@/components/ui/SmartImage";
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { m } from "motion/react";
-import { useOrders } from "@/lib/orders-context";
+import { fetchGuestOrder, readLastOrder, useOrders } from "@/lib/orders-context";
 import { useAdminStore } from "@/lib/admin/store";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 import { formatNaira, formatDate } from "@/lib/format";
-import { apiRequest } from "@/lib/api";
 import { itemFromProduct, track } from "@/lib/analytics";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 import { SplitText } from "@/lib/motion/SplitText";
 import { placeholderFor } from "@/lib/brand-images";
-import type { Order } from "@/lib/types";
 
 function ConfirmationContent() {
   const params = useSearchParams();
@@ -30,14 +28,9 @@ function ConfirmationContent() {
 
   useEffect(() => {
     if (!isReady || !orderId || order) return;
-    let stored: { id?: string; email?: string } = {};
-    try {
-      stored = JSON.parse(sessionStorage.getItem("momen.last-order") ?? "{}");
-    } catch {
-      stored = {};
-    }
+    const stored = readLastOrder();
     if (stored.id !== orderId || !stored.email) return;
-    void apiRequest<Order>(`/orders/track?id=${encodeURIComponent(orderId)}&email=${encodeURIComponent(stored.email)}`)
+    void fetchGuestOrder(orderId, stored.email)
       .then(addOrder)
       .catch(() => undefined);
   }, [addOrder, isReady, order, orderId]);
@@ -72,7 +65,9 @@ function ConfirmationContent() {
         <h1 className="display mt-4 text-5xl">We can&rsquo;t find that order here.</h1>
         <p className="mt-4 text-ink/60">If you&rsquo;ve just paid, it may take a moment. You can also follow it from your account or the tracking page.</p>
         <div className="mt-10 flex justify-center gap-4">
-          <Link href="/account" className="bg-ink px-6 py-3 text-sm text-ivory hover:bg-terracotta">Your orders</Link>
+          <Link href={orderId ? `/orders/${encodeURIComponent(orderId)}` : "/account"} className="bg-ink px-6 py-3 text-sm text-ivory hover:bg-terracotta">
+            {orderId ? "Look up this order" : "Your orders"}
+          </Link>
           <Link href="/shop" className="border border-line px-6 py-3 text-sm hover:border-ink">Continue shopping</Link>
         </div>
       </div>
@@ -80,12 +75,12 @@ function ConfirmationContent() {
   }
 
   const paid = order.paymentStatus === "paid";
-  const firstName = order.address.fullName.split(" ")[0] || "there";
+  const firstName = order.address?.fullName?.split(" ")[0] || "there";
   const timeline = [
     { label: "Order received", date: formatDate(order.date), done: true },
     { label: paid ? "Payment confirmed" : "Awaiting payment", date: paid ? "Done" : order.paymentMethod === "transfer" ? "Once your transfer clears" : "Pending", done: paid },
-    { label: "In the atelier", date: `Ready by ${order.estimatedCompletion}`, done: false },
-    { label: "On its way to you", date: `Arrives by ${formatDate(order.estimatedDelivery)}`, done: false },
+    { label: "In the atelier", date: order.estimatedCompletion ? `Ready by ${formatDate(order.estimatedCompletion)}` : "Dates confirmed by email", done: false },
+    { label: "On its way to you", date: order.estimatedDelivery ? `Arrives by ${formatDate(order.estimatedDelivery)}` : "Dates confirmed by email", done: false },
   ];
 
   return (
@@ -161,7 +156,7 @@ function ConfirmationContent() {
               <li key={i.id} className="flex gap-3 text-sm">
                 {i.product.images?.[0] && (
                   <span className="relative h-16 w-12 shrink-0 overflow-hidden bg-bone">
-                    <Image src={i.product.images[0]} alt="" fill sizes="48px" placeholder={placeholderFor(i.product.images[0])} className="object-cover" />
+                    <SmartImage src={i.product.images[0]} alt="" fill sizes="48px" placeholder={placeholderFor(i.product.images[0])} className="object-cover" />
                   </span>
                 )}
                 <span className="flex-1">
@@ -181,16 +176,16 @@ function ConfirmationContent() {
             <span className="text-sm">{paid ? "Paid" : "Due"}</span>
             <span className="display text-2xl">{formatNaira(order.total)}</span>
           </div>
-          <p className="mt-5 text-xs leading-relaxed text-ink/55">
+          {order.address && <p className="mt-5 text-xs leading-relaxed text-ink/55">
             Delivering to {order.address.fullName}, {order.address.address}, {order.address.city}, {order.address.state}.
-          </p>
+          </p>}
         </section>
       </div>
 
       {recommendation && (
         <section aria-labelledby="rec-heading" className="mt-24 grid items-center gap-10 border-t border-line pt-16 sm:grid-cols-2">
           <Link href={`/product/${recommendation.slug}`} className="group relative block aspect-[4/5] overflow-hidden bg-bone">
-            <Image src={recommendation.images[0]} alt={recommendation.name} fill sizes="(min-width:640px) 45vw, 100vw" placeholder={placeholderFor(recommendation.images[0])} className="object-cover transition-transform duration-[1.2s] ease-house group-hover:scale-[1.04]" />
+            <SmartImage src={recommendation.images[0]} alt={recommendation.name} fill sizes="(min-width:640px) 45vw, 100vw" placeholder={placeholderFor(recommendation.images[0])} className="object-cover transition-transform duration-[1.2s] ease-house group-hover:scale-[1.04]" />
           </Link>
           <div>
             <p className="label text-clay">For your next occasion</p>

@@ -3,7 +3,8 @@
 // photo gets a blurred colour placeholder while it loads.
 
 import { BRAND_IMAGES, LEGACY_BRAND_PATHS } from "./brand-images.generated";
-import type { CartItem, Product } from "./types";
+import { campaignCategoryCovers, campaignCollectionCovers } from "./campaign-images";
+import type { CartItem, Category, Collection, Product } from "./types";
 
 /** Current served path for an image (legacy names are mapped forward). */
 export function resolveImage<T extends string | undefined>(src: T): T {
@@ -42,5 +43,47 @@ export function withCurrentImages(p: Product): Product {
   };
 }
 
-/** Bag items carry their own product copy (from storage or the saved cart). */
-export const withCurrentItemImages = (items: CartItem[]) => (items ?? []).map((i) => (i.product ? { ...i, product: withCurrentImages(i.product) } : i));
+/** Omit the previous bundled catalogue imagery from customer-facing views. */
+export function storefrontImage(src?: string | null): string | undefined {
+  if (!src?.trim()) return undefined;
+  try {
+    if (/^\/(?:images\/)?brand\//i.test(new URL(src, "https://momen.invalid").pathname)) return undefined;
+    return src;
+  } catch {
+    return undefined;
+  }
+}
+
+const storefrontImages = (images?: string[]) =>
+  (images ?? []).filter((src) => storefrontImage(src) !== undefined);
+
+export function withStorefrontImages(product: Product): Product {
+  return {
+    ...product,
+    images: storefrontImages(product.images),
+    hoverImage: storefrontImage(product.hoverImage),
+    spinImages: storefrontImages(product.spinImages),
+    colors: product.colors?.map((color) => ({
+      ...color,
+      images: color.images?.length ? storefrontImages(color.images) : undefined,
+    })),
+  };
+}
+
+export function withStorefrontCollectionCover(collection: Collection): Collection {
+  return {
+    ...collection,
+    image: storefrontImage(collection.image) ?? campaignCollectionCovers[collection.slug] ?? "",
+  };
+}
+
+export function withStorefrontCategoryCover(category: Category): Category {
+  return {
+    ...category,
+    image: storefrontImage(category.image) ?? campaignCategoryCovers[category.slug],
+  };
+}
+
+/** Bag and order items can carry older product copies. */
+export const withCurrentItemImages = (items: CartItem[]) =>
+  (items ?? []).map((item) => item.product ? { ...item, product: withStorefrontImages(item.product) } : item);

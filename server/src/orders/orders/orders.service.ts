@@ -1,7 +1,9 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -16,10 +18,18 @@ import { ProductsService } from '../../catalog/products/products.service';
 import { ProductionStaffService } from '../../production/production-staff/production-staff.service';
 import { ProductionTimelineResolverService } from '../../production/production-timeline-rules/production-timeline-resolver.service';
 import { DeliveryZonesService } from '../../delivery/delivery-zones/delivery-zones.service';
-import { CouponsService } from '../../promotions/coupons/coupons.service';
+import { CouponsService, isFirstOrder } from '../../promotions/coupons/coupons.service';
+import { WELCOME_CODE } from '../../common/storefront-offer';
 import { GiftCardsService } from '../../promotions/gift-cards/gift-cards.service';
 import { generateOrderId } from './order-id.util';
 import { isCustomOrderRequest, stagesForItems } from './order-stages.util';
+import {
+  isStockTracked,
+  measurementValuesError,
+  missingMeasurementsError,
+  requiresMeasurements,
+} from './order-items.util';
+import { toApiUnit } from '../../common/utils/measurement-unit.util';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import type { UpdateOrderStatusDto } from './dto/update-status.dto';
 import type { AddOrderNoteDto } from './dto/add-note.dto';
@@ -36,36 +46,207 @@ interface OrderActor {
 const PRIORITY_STANDARD = 40;
 const PRIORITY_EXPRESS = 90;
 
-/** Mirrors a product-level stock change onto the matching size row, when
- * that size is tracked individually (stockQuantity not null). */
-async function adjustSizeStock(
-  tx: Prisma.TransactionClient,
-  productId: string,
-  size: string,
-  data: Prisma.ProductSizeUpdateManyMutationInput,
-) {
-  await tx.productSize.updateMany({
-    where: { productId, label: size, stockQuantity: { not: null } },
-    data,
-  });
+const stockLogger = new Logger('OrderStock');
+
+interface StockLine {
+  productId: string | null;
+  size: string;
+  quantity: number;
 }
 
-/** Returns stock held for an unpaid order to the shelf (product and size). */
+/** The order's lines whose product stock is actually tracked — the same
+ * `isStockTracked` rule create() used when reserving. Lines whose product
+ * has since been deleted (productId null) have nothing to adjust. Every
+ * statement below is a conditional `updateMany` (never a throwing `update`)
+ * because a failed statement aborts a Postgres interactive transaction. */
+async function stockTrackedLines(
+  tx: Prisma.TransactionClient,
+  items: StockLine[],
+): Promise<(StockLine & { productId: string })[]> {
+  const ids = [
+    ...new Set(items.map((i) => i.productId).filter((id): id is string => !!id)),
+  ];
+  if (ids.length === 0) return [];
+  const products = await tx.product.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, sizingMode: true },
+  });
+  const tracked = new Set(
+    products.filter((p) => isStockTracked(p)).map((p) => p.id),
+  );
+  return items.filter(
+    (i): i is StockLine & { productId: string } =>
+      !!i.productId && tracked.has(i.productId),
+  );
+}
+
+/** Returns stock held for an unpaid order to the shelf (product and size).
+ * Guarded so a counter can never be pushed below zero. */
 async function releaseReservations(
   tx: Prisma.TransactionClient,
-  items: { productId: string | null; size: string; quantity: number }[],
+  items: StockLine[],
 ) {
-  for (const item of items) {
-    if (!item.productId) continue;
-    await tx.product
-      .update({
-        where: { id: item.productId },
-        data: { reservedQuantity: { decrement: item.quantity } },
-      })
-      .catch(() => undefined);
-    await adjustSizeStock(tx, item.productId, item.size, {
-      reservedQuantity: { decrement: item.quantity },
+  for (const item of await stockTrackedLines(tx, items)) {
+    const { count } = await tx.product.updateMany({
+      where: { id: item.productId, reservedQuantity: { gte: item.quantity } },
+      data: { reservedQuantity: { decrement: item.quantity } },
     });
+    if (count === 0)
+      stockLogger.warn(
+        `Release skipped for product ${item.productId}: fewer than ${item.quantity} units reserved`,
+      );
+    await tx.productSize.updateMany({
+      where: {
+        productId: item.productId,
+        label: item.size,
+        stockQuantity: { not: null },
+        reservedQuantity: { gte: item.quantity },
+      },
+      data: { reservedQuantity: { decrement: item.quantity } },
+    });
+  }
+}
+
+/** Payment confirmed while the reservation is still held: the reserved
+ * units become sold units. If the reservation is somehow missing, the sale
+ * is still recorded against stockQuantity. */
+async function convertReservations(
+  tx: Prisma.TransactionClient,
+  items: StockLine[],
+) {
+  for (const item of await stockTrackedLines(tx, items)) {
+    const converted = await tx.product.updateMany({
+      where: { id: item.productId, reservedQuantity: { gte: item.quantity } },
+      data: {
+        stockQuantity: { decrement: item.quantity },
+        reservedQuantity: { decrement: item.quantity },
+      },
+    });
+    if (converted.count === 0) {
+      stockLogger.warn(
+        `No reservation found for product ${item.productId}; decrementing stock only`,
+      );
+      await tx.product.updateMany({
+        where: { id: item.productId },
+        data: { stockQuantity: { decrement: item.quantity } },
+      });
+    }
+    const sizeWhere = {
+      productId: item.productId,
+      label: item.size,
+      stockQuantity: { not: null },
+    };
+    const sizeConverted = await tx.productSize.updateMany({
+      where: { ...sizeWhere, reservedQuantity: { gte: item.quantity } },
+      data: {
+        stockQuantity: { decrement: item.quantity },
+        reservedQuantity: { decrement: item.quantity },
+      },
+    });
+    if (sizeConverted.count === 0)
+      await tx.productSize.updateMany({
+        where: sizeWhere,
+        data: { stockQuantity: { decrement: item.quantity } },
+      });
+  }
+}
+
+/** Payment confirmed after the reservation was already released (a failed
+ * attempt, then a successful retry): only the shelf stock moves. */
+async function decrementStock(tx: Prisma.TransactionClient, items: StockLine[]) {
+  for (const item of await stockTrackedLines(tx, items)) {
+    await tx.product.updateMany({
+      where: { id: item.productId },
+      data: { stockQuantity: { decrement: item.quantity } },
+    });
+    await tx.productSize.updateMany({
+      where: {
+        productId: item.productId,
+        label: item.size,
+        stockQuantity: { not: null },
+      },
+      data: { stockQuantity: { decrement: item.quantity } },
+    });
+  }
+}
+
+/** An admin moving a failed payment back to pending: hold the stock again,
+ * so "pending and not cancelled" always means "reservation held". */
+async function reReserve(tx: Prisma.TransactionClient, items: StockLine[]) {
+  for (const item of await stockTrackedLines(tx, items)) {
+    await tx.product.updateMany({
+      where: { id: item.productId },
+      data: { reservedQuantity: { increment: item.quantity } },
+    });
+    await tx.productSize.updateMany({
+      where: {
+        productId: item.productId,
+        label: item.size,
+        stockQuantity: { not: null },
+      },
+      data: { reservedQuantity: { increment: item.quantity } },
+    });
+  }
+}
+
+const outOfStockMessage = (name: string, available: number, size?: string) => {
+  const where = size ? ` in size ${size}` : '';
+  return available > 0
+    ? `Only ${available} left of ${name}${where}`
+    : `${name}${where} is sold out`;
+};
+
+/** Reserves (or, for an order already paid, sells) `quantity` units of a
+ * product — and of its size row when that size is tracked — only if that
+ * many are still available at this instant. The guard lives in the UPDATE's
+ * WHERE clause, so two concurrent checkouts can't both take the last unit. */
+async function takeStock(
+  tx: Prisma.TransactionClient,
+  line: { productId: string; name: string; quantity: number; size?: string },
+  mode: 'reserve' | 'sell',
+) {
+  const { productId, name, quantity, size } = line;
+  if (size === undefined) {
+    const count =
+      mode === 'reserve'
+        ? await tx.$executeRaw`UPDATE "Product" SET "reservedQuantity" = "reservedQuantity" + ${quantity} WHERE "id" = ${productId} AND "stockQuantity" - "reservedQuantity" >= ${quantity}`
+        : await tx.$executeRaw`UPDATE "Product" SET "stockQuantity" = "stockQuantity" - ${quantity} WHERE "id" = ${productId} AND "stockQuantity" - "reservedQuantity" >= ${quantity}`;
+    if (count === 0) {
+      const p = await tx.product.findUnique({
+        where: { id: productId },
+        select: { stockQuantity: true, reservedQuantity: true },
+      });
+      throw new ConflictException(
+        outOfStockMessage(
+          name,
+          Math.max(0, (p?.stockQuantity ?? 0) - (p?.reservedQuantity ?? 0)),
+        ),
+      );
+    }
+    return;
+  }
+
+  const sizeRow = await tx.productSize.findFirst({
+    where: { productId, label: size, stockQuantity: { not: null } },
+    select: { stockQuantity: true, reservedQuantity: true },
+  });
+  if (!sizeRow) return; // size not tracked individually — product counters apply
+  const count =
+    mode === 'reserve'
+      ? await tx.$executeRaw`UPDATE "ProductSize" SET "reservedQuantity" = "reservedQuantity" + ${quantity} WHERE "productId" = ${productId} AND "label" = ${size} AND "stockQuantity" IS NOT NULL AND "stockQuantity" - "reservedQuantity" >= ${quantity}`
+      : await tx.$executeRaw`UPDATE "ProductSize" SET "stockQuantity" = "stockQuantity" - ${quantity} WHERE "productId" = ${productId} AND "label" = ${size} AND "stockQuantity" IS NOT NULL AND "stockQuantity" - "reservedQuantity" >= ${quantity}`;
+  if (count === 0) {
+    const fresh = await tx.productSize.findFirst({
+      where: { productId, label: size, stockQuantity: { not: null } },
+      select: { stockQuantity: true, reservedQuantity: true },
+    });
+    throw new ConflictException(
+      outOfStockMessage(
+        name,
+        Math.max(0, (fresh?.stockQuantity ?? 0) - (fresh?.reservedQuantity ?? 0)),
+        size,
+      ),
+    );
   }
 }
 
@@ -113,6 +294,7 @@ export class OrdersService {
         size: item.size,
         color: item.color,
         quantity: item.quantity,
+        fit: (item.fit as 'standard' | 'measure' | null) ?? undefined,
         customizations:
           (item.customizations as Record<string, string> | null) ?? undefined,
         customOrder:
@@ -124,7 +306,7 @@ export class OrdersService {
           values:
             (item.measurementValues as Record<string, number> | null) ??
             undefined,
-          unit: item.measurementUnit ?? undefined,
+          unit: toApiUnit(item.measurementUnit),
         },
       })),
       subtotal: Number(order.subtotal),
@@ -214,6 +396,7 @@ export class OrdersService {
       customerEmail = customer.email;
       actorName = customer.name;
     }
+    const checkoutEmail = customerEmail!.trim().toLowerCase();
 
     const pricedItems = await Promise.all(
       dto.items.map(async (item) => {
@@ -225,20 +408,23 @@ export class OrdersService {
             `Product ${item.productId} is not available`,
           );
 
-        const isMadeToMeasure =
-          snapshot.sizingMode === 'made_to_measure' ||
-          snapshot.sizingMode === 'both';
-        if (snapshot.sizingMode !== 'made_to_measure') {
-          const available = snapshot.stockQuantity - snapshot.reservedQuantity;
-          if (available < item.quantity)
-            throw new BadRequestException(
-              `Insufficient stock for product ${item.productId}`,
-            );
-          const sizeAvailable = snapshot.sizeAvailable(item.size);
-          if (sizeAvailable !== undefined && sizeAvailable < item.quantity)
-            throw new BadRequestException(
-              `${snapshot.name} in size ${item.size} is out of stock`,
-            );
+        // Drives the awaiting_measurements / measurements_confirmed stages:
+        // what the customer actually chose for this line, not merely that
+        // the product *can* be cut to measure (a standard size of a "both"
+        // product needs no measurements).
+        const needsMeasurements = requiresMeasurements({
+          fit: item.fit,
+          size: item.size,
+          sizingMode: snapshot.sizingMode,
+        });
+        const valuesError = measurementValuesError(item.measurement.values);
+        if (valuesError) throw new BadRequestException(valuesError);
+        if (needsMeasurements) {
+          const missing = missingMeasurementsError(
+            item.measurement,
+            snapshot.name,
+          );
+          if (missing) throw new BadRequestException(missing);
         }
 
         let customizationCost = 0;
@@ -254,6 +440,7 @@ export class OrdersService {
 
         let measurementValues: Record<string, number> | undefined =
           item.measurement.values;
+        let measurementUnit = item.measurement.unit;
         if (item.measurement.mode === 'profile') {
           if (!actor.customerId)
             throw new BadRequestException(
@@ -269,12 +456,24 @@ export class OrdersService {
           if (!profile || profile.customerId !== actor.customerId)
             throw new ForbiddenException('Measurement profile not found');
           measurementValues = profile.values as Record<string, number>;
+          // The snapshot is in the profile's own unit, whatever the client sent.
+          measurementUnit = profile.unit;
+          if (
+            needsMeasurements &&
+            (!measurementValues ||
+              typeof measurementValues !== 'object' ||
+              Object.keys(measurementValues).length === 0)
+          )
+            throw new BadRequestException(
+              `The measurement profile "${profile.label}" has no measurements yet`,
+            );
         }
 
         return {
           dtoItem: item,
           snapshot,
-          isMadeToMeasure,
+          isMadeToMeasure: needsMeasurements,
+          measurementUnit,
           hasCustomOrder: Boolean(
             (item.customOrder?.referenceImages?.length ?? 0) > 0 ||
             item.customOrder?.specialInstructions,
@@ -286,29 +485,57 @@ export class OrdersService {
       }),
     );
 
-    const subtotal = pricedItems.reduce((sum, i) => sum + i.lineTotal, 0);
+    // Stock is checked on the *total* asked for per product and per
+    // product+size — two lines of the same size must not each pass on their
+    // own. This early check gives a friendly error before coupons/delivery
+    // are resolved; the authoritative guard is the conditional UPDATE inside
+    // the create transaction below.
+    const stockDemand = new Map<
+      string,
+      {
+        productId: string;
+        name: string;
+        quantity: number;
+        available: number;
+        sizes: Map<string, { quantity: number; available?: number }>;
+      }
+    >();
+    for (const p of pricedItems) {
+      if (!isStockTracked(p.snapshot)) continue;
+      const productId = p.dtoItem.productId;
+      let entry = stockDemand.get(productId);
+      if (!entry) {
+        entry = {
+          productId,
+          name: p.snapshot.name,
+          quantity: 0,
+          available: p.snapshot.stockQuantity - p.snapshot.reservedQuantity,
+          sizes: new Map(),
+        };
+        stockDemand.set(productId, entry);
+      }
+      entry.quantity += p.dtoItem.quantity;
+      const size = entry.sizes.get(p.dtoItem.size) ?? {
+        quantity: 0,
+        available: p.snapshot.sizeAvailable(p.dtoItem.size),
+      };
+      size.quantity += p.dtoItem.quantity;
+      entry.sizes.set(p.dtoItem.size, size);
+    }
+    for (const entry of stockDemand.values()) {
+      for (const [label, size] of entry.sizes) {
+        if (size.available !== undefined && size.available < size.quantity)
+          throw new ConflictException(
+            outOfStockMessage(entry.name, Math.max(0, size.available), label),
+          );
+      }
+      if (entry.available < entry.quantity)
+        throw new ConflictException(
+          outOfStockMessage(entry.name, Math.max(0, entry.available)),
+        );
+    }
 
-    // Validated and priced server-side — never trusts a client-computed
-    // discount. Rejecting an invalid/expired/ineligible code here (rather
-    // than silently dropping it) means "the coupon didn't apply" is never
-    // silent; CouponsService.validate throws a customer-facing reason.
-    const couponResult = dto.couponCode
-      ? await this.couponsService.validate(dto.couponCode, {
-          customerId: actor.customerId,
-          isFirstOrder: actor.customerId
-            ? (await this.prisma.order.count({
-                where: { customerId: actor.customerId },
-              })) === 0
-            : false,
-          subtotal,
-          items: pricedItems.map((p) => ({
-            productId: p.dtoItem.productId,
-            collectionSlugs: p.snapshot.collectionSlugs,
-            lineTotal: p.lineTotal,
-          })),
-        })
-      : undefined;
-    const discount = couponResult?.discountAmount ?? 0;
+    const subtotal = pricedItems.reduce((sum, i) => sum + i.lineTotal, 0);
 
     // Replaces trusting deliveryFee/expressFee as client input — resolved
     // from DeliveryZone data matched against the destination country.
@@ -319,26 +546,6 @@ export class OrdersService {
       subtotal,
       deliveryMethod,
     );
-    const total =
-      subtotal -
-      discount +
-      deliveryQuote.deliveryFee +
-      deliveryQuote.expressFee;
-
-    // Gift cards only cover the *entire* order for now — Order has a single
-    // `paymentMethod`, not a split-tender breakdown, so a gift card that
-    // doesn't fully cover the total is rejected rather than silently
-    // covering part of it and leaving the rest unaccounted for.
-    const giftCardResult = dto.giftCardCode
-      ? await this.giftCardsService.validate(dto.giftCardCode, total)
-      : undefined;
-    if (giftCardResult && giftCardResult.amountToApply < total) {
-      throw new BadRequestException(
-        'This gift card balance does not cover the full order total — partial gift card payment is not supported yet',
-      );
-    }
-    const paidViaGiftCard = Boolean(giftCardResult);
-
     const stages = stagesForItems(pricedItems);
     const now = new Date();
     const customizationStatus = isCustomOrderRequest(pricedItems)
@@ -370,18 +577,49 @@ export class OrdersService {
     const productionPriority =
       dto.productionSpeed === 'express' ? PRIORITY_EXPRESS : PRIORITY_STANDARD;
 
-    // Paying in full with a gift card settles the order immediately — no
-    // provider round trip needed, so payment_confirmed is already complete.
-    const paidStagesCount = paidViaGiftCard ? 2 : 1;
-
     const orderId = await generateOrderId(this.prisma);
 
     await this.prisma.$transaction(async (tx) => {
+      // Serialize the first-order check and write for the same account/email.
+      // Guest and signed-in checkouts share the email lock.
+      const lockKeys = [
+        ...(actor.customerId ? [`checkout:account:${actor.customerId}`] : []),
+        `checkout:email:${checkoutEmail}`,
+      ];
+      for (const key of lockKeys) {
+        await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
+      }
+      const couponContext = {
+        customerId: actor.customerId,
+        isFirstOrder: await isFirstOrder(tx, checkoutEmail, actor.customerId),
+        subtotal,
+        items: pricedItems.map((p) => ({
+          productId: p.dtoItem.productId,
+          collectionSlugs: p.snapshot.collectionSlugs,
+          lineTotal: p.lineTotal,
+        })),
+      };
+      const code = dto.couponCode?.trim().toUpperCase();
+      const couponResult = code && code !== WELCOME_CODE
+        ? await this.couponsService.validate(code, couponContext, tx)
+        : await this.couponsService.automaticWelcome(tx, couponContext);
+      const discount = couponResult?.discountAmount ?? 0;
+      const total = subtotal - discount + deliveryQuote.deliveryFee + deliveryQuote.expressFee;
+      const giftCardResult = dto.giftCardCode
+        ? await this.giftCardsService.validate(dto.giftCardCode, total, tx)
+        : undefined;
+      if (giftCardResult && giftCardResult.amountToApply < total) {
+        throw new BadRequestException(
+          'This gift card balance does not cover the full order total — partial gift card payment is not supported yet',
+        );
+      }
+      const paidViaGiftCard = Boolean(giftCardResult);
+      const paidStagesCount = paidViaGiftCard ? 2 : 1;
       await tx.order.create({
         data: {
           id: orderId,
           customerId: actor.customerId,
-          customerEmail: customerEmail!,
+          customerEmail: checkoutEmail,
           status: paidViaGiftCard
             ? OrderStatus.payment_confirmed
             : OrderStatus.order_placed,
@@ -412,13 +650,14 @@ export class OrdersService {
               size: p.dtoItem.size,
               color: p.dtoItem.color,
               quantity: p.dtoItem.quantity,
+              fit: p.dtoItem.fit ?? null,
               customizations: p.dtoItem.customizations as Prisma.InputJsonValue,
               customizationCost: p.customizationCost,
               customOrder: p.dtoItem.customOrder as Prisma.InputJsonValue,
               measurementMode: p.dtoItem.measurement.mode,
               measurementProfileId: p.dtoItem.measurement.profileId,
               measurementValues: p.measurementValues as Prisma.InputJsonValue,
-              measurementUnit: p.dtoItem.measurement.unit,
+              measurementUnit: p.measurementUnit,
             })),
           },
           timeline: {
@@ -451,26 +690,36 @@ export class OrdersService {
         });
       }
 
-      // Reserve stock for made-to-order-able items now; finalized
-      // (decremented from stockQuantity) once payment is confirmed — either
-      // immediately here (gift card paid in full) or later via
-      // setPaymentStatus (provider payment confirmed asynchronously).
-      for (const p of pricedItems) {
-        if (p.snapshot.sizingMode === 'made_to_measure') continue;
-        await tx.product.update({
-          where: { id: p.dtoItem.productId },
-          data: paidViaGiftCard
-            ? { stockQuantity: { decrement: p.dtoItem.quantity } }
-            : { reservedQuantity: { increment: p.dtoItem.quantity } },
-        });
-        await adjustSizeStock(
+      // Reserve stock for stock-tracked items now (see isStockTracked —
+      // the same rule setPaymentStatus/cancel use); finalized (decremented
+      // from stockQuantity) once payment is confirmed — either immediately
+      // here (gift card paid in full) or later via setPaymentStatus
+      // (provider payment confirmed asynchronously). Aggregated per product
+      // and per product+size, each guarded by availability; a shortfall
+      // throws and rolls the whole order back.
+      const mode = paidViaGiftCard ? 'sell' : 'reserve';
+      for (const entry of stockDemand.values()) {
+        await takeStock(
           tx,
-          p.dtoItem.productId,
-          p.dtoItem.size,
-          paidViaGiftCard
-            ? { stockQuantity: { decrement: p.dtoItem.quantity } }
-            : { reservedQuantity: { increment: p.dtoItem.quantity } },
+          {
+            productId: entry.productId,
+            name: entry.name,
+            quantity: entry.quantity,
+          },
+          mode,
         );
+        for (const [label, size] of entry.sizes) {
+          await takeStock(
+            tx,
+            {
+              productId: entry.productId,
+              name: entry.name,
+              quantity: size.quantity,
+              size: label,
+            },
+            mode,
+          );
+        }
       }
 
       if (couponResult) {
@@ -724,7 +973,14 @@ export class OrdersService {
 
   /** Payment confirmation converts a soft stock reservation into a real
    * decrement; failure/cancellation releases the reservation instead. Every
-   * other status transition leaves stock untouched. */
+   * other status transition leaves stock untouched.
+   *
+   * Atomic and idempotent: the provider's redirect (GET /payments/verify)
+   * and its webhook routinely land at the same moment. The paymentStatus
+   * flip is a compare-and-swap inside the transaction, so exactly one caller
+   * performs the stock changes and emits `order.payment_status_changed`
+   * (which sends the "paid" email); the other sees no change and does
+   * nothing. */
   async setPaymentStatus(
     id: string,
     status: 'pending' | 'paid' | 'failed' | 'refunded' | 'partially_refunded',
@@ -736,63 +992,89 @@ export class OrdersService {
     if (!order) throw new NotFoundException('Order not found');
 
     // Payment confirmation landing here (from a provider webhook/verify
-    // call, asynchronously — see PaymentsService) used to only ever touch
-    // `paymentStatus`, never `status`/the timeline. That left every
-    // provider-paid order stuck showing "Order Placed" until an admin
-    // manually advanced it, even though the payment had actually gone
-    // through. System-actor timeline advancement fixes that; it's guarded
-    // to only move forward from `order_placed` so it never regresses an
-    // order an admin has already pushed further along.
+    // call, asynchronously — see PaymentsService) advances the timeline to
+    // payment_confirmed with a system actor. Guarded to only move forward
+    // from order_placed / payment_failed (a successful retry after a failed
+    // attempt) so it never regresses an order an admin has already pushed
+    // further along.
     const systemActor: OrderActor = { name: 'System' };
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.order.update({ where: { id }, data: { paymentStatus: status } });
+    let changed = false;
+    // Retried only if another writer changed paymentStatus between our read
+    // and our compare-and-swap; settles in one pass in practice.
+    for (let attempt = 0; attempt < 3 && !changed; attempt++) {
+      const current =
+        attempt === 0
+          ? order.paymentStatus
+          : (
+              await this.prisma.order.findUniqueOrThrow({
+                where: { id },
+                select: { paymentStatus: true },
+              })
+            ).paymentStatus;
+      if (current === status) break;
 
-      if (status === 'paid' && order.paymentStatus !== 'paid') {
-        for (const item of order.items) {
-          if (!item.productId) continue;
-          await tx.product
-            .update({
-              where: { id: item.productId },
-              data: {
-                stockQuantity: { decrement: item.quantity },
-                reservedQuantity: { decrement: item.quantity },
-              },
-            })
-            .catch(() => undefined);
-          await adjustSizeStock(tx, item.productId, item.size, {
-            stockQuantity: { decrement: item.quantity },
-            reservedQuantity: { decrement: item.quantity },
-          });
-        }
-        if (order.status === OrderStatus.order_placed) {
-          await this.advanceTimelineAndStatus(
-            tx,
-            id,
-            order.timeline,
-            OrderStatus.payment_confirmed,
-            systemActor,
-          );
-        }
-      } else if (status === 'failed' && order.paymentStatus !== 'failed') {
-        await releaseReservations(tx, order.items);
-        await tx.order.update({
-          where: { id },
-          data: { status: OrderStatus.payment_failed },
+      changed = await this.prisma.$transaction(async (tx) => {
+        const { count } = await tx.order.updateMany({
+          where: { id, paymentStatus: current },
+          data: { paymentStatus: status },
         });
-      }
-    });
+        if (count !== 1) return false;
 
-    this.events.emit('order.payment_status_changed', {
-      orderId: id,
-      paymentStatus: status,
-    });
-    // Released or sold stock may change what's available for alerts.
-    order.items.forEach(
-      (item) =>
-        item.productId &&
-        this.events.emit('product.changed', { productId: item.productId }),
-    );
+        // Row is now locked by this transaction; read the status as of now
+        // (a concurrent cancel may have committed since our first read).
+        const { status: orderStatus } = await tx.order.findUniqueOrThrow({
+          where: { id },
+          select: { status: true },
+        });
+        const cancelled = orderStatus === OrderStatus.cancelled;
+
+        if (status === 'paid') {
+          // A cancelled order's reservation was released by cancel() (and a
+          // failed attempt's by the failed branch below), so only a still-
+          // pending, live order holds one to convert.
+          if (!cancelled && current === 'pending')
+            await convertReservations(tx, order.items);
+          else if (!cancelled && current === 'failed')
+            await decrementStock(tx, order.items);
+
+          if (
+            orderStatus === OrderStatus.order_placed ||
+            orderStatus === OrderStatus.payment_failed
+          ) {
+            await this.advanceTimelineAndStatus(
+              tx,
+              id,
+              order.timeline,
+              OrderStatus.payment_confirmed,
+              systemActor,
+            );
+          }
+        } else if (status === 'failed' && current === 'pending' && !cancelled) {
+          await releaseReservations(tx, order.items);
+          await tx.order.updateMany({
+            where: { id, status: OrderStatus.order_placed },
+            data: { status: OrderStatus.payment_failed },
+          });
+        } else if (status === 'pending' && current === 'failed' && !cancelled) {
+          await reReserve(tx, order.items);
+        }
+        return true;
+      });
+    }
+
+    if (changed) {
+      this.events.emit('order.payment_status_changed', {
+        orderId: id,
+        paymentStatus: status,
+      });
+      // Released or sold stock may change what's available for alerts.
+      order.items.forEach(
+        (item) =>
+          item.productId &&
+          this.events.emit('product.changed', { productId: item.productId }),
+      );
+    }
     return this.findOneAdmin(id);
   }
 
@@ -803,25 +1085,41 @@ export class OrdersService {
     });
     if (!order) throw new NotFoundException('Order not found');
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id },
-        data: {
-          status: OrderStatus.cancelled,
-          cancelledAt: new Date(),
-          cancelledReason: reason,
+    const released = await this.prisma.$transaction(async (tx) => {
+      const data = {
+        status: OrderStatus.cancelled,
+        cancelledAt: new Date(),
+        cancelledReason: reason,
+      };
+      // Only a still-pending, not-yet-cancelled order holds a reservation:
+      // paid orders sold their stock, and failed ones already released it.
+      // Conditional on the row's current values so a concurrent payment
+      // update or a double-click cancel can't release twice.
+      const pending = await tx.order.updateMany({
+        where: {
+          id,
+          status: { not: OrderStatus.cancelled },
+          paymentStatus: 'pending',
         },
+        data,
       });
-      if (order.paymentStatus !== 'paid') {
+      if (pending.count === 1) {
         await releaseReservations(tx, order.items);
+        return true;
       }
+      await tx.order.updateMany({
+        where: { id, status: { not: OrderStatus.cancelled } },
+        data,
+      });
+      return false;
     });
 
-    order.items.forEach(
-      (item) =>
-        item.productId &&
-        this.events.emit('product.changed', { productId: item.productId }),
-    );
+    if (released)
+      order.items.forEach(
+        (item) =>
+          item.productId &&
+          this.events.emit('product.changed', { productId: item.productId }),
+      );
     return this.findOneAdmin(id);
   }
 
@@ -890,6 +1188,7 @@ export class OrdersService {
             size: i.size,
             color: i.color,
             quantity: i.quantity,
+            fit: i.fit,
             customizations: i.customizations as Prisma.InputJsonValue,
             customizationCost: i.customizationCost,
             customOrder: i.customOrder as Prisma.InputJsonValue,

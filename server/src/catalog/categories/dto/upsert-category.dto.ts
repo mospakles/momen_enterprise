@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { PublishStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsEnum,
   IsInt,
   IsOptional,
@@ -31,4 +32,15 @@ export class UpsertCategoryDto {
   @ValidateNested()
   @Type(() => SeoDto)
   seo?: SeoDto;
+
+  @ApiProperty({
+    type: [String],
+    required: false,
+    description:
+      'MeasurementFieldDef keys this style needs (e.g. Agbada). Omit to leave unchanged on update; [] clears.',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  measurementFieldKeys?: string[];
 }

@@ -78,7 +78,13 @@ async function rawRequest<T>(path: string, options: RequestOptions, retried: boo
   }
 
   if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+
+  // Some successful mutation endpoints (including wishlist removal) return an
+  // empty 200 response. Treat that like a 204 instead of trying to parse an
+  // absent JSON document and turning a successful request into an error.
+  const text = await response.text();
+  if (!text.trim()) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export function apiRequest<T>(path: string, options: RequestOptions = {}) {
@@ -87,6 +93,7 @@ export function apiRequest<T>(path: string, options: RequestOptions = {}) {
 
 export function apiAssetUrl(path: string | undefined) {
   if (!path || !path.startsWith("/")) return path ?? "";
+  if (path.startsWith("/images/campaign/")) return path;
   return `${API_BASE_URL.replace(/\/api$/, "")}${path}`;
 }
 

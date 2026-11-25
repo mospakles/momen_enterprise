@@ -8,6 +8,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 import { Button } from "@/components/ui/Button";
 
+/** Only same-origin paths ("/x", not "//host" or "/\\host") are allowed as a post-auth redirect. */
+function safeNext(value: string | null) {
+  return value && value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\") ? value : "/account";
+}
+
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -20,7 +25,7 @@ function LoginContent() {
   const { login, currentUser, isReady } = useCustomerAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/account";
+  const next = safeNext(searchParams.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,6 +60,7 @@ function LoginContent() {
             <span className="text-xs text-ink/60">Email</span>
             <input
               type="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -65,6 +71,7 @@ function LoginContent() {
             <span className="text-xs text-ink/60">Password</span>
             <input
               type="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

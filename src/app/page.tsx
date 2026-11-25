@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import Journey from "@/components/journey/Journey";
 
-// The landing page is the brand journey: story first, shop second.
-
 export const metadata: Metadata = {
-  title: "momen. — Tailored heritage. Modern men.",
+  title: "momen. | Ready-to-Wear & Bespoke, Lagos",
   description:
-    "momen. is an African menswear house in Lagos: agbada, kaftan and jalabia cut with a modern hand, ready-to-wear and made to measure.",
+    "Shop Ankara pants, aso-oke patchwork, jalabia, two-piece sets, vintage shirts, linen tees and fila. Explore made-to-measure styles from momen. in Lagos.",
 };
 
 export default function Home() {

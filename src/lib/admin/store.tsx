@@ -13,6 +13,7 @@
 // read the same context.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { Category, Collection, ColorSwatch, CustomizationGroup, Fabric, MeasurementFieldDef, Product, SizeOption } from "@/lib/types";
 import type {
   AdminUser,
@@ -42,8 +43,12 @@ import type {
   Testimonial,
 } from "./types";
 import { apiAssetUrl, apiRequest } from "@/lib/api";
-import { resolveImage, withCurrentImages } from "@/lib/brand-images";
+import {
+  resolveImage, storefrontImage, withCurrentImages, withStorefrontCategoryCover,
+  withStorefrontCollectionCover, withStorefrontImages,
+} from "@/lib/brand-images";
 import { toast } from "@/lib/toast";
+import { findCampaignStyle } from "@/lib/campaign-catalogue";
 
 const EMPTY_SYSTEM_SETTINGS: SystemSettings = {
   general: { brandName: "Momen", logoUrl: "", faviconUrl: "/favicon.ico", supportEmail: "", supportPhone: "", instagram: "", tiktok: "", pinterest: "" },
@@ -276,6 +281,8 @@ function normalizeCustomer(value: Record<string, unknown>): Customer {
 }
 
 export function AdminStoreProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
   const [apiReady, setApiReady] = useState(false);
   const [healthChecks, setHealthChecks] = useState<SystemHealthCheck[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -320,25 +327,42 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(EMPTY_SYSTEM_SETTINGS);
 
   const isReady = apiReady;
+  const visibleProducts = useMemo(() => isAdmin ? products : products
+    .filter((product) => findCampaignStyle(product.slug))
+    .map(withStorefrontImages), [isAdmin, products]);
+  const visibleCollections = useMemo(() => isAdmin ? collections : collections.map(withStorefrontCollectionCover), [isAdmin, collections]);
+  const visibleCategories = useMemo(() => isAdmin ? categories : categories.map(withStorefrontCategoryCover), [isAdmin, categories]);
+  const visibleBlogPosts = useMemo(() => isAdmin ? blogPosts : blogPosts.map((post) => ({
+    ...post,
+    coverImage: storefrontImage(post.coverImage) ?? "",
+  })), [isAdmin, blogPosts]);
+  const visibleFabrics = useMemo(() => isAdmin ? fabrics : fabrics.map((fabric) => ({
+    ...fabric,
+    image: storefrontImage(fabric.image) ?? "",
+  })), [isAdmin, fabrics]);
 
   const loadPublicData = useCallback(async () => {
+    // Optional content and the catalogue load independently so one failed
+    // endpoint does not wipe out every storefront section.
+    const whenAvailable = <T,>(request: Promise<T>, fallback: T) => request.catch(() => fallback);
+    const productRequest = apiRequest<{ items: Product[] }>("/products?pageSize=1000");
     const results = await Promise.all([
-      apiRequest<{ items: Product[] }>("/products?pageSize=1000"),
-      apiRequest<Collection[]>("/collections"),
-      apiRequest<Category[]>("/categories"),
-      apiRequest<Fabric[]>("/fabrics"),
-      apiRequest<ColorSwatch[]>("/color-swatches"),
-      apiRequest<SizeOption[]>("/size-options"),
-      apiRequest<CustomizationGroup[]>("/customization-groups"),
-      apiRequest<MeasurementFieldDef[]>("/measurement-fields"),
-      apiRequest<Record<string, unknown>[]>("/delivery-zones"),
-      apiRequest<HomepageSection[]>("/homepage-sections"),
-      apiRequest<Banner[]>("/banners"),
-      apiRequest<Testimonial[]>("/testimonials"),
-      apiRequest<FAQItem[]>("/faqs"),
-      apiRequest<BlogPost[]>("/blog"),
-      apiRequest<NavigationItem[]>("/navigation"),
-      apiRequest<SystemSettings>("/settings/public"),
+      whenAvailable(productRequest, null),
+      whenAvailable(apiRequest<Collection[]>("/collections"), null),
+      whenAvailable(apiRequest<Category[]>("/categories"), null),
+      whenAvailable(apiRequest<Fabric[]>("/fabrics"), null),
+      whenAvailable(apiRequest<ColorSwatch[]>("/color-swatches"), null),
+      whenAvailable(apiRequest<SizeOption[]>("/size-options"), null),
+      whenAvailable(apiRequest<CustomizationGroup[]>("/customization-groups"), null),
+      whenAvailable(apiRequest<MeasurementFieldDef[]>("/measurement-fields"), null),
+      whenAvailable(apiRequest<Record<string, unknown>[]>("/delivery-zones"), null),
+      whenAvailable(apiRequest<HomepageSection[]>("/homepage-sections"), null),
+      whenAvailable(apiRequest<Banner[]>("/banners"), null),
+      whenAvailable(apiRequest<Testimonial[]>("/testimonials"), null),
+      whenAvailable(apiRequest<FAQItem[]>("/faqs"), null),
+      whenAvailable(apiRequest<BlogPost[]>("/blog"), null),
+      whenAvailable(apiRequest<NavigationItem[]>("/navigation"), null),
+      whenAvailable(apiRequest<SystemSettings>("/settings/public"), null),
     ]);
     const [
       productPage,
@@ -358,22 +382,23 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       loadedNavigation,
       loadedSettings,
     ] = results;
-    setProducts(productPage.items.map(withCurrentImages));
-    setCollections(loadedCollections.map((item) => ({ ...item, image: resolveImage(item.image), seo: item.seo ?? {} })));
-    setCategories(loadedCategories.map((item) => ({ ...item, image: resolveImage(item.image), seo: item.seo ?? {} })));
-    setFabrics(loadedFabrics.map(normalizeFabric));
-    setColorSwatches(loadedColors);
-    setSizeOptions(loadedSizes);
-    setCustomizationGroups(loadedCustomization.map(normalizeCustomizationGroup));
-    setMeasurementFieldDefs(loadedMeasurements);
-    setDeliveryZones(loadedDelivery.map(normalizeDeliveryZone));
-    setHomepageSections(loadedHomepage);
-    setBanners(loadedBanners.map((item) => ({ ...item, image: apiAssetUrl(item.image) })));
-    setTestimonials(loadedTestimonials.map((item) => ({ ...item, image: apiAssetUrl(item.image) || undefined })));
-    setFaqs(loadedFaqs);
-    setBlogPosts(loadedBlog.map((item) => ({ ...item, coverImage: apiAssetUrl(item.coverImage) })));
-    setNavigationItems(loadedNavigation);
-    setSystemSettings(loadedSettings);
+    setProducts(productPage?.items.map(withCurrentImages) ?? []);
+    if (loadedCollections) setCollections(loadedCollections.map((item) => ({ ...item, image: resolveImage(item.image), seo: item.seo ?? {} })));
+    if (loadedCategories) setCategories(loadedCategories.map((item) => ({ ...item, image: resolveImage(item.image), seo: item.seo ?? {} })));
+    if (loadedFabrics) setFabrics(loadedFabrics.map(normalizeFabric));
+    if (loadedColors) setColorSwatches(loadedColors);
+    if (loadedSizes) setSizeOptions(loadedSizes);
+    if (loadedCustomization) setCustomizationGroups(loadedCustomization.map(normalizeCustomizationGroup));
+    if (loadedMeasurements) setMeasurementFieldDefs(loadedMeasurements);
+    if (loadedDelivery) setDeliveryZones(loadedDelivery.map(normalizeDeliveryZone));
+    if (loadedHomepage) setHomepageSections(loadedHomepage);
+    if (loadedBanners) setBanners(loadedBanners.map((item) => ({ ...item, image: apiAssetUrl(item.image) })));
+    if (loadedTestimonials) setTestimonials(loadedTestimonials.map((item) => ({ ...item, image: apiAssetUrl(item.image) || undefined })));
+    if (loadedFaqs) setFaqs(loadedFaqs);
+    if (loadedBlog) setBlogPosts(loadedBlog.map((item) => ({ ...item, coverImage: apiAssetUrl(item.coverImage) })));
+    if (loadedNavigation) setNavigationItems(loadedNavigation);
+    if (loadedSettings) setSystemSettings(loadedSettings);
+    return Boolean(productPage);
   }, [
     setProducts, setCollections, setCategories, setFabrics, setColorSwatches, setSizeOptions,
     setCustomizationGroups, setMeasurementFieldDefs, setDeliveryZones, setHomepageSections,
@@ -476,15 +501,16 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
   ]);
 
   useEffect(() => {
-    let active = true;
+    const controller = new AbortController();
     const load = async () => {
       try {
-        await loadPublicData();
-        if (window.location.pathname.startsWith("/admin")) await loadAdminData();
-      } catch (error) {
-        toast("Could not load application data", { description: error instanceof Error ? error.message : "API unavailable", variant: "error" });
+        const loaded = await loadPublicData();
+        if (!controller.signal.aborted && window.location.pathname.startsWith("/admin")) {
+          if (loaded) await loadAdminData();
+          else toast("Catalogue connection unavailable", { description: "Check that the store API is running.", variant: "error" });
+        }
       } finally {
-        if (active) setApiReady(true);
+        if (!controller.signal.aborted) setApiReady(true);
       }
     };
     void load();
@@ -492,7 +518,7 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       if (window.location.pathname.startsWith("/admin")) void loadAdminData();
     };
     window.addEventListener("momen:auth-changed", onAuth);
-    return () => { active = false; window.removeEventListener("momen:auth-changed", onAuth); };
+    return () => { controller.abort(); window.removeEventListener("momen:auth-changed", onAuth); };
   }, [loadPublicData, loadAdminData]);
 
   const upsertFabric = useCallback((f: Fabric) => {
@@ -547,7 +573,9 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       images: p.images, hoverImage: p.hoverImage, videos: p.videos ?? [], spinImages: p.spinImages ?? [],
       colorVariants: p.colors.map((color, sortOrder) => ({ ...color, sortOrder })),
       sizes: p.sizes.map((label, sortOrder) => ({ label, sortOrder, sizeOptionId: sizeOptions.find((item) => item.label === label)?.id, stockQuantity: p.sizeInventory?.[label] ?? null })),
-      productionType: p.productionType, productType: p.productType, gender: p.gender, sizingMode: p.sizingMode, garment: p.garment,
+      // The API enums use underscores (made_to_measure, ready_to_wear, one_size); the client model uses hyphens.
+      productionType: p.productionType.replace(/-/g, "_"), productType: p.productType.replace(/-/g, "_"), gender: p.gender,
+      sizingMode: p.sizingMode.replace(/-/g, "_"), garment: p.garment,
       fabricIds: p.fabricIds ?? [], description: p.description, shortDescription: p.shortDescription,
       details: p.details, careInstructions: p.careInstructions,
       productionDaysStandardMin: p.productionDays.standard[0], productionDaysStandardMax: p.productionDays.standard[1],
@@ -583,7 +611,12 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
 
   const upsertCategory = useCallback((c: Category) => {
     const exists = categories.some((x) => x.id === c.id);
-    const { id: _id, ...body } = c;
+    // Only what the API accepts; echoing back createdAt/updatedAt is rejected.
+    const body = {
+      slug: c.slug, name: c.name, description: c.description || undefined, image: c.image || undefined,
+      parentId: c.parentId || undefined, sortOrder: c.sortOrder ?? 0, publishStatus: c.publishStatus, seo: c.seo,
+      measurementFieldKeys: c.measurementFieldKeys ?? [],
+    };
     void apiRequest<Category>(exists ? `/admin/categories/${c.id}` : "/admin/categories", { method: exists ? "PUT" : "POST", body })
       .then((saved) => setCategories((prev) => exists ? prev.map((x) => x.id === c.id ? { ...saved, seo: saved.seo ?? {} } : x) : [{ ...saved, seo: saved.seo ?? {} }, ...prev])).catch(mutationFailed);
   }, [categories, setCategories]);
@@ -778,12 +811,12 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
   const value = useMemo<AdminStoreValue>(
     () => ({
       isReady,
-      products, upsertProduct, deleteProduct, bulkUpdateProducts,
-      collections, upsertCollection, deleteCollection,
-      categories, upsertCategory, deleteCategory,
+      products: visibleProducts, upsertProduct, deleteProduct, bulkUpdateProducts,
+      collections: visibleCollections, upsertCollection, deleteCollection,
+      categories: visibleCategories, upsertCategory, deleteCategory,
       customizationGroups, upsertCustomizationGroup, deleteCustomizationGroup,
       measurementFieldDefs, setMeasurementFieldDefs,
-      fabrics, upsertFabric, deleteFabric,
+      fabrics: visibleFabrics, upsertFabric, deleteFabric,
       colorSwatches, upsertColorSwatch, deleteColorSwatch,
       sizeOptions, upsertSizeOption, deleteSizeOption,
       customers, upsertCustomer, addCustomerNote,
@@ -804,7 +837,7 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       cmsPages, upsertCmsPage, deleteCmsPage,
       faqs, upsertFaq, deleteFaq,
       testimonials, upsertTestimonial, deleteTestimonial,
-      blogPosts, upsertBlogPost, deleteBlogPost,
+      blogPosts: visibleBlogPosts, upsertBlogPost, deleteBlogPost,
       banners, upsertBanner, deleteBanner,
       navigationItems, setNavigationItems,
       homepageSections, setHomepageSections,
@@ -813,11 +846,11 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       systemHealthChecks: healthChecks,
     }),
     [
-      isReady, products, upsertProduct, deleteProduct, bulkUpdateProducts,
-      collections, upsertCollection, deleteCollection,
-      categories, upsertCategory, deleteCategory,
+      isReady, visibleProducts, upsertProduct, deleteProduct, bulkUpdateProducts,
+      visibleCollections, upsertCollection, deleteCollection,
+      visibleCategories, upsertCategory, deleteCategory,
       customizationGroups, upsertCustomizationGroup, deleteCustomizationGroup, measurementFieldDefs, setMeasurementFieldDefs,
-      fabrics, upsertFabric, deleteFabric, colorSwatches, upsertColorSwatch, deleteColorSwatch,
+      visibleFabrics, upsertFabric, deleteFabric, colorSwatches, upsertColorSwatch, deleteColorSwatch,
       sizeOptions, upsertSizeOption, deleteSizeOption,
       customers, upsertCustomer, addCustomerNote,
       adminUsers, upsertAdminUser, deleteAdminUser, roles, upsertRole,
@@ -830,7 +863,7 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
       emailTemplates, upsertEmailTemplate,
       cmsPages, upsertCmsPage, deleteCmsPage, faqs, upsertFaq, deleteFaq,
       testimonials, upsertTestimonial, deleteTestimonial,
-      blogPosts, upsertBlogPost, deleteBlogPost, banners, upsertBanner, deleteBanner,
+      visibleBlogPosts, upsertBlogPost, deleteBlogPost, banners, upsertBanner, deleteBanner,
       navigationItems, setNavigationItems, homepageSections, setHomepageSections,
       mediaAssets, uploadMediaAsset, addExternalMediaAsset, deleteMediaAsset, systemSettings, setSystemSettings,
       healthChecks,

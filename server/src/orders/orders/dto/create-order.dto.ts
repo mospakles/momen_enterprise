@@ -21,6 +21,10 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+import {
+  API_MEASUREMENT_UNITS,
+  IsApiMeasurementUnit,
+} from '../../../common/utils/measurement-unit.util';
 
 class OrderAddressDto {
   @ApiProperty() @IsString() @MinLength(1) fullName!: string;
@@ -57,8 +61,12 @@ class OrderItemMeasurementDto {
   @IsObject()
   values?: Record<string, number>;
 
-  @ApiProperty({ enum: MeasurementUnit })
-  @IsEnum(MeasurementUnit)
+  @ApiProperty({
+    enum: API_MEASUREMENT_UNITS,
+    description:
+      'Unit of manual values. Ignored for mode "profile" — the profile\'s own unit is stored.',
+  })
+  @IsApiMeasurementUnit()
   unit!: MeasurementUnit;
 }
 
@@ -96,6 +104,16 @@ class CreateOrderItemDto {
   @ApiProperty() @IsString() size!: string;
   @ApiProperty() @IsString() color!: string;
   @ApiProperty() @IsInt() @Min(1) quantity!: number;
+
+  @ApiProperty({
+    enum: ['standard', 'measure'],
+    required: false,
+    description:
+      'How the piece is cut: a standard size, or to the customer\'s measurements (then measurements are required)',
+  })
+  @IsOptional()
+  @IsIn(['standard', 'measure'])
+  fit?: 'standard' | 'measure';
 
   @ApiProperty({ required: false, description: 'groupId -> choiceId' })
   @IsOptional()

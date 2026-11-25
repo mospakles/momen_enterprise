@@ -11,11 +11,29 @@ import { computeCouponDiscount } from './coupon-validation.util';
 import type { CouponValidationContext } from './coupon-validation.util';
 import type { UpsertCouponDto } from './dto/upsert-coupon.dto';
 import type { ValidateCouponDto } from './dto/validate-coupon.dto';
+import { WELCOME_CODE } from '../../common/storefront-offer';
 
 export interface CouponValidationResult {
   couponId: string;
   code: string;
   discountAmount: number;
+}
+
+export async function isFirstOrder(
+  db: Pick<Prisma.TransactionClient, 'order'>,
+  customerEmail: string,
+  customerId?: string,
+) {
+  const previousOrder = await db.order.findFirst({
+    where: {
+      OR: [
+        { customerEmail: { equals: customerEmail.trim(), mode: 'insensitive' } },
+        ...(customerId ? [{ customerId }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+  return !previousOrder;
 }
 
 @Injectable()
@@ -81,14 +99,15 @@ export class CouponsService {
   async validate(
     code: string,
     context: Omit<CouponValidationContext, 'customerRedemptionCount'>,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<CouponValidationResult> {
-    const coupon = await this.prisma.coupon.findUnique({
+    const coupon = await db.coupon.findUnique({
       where: { code: code.trim().toUpperCase() },
     });
     if (!coupon) throw new BadRequestException('Invalid coupon code');
 
     const customerRedemptionCount = context.customerId
-      ? await this.prisma.couponRedemption.count({
+      ? await db.couponRedemption.count({
           where: { couponId: coupon.id, customerId: context.customerId },
         })
       : 0;
@@ -100,6 +119,20 @@ export class CouponsService {
     return { couponId: coupon.id, code: coupon.code, discountAmount };
   }
 
+  async automaticWelcome(
+    tx: Prisma.TransactionClient,
+    context: Pick<CouponValidationContext, 'isFirstOrder' | 'subtotal' | 'items' | 'customerId'>,
+  ) {
+    if (!context.isFirstOrder || context.subtotal <= 0) return undefined;
+    try {
+      return await this.validate(WELCOME_CODE, { ...context, guestFirstOrder: !context.customerId }, tx);
+    } catch (error) {
+      // The welcome offer is optional when it has expired or been disabled.
+      if (!(error instanceof BadRequestException)) throw error;
+      return undefined;
+    }
+  }
+
   /** Checkout-preview entry point — resolves each item's live unit price
    * and collection membership itself (from ProductsService) so the frontend
    * doesn't have to duplicate pricing logic just to show a discount
@@ -108,6 +141,7 @@ export class CouponsService {
   async previewValidate(
     dto: ValidateCouponDto,
     customerId: string | undefined,
+    customerEmail?: string,
   ): Promise<CouponValidationResult> {
     const items = await Promise.all(
       dto.items.map(async (item) => {
@@ -122,13 +156,13 @@ export class CouponsService {
       }),
     );
 
-    const isFirstOrder = customerId
-      ? (await this.prisma.order.count({ where: { customerId } })) === 0
+    const firstOrder = customerId && customerEmail
+      ? await isFirstOrder(this.prisma, customerEmail, customerId)
       : false;
 
     return this.validate(dto.code, {
       customerId,
-      isFirstOrder,
+      isFirstOrder: firstOrder,
       subtotal: dto.subtotal,
       items,
     });

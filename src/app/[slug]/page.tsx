@@ -1,51 +1,24 @@
-"use client";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import CmsPageClient from "@/components/content/CmsPageClient";
+import { POLICY_PAGES } from "@/lib/policy-pages";
+import { getCmsPageResult, plainText } from "@/lib/site";
 
-// Generic renderer for admin-authored CMS pages (Privacy Policy, Terms,
-// Shipping/Returns policies, guides, custom landing pages...) — anything
-// created or edited at /admin/pages shows up here immediately, at
-// /<slug>. Next.js matches the explicit route folders (/shop, /about, etc.)
-// before falling through to this catch-all, so those pages are unaffected.
+type Props = { params: Promise<{ slug: string }> };
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { apiRequest } from "@/lib/api";
-import type { CMSPage } from "@/lib/admin/types";
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const { data } = await getCmsPageResult(slug);
+  // Unpublished policy placeholders and unknown addresses stay out of search.
+  if (!data) return { title: POLICY_PAGES[slug] ?? "Page not found", robots: { index: false } };
+  return { title: data.seo?.title || data.title, description: data.seo?.description || plainText(data.body), alternates: { canonical: `/${slug}` } };
+}
 
-export default function CmsPage() {
-  const { slug } = useParams<{ slug: string }>();
-  const [page, setPage] = useState<CMSPage | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    setLoaded(false);
-    void apiRequest<CMSPage>(`/pages/${encodeURIComponent(slug)}`)
-      .then((result) => { if (active) setPage(result); })
-      .catch(() => { if (active) setPage(null); })
-      .finally(() => { if (active) setLoaded(true); });
-    return () => { active = false; };
-  }, [slug]);
-
-  if (!loaded) return <div className="mx-auto max-w-3xl px-4 py-24" />;
-
-  if (!page) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <h1 className="font-display text-3xl">Page not found</h1>
-        <p className="mt-3 text-ink/60">This page may have been unpublished or moved.</p>
-        <Link href="/" className="eyebrow mt-6 inline-block text-brass hover:underline">
-          ← Back to Home
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-      <p className="eyebrow">Momen</p>
-      <h1 className="mt-2 font-display text-4xl sm:text-5xl">{page.title}</h1>
-      <div className="prose prose-sm mt-8 max-w-none text-ink/75 [&_a]:text-brass [&_h2]:font-display [&_h2]:text-xl [&_p]:leading-relaxed" dangerouslySetInnerHTML={{ __html: page.body }} />
-    </div>
-  );
+export default async function CmsPage({ params }: Props) {
+  const { slug } = await params;
+  // Unknown addresses get a real 404, except the policy pages, which show a
+  // "being finalised" note until they're published in Admin → Pages.
+  const { missing } = await getCmsPageResult(slug);
+  if (missing && !POLICY_PAGES[slug]) notFound();
+  return <CmsPageClient />;
 }

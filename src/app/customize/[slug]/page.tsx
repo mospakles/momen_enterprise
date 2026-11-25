@@ -1,11 +1,11 @@
 "use client";
 
-// The advanced Made-to-Measure customization wizard (Sections 14–27 of the
-// brand brief). Reached from a design's "Customize This Design" CTA. Feels
-// like designing an outfit — progressive disclosure, one concern per step,
-// autosaved so nothing is lost if the customer leaves and comes back.
+// The bespoke order flow for one style: design (fabric, colour, details) →
+// measurements (only what this style needs, guided) → optional inspiration →
+// review with a full price breakdown → checkout. Autosaved, so nothing is
+// lost if the customer goes back, leaves, or comes back later.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,7 +18,8 @@ import { apiAssetUrl, apiRequest } from "@/lib/api";
 import type { CustomOrderDetails, MeasurementUnit, MeasurementValues, Product } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import MeasurementCapture from "@/components/measurement/MeasurementCapture";
-import { sizingModeOf } from "@/lib/product-utils";
+import { effectivePrice, sizingModeOf } from "@/lib/product-utils";
+import { fieldGuide, resolveMeasurementPlan, type MeasurementPlan } from "@/lib/measurement-guide";
 
 const MAX_REFERENCE_IMAGES = 6;
 const MAX_UPLOAD_BYTES = 1.8 * 1024 * 1024;
@@ -64,6 +65,8 @@ interface Draft {
   quantity: number;
 }
 
+type StepKey = "customize" | "measurements" | "preferences" | "review";
+
 function draftKey(slug: string) {
   return `momen.customize-draft.${slug}`;
 }
@@ -90,7 +93,7 @@ function defaultDraft(product: Product): Draft {
 
 function Wizard({ product }: { product: Product }) {
   const router = useRouter();
-  const { fabrics, colorSwatches, customizationGroups } = useAdminStore();
+  const { fabrics, colorSwatches, customizationGroups, categories, measurementFieldDefs } = useAdminStore();
   const { addCustomItem } = useCart();
   const { profiles } = useMeasurements();
 
@@ -105,7 +108,9 @@ function Wizard({ product }: { product: Product }) {
   });
 
   useEffect(() => {
-    localStorage.setItem(draftKey(product.slug), JSON.stringify(draft));
+    try {
+      localStorage.setItem(draftKey(product.slug), JSON.stringify(draft));
+    } catch {}
   }, [draft, product.slug]);
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -117,45 +122,75 @@ function Wizard({ product }: { product: Product }) {
     () => product.customization.filter((c) => c.enabled && c.groupId !== "colour" && c.groupId !== "fabric").map((c) => ({ ...c, group: customizationGroups.find((g) => g.id === c.groupId) })).filter((c) => c.group),
     [product.customization, customizationGroups]
   );
+  const plan = useMemo(() => resolveMeasurementPlan(product, categories, measurementFieldDefs), [product, categories, measurementFieldDefs]);
 
   const needsMeasurements = sizingModeOf(product) === "made-to-measure" || (sizingModeOf(product) === "both" && draft.sizingChoice === "measure");
   const hasSizingChoice = sizingModeOf(product) === "both";
+  const allowsReferences = product.referenceImagesAllowed || product.specialInstructionsAllowed;
 
   const steps = useMemo(() => {
-    const list = [{ key: "customize", label: "Customize" }];
-    if (needsMeasurements) list.push({ key: "measurements", label: "Measurements" });
-    list.push({ key: "preferences", label: "Preferences" });
-    list.push({ key: "review", label: "Review" });
+    const list: { key: StepKey; label: string; hint: string }[] = [{ key: "customize", label: "Design", hint: "Fabric, colour and details" }];
+    if (needsMeasurements) list.push({ key: "measurements", label: "Measurements", hint: `${plan.fields.length} measurements, guided` });
+    if (allowsReferences) list.push({ key: "preferences", label: "Inspiration", hint: "Optional photos and notes" });
+    list.push({ key: "review", label: "Review", hint: "Check and pay" });
     return list;
-  }, [needsMeasurements]);
+  }, [needsMeasurements, allowsReferences, plan.fields.length]);
 
   const [stepIndex, setStepIndex] = useState(0);
   const clampedIndex = Math.min(stepIndex, steps.length - 1);
   const currentKey = steps[clampedIndex].key;
+  const [designErrors, setDesignErrors] = useState<string[]>([]);
+  const [placing, setPlacing] = useState(false);
+  const topRef = useRef<HTMLDivElement>(null);
 
-  // Pricing (Section 24) — every component of the price is admin-configured,
-  // never hardcoded: fabric additional cost + style customization costs.
-  const fabricCost = availableFabrics.find((f) => f.id === draft.fabricId)?.additionalCost ?? 0;
-  const styleCost = styleGroups.reduce((sum, c) => {
-    const choiceId = draft.styleChoices[c.groupId];
-    const choice = c.group?.choices.find((ch) => ch.id === choiceId);
-    return sum + (choice?.additionalCost ?? 0);
-  }, 0);
+  // Pricing — every component is admin-configured, never hardcoded.
+  const basePrice = effectivePrice(product);
+  const fabric = availableFabrics.find((f) => f.id === draft.fabricId);
+  const fabricCost = fabric?.additionalCost ?? 0;
+  const chosenStyles = styleGroups
+    .map((c) => ({ group: c.group!, choice: c.group?.choices.find((ch) => ch.id === draft.styleChoices[c.groupId]) }))
+    .filter((c): c is { group: NonNullable<typeof c.group>; choice: NonNullable<typeof c.choice> } => Boolean(c.choice));
+  const styleCost = chosenStyles.reduce((sum, c) => sum + c.choice.additionalCost, 0);
   const customizationCost = fabricCost + styleCost;
-  const total = (product.price + customizationCost) * draft.quantity;
+  const unitPrice = basePrice + customizationCost;
+  const total = unitPrice * draft.quantity;
 
-  const measurementFilled = needsMeasurements && draft.measurementMode !== "pending";
-  const canReview = !needsMeasurements || measurementFilled;
+  const measurementFilled = !needsMeasurements || draft.measurementMode === "profile" || draft.measurementMode === "manual";
 
-  function goNext() {
-    if (clampedIndex < steps.length - 1) setStepIndex(clampedIndex + 1);
+  function designProblems() {
+    const problems: string[] = [];
+    if (availableFabrics.length > 0 && !draft.fabricId) problems.push("Choose a fabric.");
+    if (!draft.primaryColor) problems.push("Choose a main colour.");
+    for (const c of styleGroups) if (c.required && !draft.styleChoices[c.groupId]) problems.push(`Choose a ${c.group!.name.toLowerCase()}.`);
+    if (!needsMeasurements && sizingModeOf(product) !== "made-to-measure" && !draft.size) problems.push("Choose a size.");
+    return problems;
   }
-  function goBack() {
-    if (clampedIndex > 0) setStepIndex(clampedIndex - 1);
+
+  function goTo(index: number) {
+    if (index > clampedIndex) {
+      // Can't jump past an unfinished step.
+      const designIssues = designProblems();
+      if (designIssues.length) {
+        setDesignErrors(designIssues);
+        setStepIndex(0);
+        return;
+      }
+      const mIndex = steps.findIndex((s) => s.key === "measurements");
+      if (mIndex >= 0 && index > mIndex && !measurementFilled) {
+        setStepIndex(mIndex);
+        toast("Add your measurements first", { description: "Save them at the end of the measuring steps.", variant: "error" });
+        return;
+      }
+    }
+    setDesignErrors([]);
+    setStepIndex(index);
+    requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
-  function handleAddToBag() {
-    const primarySwatch = colorSwatches.find((c) => c.name === draft.primaryColor);
+  function addToBag(thenCheckout: boolean) {
+    if (placing) return;
+    if (designProblems().length || !measurementFilled) return goTo(steps.length - 1);
+    setPlacing(true);
     const customOrder: CustomOrderDetails = {
       fabricId: draft.fabricId,
       primaryColor: draft.primaryColor,
@@ -170,6 +205,7 @@ function Wizard({ product }: { product: Product }) {
       size: needsMeasurements ? "Made-to-Measure" : draft.size,
       color: draft.primaryColor ?? product.colors[0]?.name ?? "",
       quantity: draft.quantity,
+      fit: needsMeasurements ? "measure" : "standard",
       measurement: needsMeasurements
         ? draft.measurementMode === "profile"
           ? { mode: "profile", profileId: draft.profileId, unit: draft.measurementUnit }
@@ -179,128 +215,211 @@ function Wizard({ product }: { product: Product }) {
       customOrder,
       customizationCost,
     });
-    localStorage.removeItem(draftKey(product.slug));
-    router.push("/cart");
-    void primarySwatch;
+    try {
+      localStorage.removeItem(draftKey(product.slug));
+      localStorage.removeItem(`measure-draft-${product.slug}-wizard`);
+    } catch {}
+    toast(thenCheckout ? "Added, taking you to checkout" : "Added to your bag", { description: product.name, variant: "success" });
+    router.push(thenCheckout ? "/checkout" : "/cart");
   }
 
+  const isLast = currentKey === "review";
+  const continueLabel = isLast ? "" : `Continue to ${steps[clampedIndex + 1].label.toLowerCase()}`;
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link href={`/product/${product.slug}`} className="eyebrow text-clay hover:text-brass">
-          ← {product.name}
-        </Link>
-        <h1 className="mt-2 font-display text-3xl sm:text-4xl">Customize Your Design</h1>
-      </div>
+    <div ref={topRef} className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-28 pt-8 sm:px-6 lg:px-8 lg:pb-16">
+      <Link href={`/product/${product.slug}`} className="label link-line text-ink/60 hover:text-ink">
+        ← {product.name}
+      </Link>
+      <p className="label mt-6 text-clay">Bespoke · {plan.styleName}</p>
+      <h1 className="display mt-2 text-[clamp(2.1rem,4.5vw,3.2rem)]">Design your {product.name}</h1>
 
-      {/* Progress indicator — Design is already complete (this product was
-          chosen); Checkout happens after "Add to Bag". */}
-      <div className="mb-10 flex flex-wrap gap-2 text-xs">
-        {["Design", ...steps.map((s) => s.label), "Checkout"].map((label, i) => {
-          const designDone = i === 0;
-          const stepPos = i - 1;
-          const isCurrent = stepPos === clampedIndex;
-          const isDone = designDone || stepPos < clampedIndex;
-          return (
-            <div key={label} className={`flex items-center gap-2 ${isCurrent ? "text-ink" : isDone ? "text-ink/60" : "text-ink/30"}`}>
-              <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] ${isCurrent ? "border-brass bg-brass text-ivory" : isDone ? "border-ink/40" : "border-line"}`}>
-                {isDone && !isCurrent ? "✓" : i + 1}
-              </span>
-              {label}
-              {i < steps.length + 1 && <span className="mx-1 text-line">—</span>}
-            </div>
-          );
-        })}
-      </div>
+      {/* Progress: completed steps are clickable, later ones are locked
+          until the earlier ones are done. */}
+      <nav aria-label="Bespoke order progress" className="mt-8">
+        <ol className="grid grid-cols-[repeat(var(--n),minmax(0,1fr))] gap-1.5" style={{ "--n": steps.length + 1 } as React.CSSProperties}>
+          {[...steps, { key: "checkout" as const, label: "Checkout", hint: "Delivery and payment" }].map((s, i) => {
+            const current = i === clampedIndex;
+            const doneStep = i < clampedIndex;
+            const reachable = s.key !== "checkout" && i <= clampedIndex + 1;
+            return (
+              <li key={s.key}>
+                <button
+                  type="button"
+                  disabled={!reachable}
+                  onClick={() => goTo(i)}
+                  aria-current={current ? "step" : undefined}
+                  className="group block w-full text-left disabled:cursor-default"
+                >
+                  <span className={`block h-1 ${current ? "bg-ink" : doneStep ? "bg-brass" : "bg-line"}`} />
+                  <span className={`mt-2 flex items-center gap-1.5 text-xs ${current ? "font-medium text-ink" : doneStep ? "text-ink/70" : "text-ink/40"}`}>
+                    <span aria-hidden>{doneStep ? "✓" : i + 1}</span>
+                    <span className={current ? "" : "hidden sm:inline"}>{s.label}</span>
+                  </span>
+                  <span className="mt-0.5 hidden text-[11px] text-ink/45 lg:block">{s.hint}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
 
-      <div className="grid gap-12 lg:grid-cols-[1fr_360px]">
-        <div>
+      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0">
           {currentKey === "customize" && (
-            <CustomizeStep
-              product={product}
-              draft={draft}
-              update={update}
-              availableFabrics={availableFabrics}
-              styleGroups={styleGroups}
-              colorSwatches={colorSwatches}
-              hasSizingChoice={hasSizingChoice}
-            />
+            <>
+              <CustomizeStep
+                product={product}
+                draft={draft}
+                update={update}
+                availableFabrics={availableFabrics}
+                styleGroups={styleGroups}
+                colorSwatches={colorSwatches}
+                hasSizingChoice={hasSizingChoice}
+                plan={plan}
+              />
+              {designErrors.length > 0 && (
+                <div role="alert" className="mt-8 border-l-2 border-error bg-bone/60 px-4 py-3 text-sm text-error">
+                  {designErrors.map((e) => (
+                    <p key={e}>{e}</p>
+                  ))}
+                </div>
+              )}
+            </>
           )}
           {currentKey === "measurements" && (
             <div>
-              <h2 className="mb-2 font-display text-2xl">Your Measurements</h2>
-              <p className="mb-6 text-sm text-ink/60">Choose how you&rsquo;d like to provide measurements for this piece.</p>
-              <MeasurementCapture
-                garment={product.garment}
-                storageKey={`measure-draft-${product.slug}-wizard`}
-                fieldOverride={product.measurementFieldKeys}
-                onSaved={(payload) => {
-                  setDraft((d) => ({
-                    ...d,
-                    measurementMode: payload.mode,
-                    profileId: payload.profileId,
-                    measurementValues: payload.values ?? d.measurementValues,
-                    measurementUnit: payload.unit,
-                  }));
-                  toast("Measurements added to your custom order", { variant: "success" });
-                }}
-              />
-              {profiles.length === 0 && <p className="mt-4 text-xs text-ink/40">You have no saved measurement profiles yet on this device — enter measurements manually or use the guided flow.</p>}
+              <h2 className="display text-3xl">Your measurements</h2>
+              <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/65">
+                A {plan.styleName.toLowerCase()} is made of {plan.pieces.length > 1 ? `${plan.pieces.length} pieces: ${plan.pieces.map((p) => p.title.toLowerCase()).join(", ")}` : "one piece"}. We
+                only ask for what these need{profiles.length ? ", and you can reuse saved measurements" : ""}.
+              </p>
+              <div className="mt-6">
+                <MeasurementCapture
+                  product={product}
+                  storageKey={`measure-draft-${product.slug}-wizard`}
+                  finishLabel="Save and continue"
+                  onSaved={(payload) => {
+                    setDraft((d) => ({
+                      ...d,
+                      measurementMode: payload.mode,
+                      profileId: payload.profileId,
+                      measurementValues: payload.values ?? {},
+                      measurementUnit: payload.unit,
+                    }));
+                    // Not goTo(): its "measurements saved?" check would still
+                    // see the state from before this save.
+                    setStepIndex(clampedIndex + 1);
+                    requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+                  }}
+                />
+              </div>
             </div>
           )}
-          {currentKey === "preferences" && <PreferencesStep draft={draft} update={update} />}
+          {currentKey === "preferences" && <PreferencesStep product={product} draft={draft} update={update} />}
           {currentKey === "review" && (
             <ReviewStep
               product={product}
               draft={draft}
-              fabric={availableFabrics.find((f) => f.id === draft.fabricId)}
-              styleGroups={styleGroups}
+              fabric={fabric}
+              chosenStyles={chosenStyles}
               needsMeasurements={needsMeasurements}
-              customizationCost={customizationCost}
+              plan={plan}
+              basePrice={basePrice}
               total={total}
-              onEditStep={(key) => setStepIndex(steps.findIndex((s) => s.key === key))}
+              profileLabel={profiles.find((p) => p.id === draft.profileId)?.label}
+              onEditStep={(key) => goTo(steps.findIndex((s) => s.key === key))}
             />
           )}
 
-          <div className="mt-8 flex gap-3">
+          <div className="mt-10 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:items-center">
             {clampedIndex > 0 && (
-              <Button variant="secondary" onClick={goBack}>
-                Back
+              <Button variant="secondary" type="button" onClick={() => goTo(clampedIndex - 1)}>
+                Back to {steps[clampedIndex - 1].label.toLowerCase()}
               </Button>
             )}
-            {currentKey !== "review" ? (
-              <Button onClick={goNext} disabled={currentKey === "measurements" && !measurementFilled}>
-                Continue
+            {!isLast && currentKey !== "measurements" && (
+              <Button type="button" onClick={() => goTo(clampedIndex + 1)}>
+                {continueLabel}
               </Button>
-            ) : (
-              <Button onClick={handleAddToBag} disabled={!canReview}>
-                Add Custom Order to Bag
+            )}
+            {currentKey === "measurements" && measurementFilled && (
+              <Button type="button" onClick={() => goTo(clampedIndex + 1)}>
+                {continueLabel}
               </Button>
+            )}
+            {isLast && (
+              <>
+                <Button type="button" size="lg" onClick={() => addToBag(true)} disabled={placing}>
+                  Continue to checkout · {formatNaira(total)}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => addToBag(false)} disabled={placing}>
+                  Add to bag and keep shopping
+                </Button>
+              </>
             )}
           </div>
         </div>
 
-        <div className="h-fit border border-line p-6">
-          <div className="relative mb-4 aspect-[4/5] overflow-hidden bg-ivory-deep">
-            <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
+        <aside className="h-fit border border-line p-5 lg:sticky lg:top-24" aria-label="Order summary">
+          <div className="flex gap-4 lg:block">
+            <div className="relative aspect-[4/5] w-24 shrink-0 overflow-hidden bg-bone lg:mb-4 lg:w-full">
+              {product.images[0] && <Image src={product.images[0]} alt={product.name} fill sizes="(min-width:1024px) 340px, 96px" unoptimized={/^https?:/.test(product.images[0])} className="object-cover" />}
+            </div>
+            <div className="min-w-0">
+              <p className="display text-xl">{product.name}</p>
+              <p className="mt-1 text-xs text-ink/55">
+                {needsMeasurements ? "Cut to your measurements" : `Standard size ${draft.size}`}
+                {draft.primaryColor ? ` · ${colourName(draft.primaryColor)}` : ""}
+              </p>
+            </div>
           </div>
-          <p className="font-display text-lg">{product.name}</p>
-          <p className="mt-1 text-sm text-ink/50">{product.category}</p>
-          <div className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
-            <Row label="Base Price" value={formatNaira(product.price)} />
-            {fabricCost > 0 && <Row label="Fabric Upgrade" value={`+${formatNaira(fabricCost)}`} />}
-            {styleCost > 0 && <Row label="Customizations" value={`+${formatNaira(styleCost)}`} />}
-            <Row label="Quantity" value={String(draft.quantity)} />
+          <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
+            <Row label="Base price" value={formatNaira(basePrice)} />
+            {fabric && <Row label={`Fabric: ${fabric.name}`} value={fabricCost > 0 ? `+${formatNaira(fabricCost)}` : "Included"} />}
+            {chosenStyles.map(({ group, choice }) => (
+              <Row key={group.id} label={`${group.name}: ${choice.label}`} value={choice.additionalCost > 0 ? `+${formatNaira(choice.additionalCost)}` : "Included"} />
+            ))}
+            {draft.quantity > 1 && <Row label="Quantity" value={`× ${draft.quantity}`} />}
+          </dl>
+          <div className="mt-4 flex items-baseline justify-between border-t border-line pt-4">
+            <p className="font-medium">Total</p>
+            <p className="display text-2xl">{formatNaira(total)}</p>
           </div>
-          <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
-            <p className="font-medium">Estimated Total</p>
-            <p className="font-display text-xl">{formatNaira(total)}</p>
-          </div>
-          <p className="mt-2 text-[11px] text-ink/40">Delivery, express fees, and any coupon are applied at checkout.</p>
+          <p className="mt-2 text-xs leading-relaxed text-ink/55">Delivery and any express production fee are added at checkout, before you pay.</p>
+          {product.productionDays && (
+            <p className="mt-3 text-xs text-ink/65">
+              Made in {product.productionDays.standard[0]}–{product.productionDays.standard[1]} days
+              {product.expressEligible ? ` · express ${product.productionDays.express[0]}–${product.productionDays.express[1]} days` : ""}.
+            </p>
+          )}
+        </aside>
+      </div>
+
+      {/* Phone: price and the next action always in reach. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-line bg-ivory/95 px-4 py-3 backdrop-blur lg:hidden">
+        <div>
+          <p className="text-[11px] text-ink/55">Total</p>
+          <p className="display text-lg leading-none">{formatNaira(total)}</p>
         </div>
+        {isLast ? (
+          <button type="button" onClick={() => addToBag(true)} disabled={placing} className="min-h-11 bg-ink px-5 text-sm text-ivory disabled:opacity-50">
+            Checkout
+          </button>
+        ) : currentKey !== "measurements" || measurementFilled ? (
+          <button type="button" onClick={() => goTo(clampedIndex + 1)} className="min-h-11 bg-ink px-5 text-sm text-ivory">
+            Continue
+          </button>
+        ) : (
+          <p className="max-w-[11rem] text-right text-xs text-ink/60">Save your measurements to continue</p>
+        )}
       </div>
     </div>
   );
+}
+
+function colourName(value: string) {
+  return value.startsWith("custom:") ? `Custom ${value.slice(7)}` : value;
 }
 
 /* ─────────────────────────────── Step 1: Customize ─────────────────────────────── */
@@ -313,6 +432,7 @@ function CustomizeStep({
   styleGroups,
   colorSwatches,
   hasSizingChoice,
+  plan,
 }: {
   product: Product;
   draft: Draft;
@@ -321,16 +441,20 @@ function CustomizeStep({
   styleGroups: { groupId: string; required: boolean; group?: { id: string; name: string; description?: string; choices: { id: string; label: string; additionalCost: number; available: boolean }[] } }[];
   colorSwatches: { id: string; name: string; hex: string }[];
   hasSizingChoice: boolean;
+  plan: MeasurementPlan;
 }) {
   return (
     <div className="space-y-10">
       {availableFabrics.length > 0 && (
         <section>
-          <p className="eyebrow mb-3">Fabric</p>
+          <p className="eyebrow mb-1">Fabric</p>
+          <p className="mb-3 text-xs text-ink/55">Prices include the fabric. Some cloths add to the price, shown on each.</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {availableFabrics.map((f) => (
               <button
                 key={f.id}
+                type="button"
+                aria-pressed={draft.fabricId === f.id}
                 onClick={() => update("fabricId", f.id)}
                 className={`border p-2.5 text-left ${draft.fabricId === f.id ? "border-brass bg-brass/5" : "border-line hover:border-ink"}`}
               >
@@ -351,11 +475,12 @@ function CustomizeStep({
       )}
 
       <section>
-        <p className="eyebrow mb-3">Colour</p>
+        <p className="eyebrow mb-1">Colour</p>
+        <p className="mb-3 text-xs text-ink/55">Pick a main colour. Add a second or accent colour for trims and embroidery if you like.</p>
         <div className="grid gap-5 sm:grid-cols-3">
-          <ColorField label="Primary" required value={draft.primaryColor} onChange={(v) => update("primaryColor", v)} swatches={colorSwatches} />
-          <ColorField label="Secondary (optional)" value={draft.secondaryColor} onChange={(v) => update("secondaryColor", v)} swatches={colorSwatches} allowNone />
-          <ColorField label="Contrast (optional)" value={draft.contrastColor} onChange={(v) => update("contrastColor", v)} swatches={colorSwatches} allowNone />
+          <ColorField label="Main colour" required value={draft.primaryColor} onChange={(v) => update("primaryColor", v)} swatches={colorSwatches} />
+          <ColorField label="Second colour (optional)" value={draft.secondaryColor} onChange={(v) => update("secondaryColor", v)} swatches={colorSwatches} allowNone />
+          <ColorField label="Accent colour (optional)" value={draft.contrastColor} onChange={(v) => update("contrastColor", v)} swatches={colorSwatches} allowNone />
         </div>
       </section>
 
@@ -364,15 +489,17 @@ function CustomizeStep({
           <section key={groupId}>
             <p className="eyebrow mb-3">
               {group.name}
-              {required && <span className="text-error"> *</span>}
+              {required ? <span className="ml-2 normal-case tracking-normal text-ink/45">Required</span> : <span className="ml-2 normal-case tracking-normal text-ink/45">Optional</span>}
             </p>
             {group.description && <p className="mb-3 text-xs text-ink/45">{group.description}</p>}
             <div className="flex flex-wrap gap-2">
               {group.choices.filter((c) => c.available).map((c) => (
                 <button
                   key={c.id}
+                  type="button"
+                  aria-pressed={draft.styleChoices[groupId] === c.id}
                   onClick={() => update("styleChoices", { ...draft.styleChoices, [groupId]: c.id })}
-                  className={`border px-3.5 py-2 text-sm ${draft.styleChoices[groupId] === c.id ? "border-ink bg-ink text-ivory" : "border-line text-ink/70 hover:border-ink"}`}
+                  className={`min-h-11 border px-3.5 py-2 text-sm ${draft.styleChoices[groupId] === c.id ? "border-ink bg-ink text-ivory" : "border-line text-ink/70 hover:border-ink"}`}
                 >
                   {c.label}
                   {c.additionalCost > 0 && <span className="ml-1.5 text-[11px] opacity-70">+{formatNaira(c.additionalCost)}</span>}
@@ -383,51 +510,64 @@ function CustomizeStep({
         ) : null
       )}
 
-      <section>
-        <p className="eyebrow mb-3">Size</p>
+      <section aria-labelledby="fit-heading">
+        <p id="fit-heading" className="eyebrow mb-1">How should it fit?</p>
         {hasSizingChoice && (
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <button
-              onClick={() => update("sizingChoice", "standard")}
-              className={`border p-4 text-left ${draft.sizingChoice === "standard" ? "border-brass bg-ivory-deep/40" : "border-line"}`}
-            >
-              <p className="text-sm font-medium">Standard Size</p>
-              <p className="mt-1 text-xs text-ink/50">Choose from our standard size range.</p>
-            </button>
-            <button
-              onClick={() => update("sizingChoice", "measure")}
-              className={`border p-4 text-left ${draft.sizingChoice === "measure" ? "border-brass bg-ivory-deep/40" : "border-line"}`}
-            >
-              <p className="text-sm font-medium">Made-to-Measure</p>
-              <p className="mt-1 text-xs text-ink/50">Provide your own measurements for a precise fit.</p>
-            </button>
-          </div>
-        )}
-        {(!hasSizingChoice ? sizingModeOf(product) === "standard" : draft.sizingChoice === "standard") && (
-          <div className="flex flex-wrap gap-2">
-            {product.sizes.map((s) => (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-labelledby="fit-heading">
+            {(
+              [
+                ["measure", "Cut to my measurements", `Our tailors cut every piece to your body. We'll guide you through ${plan.fields.length} measurements on the next step, about ${Math.max(5, Math.round(plan.fields.length * 0.75))} minutes.`],
+                ["standard", "A standard size", `Choose from ${product.sizes.join(", ")}. No measuring needed; use the size guide if you're unsure.`],
+              ] as const
+            ).map(([value, title, body]) => (
               <button
-                key={s}
-                onClick={() => update("size", s)}
-                className={`border px-3.5 py-2 text-sm ${draft.size === s ? "border-ink bg-ink text-ivory" : "border-line text-ink/70 hover:border-ink"}`}
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={draft.sizingChoice === value}
+                onClick={() => update("sizingChoice", value)}
+                className={`border p-4 text-left transition-colors ${draft.sizingChoice === value ? "border-ink bg-bone/60" : "border-line hover:border-ink"}`}
               >
-                {s}
+                <p className="text-sm font-medium">{title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-ink/60">{body}</p>
               </button>
             ))}
           </div>
         )}
-        {((hasSizingChoice && draft.sizingChoice === "measure") || sizingModeOf(product) === "made-to-measure") && (
-          <p className="text-sm text-ink/60">You&rsquo;ll provide your measurements on the next step.</p>
+        {(!hasSizingChoice ? sizingModeOf(product) === "standard" : draft.sizingChoice === "standard") && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs text-ink/60">Size</p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Size">
+              {product.sizes.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  role="radio"
+                  aria-checked={draft.size === s}
+                  onClick={() => update("size", s)}
+                  className={`min-h-11 min-w-12 border px-3.5 py-2 text-sm ${draft.size === s ? "border-ink bg-ink text-ivory" : "border-line text-ink/70 hover:border-ink"}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {sizingModeOf(product) === "made-to-measure" && (
+          <p className="mt-2 text-sm leading-relaxed text-ink/65">
+            This piece is always cut to your measurements. Next, we&rsquo;ll guide you through the {plan.fields.length} measurements a {plan.styleName.toLowerCase()} needs.
+          </p>
         )}
       </section>
 
       <section>
-        <p className="eyebrow mb-3">Quantity</p>
-        <div className="flex w-fit items-center border border-line">
-          <button onClick={() => update("quantity", Math.max(1, draft.quantity - 1))} className="px-3 py-2 text-ink/70 hover:text-ink">−</button>
-          <span className="w-10 text-center text-sm">{draft.quantity}</span>
-          <button onClick={() => update("quantity", draft.quantity + 1)} className="px-3 py-2 text-ink/70 hover:text-ink">+</button>
+        <p id="qty-heading" className="eyebrow mb-3">Quantity</p>
+        <div className="flex w-fit items-center border border-line" role="group" aria-labelledby="qty-heading">
+          <button type="button" aria-label="One fewer" disabled={draft.quantity <= 1} onClick={() => update("quantity", Math.max(1, draft.quantity - 1))} className="flex h-11 w-11 items-center justify-center text-ink/70 hover:text-ink disabled:opacity-30">−</button>
+          <span className="w-10 text-center text-sm tabular-nums" aria-live="polite">{draft.quantity}</span>
+          <button type="button" aria-label="One more" disabled={draft.quantity >= 10} onClick={() => update("quantity", Math.min(10, draft.quantity + 1))} className="flex h-11 w-11 items-center justify-center text-ink/70 hover:text-ink disabled:opacity-30">+</button>
         </div>
+        {draft.quantity > 1 && <p className="mt-2 text-xs text-ink/55">Every piece is made to the same design and measurements.</p>}
       </section>
     </div>
   );
@@ -486,7 +626,7 @@ function ColorField({
 
 /* ─────────────────────────────── Step 3: Preferences ─────────────────────────────── */
 
-function PreferencesStep({ draft, update }: { draft: Draft; update: <K extends keyof Draft>(key: K, value: Draft[K]) => void }) {
+function PreferencesStep({ product, draft, update }: { product: Product; draft: Draft; update: <K extends keyof Draft>(key: K, value: Draft[K]) => void }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -499,7 +639,7 @@ function PreferencesStep({ draft, update }: { draft: Draft; update: <K extends k
         return false;
       }
       if (file.size > MAX_UPLOAD_BYTES) {
-        toast("File too large", { description: `${file.name} exceeds the 1.8MB upload limit.`, variant: "error" });
+        toast("File too large", { description: `${file.name} is over 1.8 MB. Try a screenshot or a smaller photo.`, variant: "error" });
         return false;
       }
       return true;
@@ -507,8 +647,8 @@ function PreferencesStep({ draft, update }: { draft: Draft; update: <K extends k
     if (!selected.length) return;
 
     setUploading(true);
+    const uploaded: string[] = [];
     try {
-      const uploaded: string[] = [];
       for (const file of selected) {
         const form = new FormData();
         form.append("file", file);
@@ -516,72 +656,92 @@ function PreferencesStep({ draft, update }: { draft: Draft; update: <K extends k
         const asset = await apiRequest<{ url: string }>("/custom-order-references", { method: "POST", body: form });
         uploaded.push(apiAssetUrl(asset.url));
       }
-      update("referenceImages", [...draft.referenceImages, ...uploaded]);
     } catch (error) {
-      toast("Reference image upload failed", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
+      toast("An image didn't upload", { description: error instanceof Error ? error.message : "Please try again.", variant: "error" });
     } finally {
+      // Keep whatever did upload, even if a later file failed.
+      if (uploaded.length) update("referenceImages", [...draft.referenceImages, ...uploaded]);
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
     }
   }
 
+  const full = draft.referenceImages.length >= MAX_REFERENCE_IMAGES;
+
   return (
     <div className="space-y-10">
-      <section>
-        <p className="eyebrow mb-1">Have something else in mind?</p>
-        <p className="mb-4 text-sm text-ink/60">
-          If what you want isn&rsquo;t covered by the options above, show us. Upload reference images of designs, fabrics,
-          embroidery, colour combinations, necklines, sleeves, or anything else that inspired you.
-        </p>
-        <div
-          onClick={() => fileInput.current?.click()}
-          className="cursor-pointer border-2 border-dashed border-line p-6 text-center text-sm text-ink/40 hover:border-brass hover:text-brass"
-        >
-          {uploading ? "Uploading reference images…" : `Click to upload reference images (${draft.referenceImages.length}/${MAX_REFERENCE_IMAGES})`}
-        </div>
-        <input ref={fileInput} type="file" accept="image/*" multiple hidden disabled={uploading} onChange={(e) => void handleFiles(e.target.files)} />
+      <div>
+        <h2 className="display text-3xl">Inspiration</h2>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink/65">Optional. If there&rsquo;s a detail you want that isn&rsquo;t in the options, show or tell us. A tailor reviews every note before cutting and will contact you if anything needs agreeing.</p>
+      </div>
 
-        {draft.referenceImages.length > 0 && (
-          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {draft.referenceImages.map((src, i) => (
-              <div key={i} className="group relative aspect-square overflow-hidden bg-ivory-deep">
-                <Image src={src} alt={`Reference ${i + 1}`} fill className="object-cover" unoptimized />
-                <button
-                  onClick={() => update("referenceImages", draft.referenceImages.filter((_, x) => x !== i))}
-                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-[10px] text-ivory opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+      {product.referenceImagesAllowed && (
+        <section aria-labelledby="ref-heading">
+          <p id="ref-heading" className="eyebrow mb-1">Reference photos</p>
+          <p className="mb-4 text-sm text-ink/60">Embroidery, a neckline, a sleeve, a colour pairing: photos or screenshots are perfect. Up to {MAX_REFERENCE_IMAGES}.</p>
+          <button
+            type="button"
+            disabled={uploading || full}
+            onClick={() => fileInput.current?.click()}
+            className="flex min-h-28 w-full flex-col items-center justify-center gap-1 border-2 border-dashed border-line p-6 text-center text-sm text-ink/60 transition-colors hover:border-ink hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="font-medium">{uploading ? "Uploading…" : full ? "Maximum photos added" : "Add photos"}</span>
+            <span className="text-xs text-ink/45">
+              {draft.referenceImages.length} of {MAX_REFERENCE_IMAGES} · JPG or PNG, up to 1.8 MB each
+            </span>
+          </button>
+          <input ref={fileInput} type="file" accept="image/*" multiple hidden disabled={uploading} onChange={(e) => void handleFiles(e.target.files)} />
 
-        {draft.referenceImages.length > 0 && (
-          <label className="mt-4 flex flex-col gap-1.5">
-            <span className="text-xs text-ink/60">What should we take from this reference?</span>
-            <textarea
-              rows={2}
-              value={draft.referenceNotes}
-              onChange={(e) => update("referenceNotes", e.target.value)}
-              placeholder="e.g. Just the sleeve style, or the embroidery pattern on the chest…"
-              className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
-            />
+          {draft.referenceImages.length > 0 && (
+            <ul className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {draft.referenceImages.map((src, i) => (
+                <li key={src} className="relative aspect-square overflow-hidden bg-bone">
+                  <Image src={src} alt={`Reference photo ${i + 1}`} fill className="object-cover" unoptimized />
+                  <button
+                    type="button"
+                    aria-label={`Remove reference photo ${i + 1}`}
+                    onClick={() => update("referenceImages", draft.referenceImages.filter((_, x) => x !== i))}
+                    className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-ink/80 text-xs text-ivory hover:bg-ink"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {draft.referenceImages.length > 0 && (
+            <label className="mt-4 flex flex-col gap-1.5">
+              <span className="text-sm text-ink/70">What should we take from these photos?</span>
+              <textarea
+                rows={2}
+                value={draft.referenceNotes}
+                onChange={(e) => update("referenceNotes", e.target.value)}
+                placeholder="e.g. Just the sleeve, or the embroidery on the chest"
+                className="border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-ink"
+              />
+            </label>
+          )}
+        </section>
+      )}
+
+      {product.specialInstructionsAllowed && (
+        <section>
+          <label htmlFor="special-notes" className="eyebrow mb-1 block">
+            Notes for your tailor
           </label>
-        )}
-      </section>
-
-      <section>
-        <p className="eyebrow mb-1">Tell us exactly how you&rsquo;d like it</p>
-        <p className="mb-3 text-sm text-ink/60">Anything our tailors should know — think of this as writing directly to them.</p>
-        <textarea
-          rows={5}
-          value={draft.specialInstructions}
-          onChange={(e) => update("specialInstructions", e.target.value)}
-          placeholder="Describe any additional details, preferences or changes you'd like us to consider…"
-          className="w-full border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-brass"
-        />
-      </section>
+          <p className="mb-3 text-sm text-ink/60">How you like it to fit, the occasion, a date you need it by, anything else.</p>
+          <textarea
+            id="special-notes"
+            rows={5}
+            maxLength={2000}
+            value={draft.specialInstructions}
+            onChange={(e) => update("specialInstructions", e.target.value)}
+            placeholder="e.g. Slightly roomier through the chest. It's for my wedding on 12 December."
+            className="w-full border border-line bg-ivory px-3 py-2.5 text-sm outline-none focus:border-ink"
+          />
+        </section>
+      )}
     </div>
   );
 }
@@ -592,112 +752,143 @@ function ReviewStep({
   product,
   draft,
   fabric,
-  styleGroups,
+  chosenStyles,
   needsMeasurements,
-  customizationCost,
+  plan,
+  basePrice,
   total,
+  profileLabel,
   onEditStep,
 }: {
   product: Product;
   draft: Draft;
   fabric?: { name: string; additionalCost: number };
-  styleGroups: { groupId: string; group?: { id: string; name: string; choices: { id: string; label: string; additionalCost: number }[] } }[];
+  chosenStyles: { group: { id: string; name: string }; choice: { label: string; additionalCost: number } }[];
   needsMeasurements: boolean;
-  customizationCost: number;
+  plan: MeasurementPlan;
+  basePrice: number;
   total: number;
-  onEditStep: (key: string) => void;
+  profileLabel?: string;
+  onEditStep: (key: StepKey) => void;
 }) {
+  const { measurementFieldDefs } = useAdminStore();
+  const colours = [draft.primaryColor, draft.secondaryColor, draft.contrastColor].filter(Boolean).map((c) => colourName(c!));
+  const heading = (title: string, step?: StepKey) => (
+    <div className="mb-3 flex items-center justify-between">
+      <h3 className="eyebrow">{title}</h3>
+      {step && (
+        <button type="button" onClick={() => onEditStep(step)} className="min-h-10 px-1 text-xs text-clay underline underline-offset-4 hover:text-ink">
+          Change <span className="sr-only">{title.toLowerCase()}</span>
+        </button>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <h2 className="font-display text-2xl">Review Your Custom Order</h2>
-
-      <div className="border border-line p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="eyebrow">Design</p>
-          <button onClick={() => onEditStep("customize")} className="text-xs text-clay hover:text-brass">Edit</button>
-        </div>
-        <p className="text-sm">{product.name}</p>
-        {fabric && <p className="mt-1 text-sm text-ink/60">Fabric: {fabric.name}{fabric.additionalCost > 0 ? ` (+${formatNaira(fabric.additionalCost)})` : ""}</p>}
-        <p className="mt-1 text-sm text-ink/60">
-          Colour: {draft.primaryColor ?? "—"}
-          {draft.secondaryColor && `, ${draft.secondaryColor}`}
-          {draft.contrastColor && `, ${draft.contrastColor}`}
-        </p>
-        {styleGroups.map(({ groupId, group }) => {
-          const choiceId = draft.styleChoices[groupId];
-          const choice = group?.choices.find((c) => c.id === choiceId);
-          if (!choice) return null;
-          return (
-            <p key={groupId} className="mt-1 text-sm text-ink/60">
-              {group?.name}: {choice.label}
-              {choice.additionalCost > 0 ? ` (+${formatNaira(choice.additionalCost)})` : ""}
-            </p>
-          );
-        })}
-        <p className="mt-1 text-sm text-ink/60">{needsMeasurements ? "Made-to-Measure" : `Size: ${draft.size}`}</p>
-        <p className="mt-1 text-sm text-ink/60">Quantity: {draft.quantity}</p>
+    <div className="space-y-5">
+      <div>
+        <h2 className="display text-3xl">Review your order</h2>
+        <p className="mt-2 text-sm text-ink/65">Check everything below. You can change any part before you pay.</p>
       </div>
 
-      <div className="border border-line p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="eyebrow">Measurements</p>
-          {needsMeasurements && <button onClick={() => onEditStep("measurements")} className="text-xs text-clay hover:text-brass">Edit</button>}
-        </div>
-        {!needsMeasurements ? (
-          <p className="text-sm text-ink/60">Standard size — no measurements needed.</p>
-        ) : draft.measurementMode === "profile" ? (
-          <p className="text-sm text-ink/60">Using a saved measurement profile.</p>
-        ) : Object.keys(draft.measurementValues).length === 0 ? (
-          <p className="text-sm text-error">No measurements provided yet.</p>
-        ) : (
-          <div className="grid grid-cols-3 gap-2 text-xs text-ink/60">
-            {Object.entries(draft.measurementValues).map(([k, v]) => (
-              <span key={k}>{k}: {v}{draft.measurementUnit}</span>
-            ))}
-          </div>
-        )}
-      </div>
+      <section className="border border-line p-5">
+        {heading("Design", "customize")}
+        <dl className="grid grid-cols-[8rem_1fr] gap-y-1.5 text-sm">
+          <dt className="text-ink/55">Style</dt>
+          <dd>{product.name}</dd>
+          {fabric && (
+            <>
+              <dt className="text-ink/55">Fabric</dt>
+              <dd>{fabric.name}</dd>
+            </>
+          )}
+          <dt className="text-ink/55">Colour</dt>
+          <dd>{colours.join(", ") || "—"}</dd>
+          {chosenStyles.map(({ group, choice }) => (
+            <Fragment key={group.id}>
+              <dt className="text-ink/55">{group.name}</dt>
+              <dd>{choice.label}</dd>
+            </Fragment>
+          ))}
+          <dt className="text-ink/55">Fit</dt>
+          <dd>{needsMeasurements ? "Cut to your measurements" : `Standard size ${draft.size}`}</dd>
+          <dt className="text-ink/55">Quantity</dt>
+          <dd>{draft.quantity}</dd>
+        </dl>
+      </section>
 
-      <div className="border border-line p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="eyebrow">Preferences</p>
-          <button onClick={() => onEditStep("preferences")} className="text-xs text-clay hover:text-brass">Edit</button>
-        </div>
-        {draft.referenceImages.length > 0 ? (
-          <>
-            <div className="mb-2 flex gap-2">
-              {draft.referenceImages.map((src, i) => (
-                <div key={i} className="relative h-14 w-14 overflow-hidden bg-ivory-deep">
-                  <Image src={src} alt="" fill className="object-cover" unoptimized />
+      {needsMeasurements && (
+        <section className="border border-line p-5">
+          {heading("Measurements", "measurements")}
+          {draft.measurementMode === "profile" ? (
+            <p className="text-sm text-ink/70">Using your saved measurements{profileLabel ? `: “${profileLabel}”` : ""}.</p>
+          ) : Object.keys(draft.measurementValues).length === 0 ? (
+            <p className="text-sm text-error">No measurements yet. Add them before you continue.</p>
+          ) : (
+            <div className="grid gap-5 sm:grid-cols-2">
+              {plan.pieces.map((piece) => (
+                <div key={piece.id}>
+                  <p className="text-sm font-medium">{piece.title}</p>
+                  <ul className="mt-1.5 space-y-1 text-sm">
+                    {piece.fields.map((k) => (
+                      <li key={k} className="flex justify-between gap-3 border-b border-line/70 pb-1">
+                        <span className="text-ink/60">{fieldGuide(k, measurementFieldDefs, plan).label}</span>
+                        <span className="tabular-nums">{Number(draft.measurementValues[k]) > 0 ? `${draft.measurementValues[k]} ${draft.measurementUnit}` : "Tailor to decide"}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>
-            {draft.referenceNotes && <p className="text-sm text-ink/60">Reference notes: {draft.referenceNotes}</p>}
-          </>
-        ) : (
-          <p className="text-sm text-ink/40">No reference images uploaded.</p>
-        )}
-        <p className="mt-2 text-sm text-ink/60">{draft.specialInstructions || "No special instructions."}</p>
-      </div>
+          )}
+        </section>
+      )}
 
-      <div className="border border-line p-5">
-        <p className="eyebrow mb-3">Price Breakdown</p>
-        <Row label="Base Price" value={formatNaira(product.price)} />
-        {customizationCost > 0 && <Row label="Customizations" value={`+${formatNaira(customizationCost)}`} />}
-        <div className="mt-2 flex justify-between border-t border-line pt-2 text-sm font-medium">
-          <span>Total ({draft.quantity} item{draft.quantity > 1 ? "s" : ""})</span>
-          <span>{formatNaira(total)}</span>
+      {(product.referenceImagesAllowed || product.specialInstructionsAllowed) && (
+        <section className="border border-line p-5">
+          {heading("Inspiration", "preferences")}
+          {draft.referenceImages.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {draft.referenceImages.map((src, i) => (
+                <div key={src} className="relative h-14 w-14 overflow-hidden bg-bone">
+                  <Image src={src} alt={`Reference photo ${i + 1}`} fill className="object-cover" unoptimized />
+                </div>
+              ))}
+            </div>
+          )}
+          {draft.referenceNotes && <p className="text-sm text-ink/70">About the photos: {draft.referenceNotes}</p>}
+          <p className="mt-1 text-sm text-ink/70">{draft.specialInstructions || (draft.referenceImages.length ? "" : "None added.")}</p>
+          {(draft.referenceImages.length > 0 || draft.specialInstructions) && (
+            <p className="mt-3 text-xs leading-relaxed text-ink/55">A tailor reviews these before cutting and will contact you if anything changes the price or timing. Nothing extra is charged without your agreement.</p>
+          )}
+        </section>
+      )}
+
+      <section className="border border-line p-5">
+        {heading("Price")}
+        <dl className="space-y-2 text-sm">
+          <Row label="Base price" value={formatNaira(basePrice)} />
+          {fabric && <Row label={`Fabric: ${fabric.name}`} value={fabric.additionalCost > 0 ? `+${formatNaira(fabric.additionalCost)}` : "Included"} />}
+          {chosenStyles.map(({ group, choice }) => (
+            <Row key={group.id} label={`${group.name}: ${choice.label}`} value={choice.additionalCost > 0 ? `+${formatNaira(choice.additionalCost)}` : "Included"} />
+          ))}
+          {draft.quantity > 1 && <Row label="Quantity" value={`× ${draft.quantity}`} />}
+        </dl>
+        <div className="mt-3 flex items-baseline justify-between border-t border-line pt-3">
+          <span className="font-medium">Total for {draft.quantity === 1 ? "this piece" : `${draft.quantity} pieces`}</span>
+          <span className="display text-2xl">{formatNaira(total)}</span>
         </div>
-      </div>
+        <p className="mt-2 text-xs text-ink/55">Delivery and any express fee are shown at checkout before you pay.</p>
+      </section>
     </div>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between text-sm">
-      <span className="text-ink/50">{label}</span>
-      <span className="text-ink/80">{value}</span>
+    <div className="flex justify-between gap-4 text-sm">
+      <dt className="text-ink/60">{label}</dt>
+      <dd className="shrink-0 text-ink/85">{value}</dd>
     </div>
   );
 }

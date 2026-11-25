@@ -16,6 +16,7 @@ import { FilterBar, SearchInput, FilterSelect, DateRangeFilter, DateRangeKey, ra
 import { TextareaField } from "@/components/admin/ui/form";
 import { inRange } from "@/lib/admin/analytics";
 import { isMadeToMeasure } from "@/lib/product-utils";
+import { fieldGuide, resolveMeasurementPlan } from "@/lib/measurement-guide";
 
 const EXCEPTION_STATUSES: OrderStatus[] = ["Payment Failed", "Cancelled", "Refund Requested", "Refunded", "Partially Refunded", "On Hold", "Awaiting Customer Response"];
 const ALL_STATUSES: OrderStatus[] = [...ORDER_STAGES, ...EXCEPTION_STATUSES];
@@ -619,7 +620,7 @@ function ProductionBriefModal({
   staff: { id: string; name: string; role: string }[];
   onClose: () => void;
 }) {
-  const { measurementFieldDefs } = useAdminStore();
+  const { measurementFieldDefs, categories } = useAdminStore();
   const assignedStaff = staff.find((s) => s.id === order.production?.assignedStaffId);
   const customItems = order.items.filter((it) => it.customOrder || it.measurement);
 
@@ -652,7 +653,13 @@ function ProductionBriefModal({
         <div className="space-y-6">
           {customItems.map((it) => {
             const fabric = fabrics.find((f) => f.id === it.customOrder?.fabricId);
-            const activeFields = (it.product.measurementFieldKeys?.length ? it.product.measurementFieldKeys : undefined) ?? measurementFieldDefs.filter((d) => d.garments.includes(it.product.garment)).map((d) => d.key);
+            const plan = resolveMeasurementPlan(it.product, categories, measurementFieldDefs);
+            const recorded = Object.keys(it.measurement?.values ?? {});
+            // The style's pieces first, then anything else the customer gave.
+            const pieces = [
+              ...plan.pieces.map((p) => ({ title: p.title, fields: p.fields.filter((k) => recorded.includes(k)) })),
+              { title: "Other", fields: recorded.filter((k) => !plan.fields.includes(k)) },
+            ].filter((p) => p.fields.length);
             return (
               <div key={it.id} className="border border-line p-4">
                 <p className="font-medium">{it.product.name} × {it.quantity}</p>
@@ -668,19 +675,19 @@ function ProductionBriefModal({
                 {it.measurement && it.measurement.mode !== "pending" && it.measurement.values && (
                   <div className="mt-3">
                     <p className="mb-1.5 text-xs text-ink/50">Measurements ({it.measurement.unit})</p>
-                    <div className="grid grid-cols-3 gap-2 text-xs sm:grid-cols-4">
-                      {activeFields.map((key) => {
-                        const value = it.measurement?.values?.[key];
-                        if (value === undefined) return null;
-                        const label = measurementFieldDefs.find((d) => d.key === key)?.label ?? key;
-                        return (
-                          <div key={key} className="border border-line px-2 py-1.5">
-                            <p className="text-ink/40">{label}</p>
-                            <p className="font-medium">{value} {it.measurement?.unit}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    {pieces.map((piece) => (
+                      <div key={piece.title} className="mb-2">
+                        <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ink/50">{piece.title}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                          {piece.fields.map((key) => (
+                            <div key={key} className="border border-line px-2 py-1.5">
+                              <p className="text-ink/40">{fieldGuide(key, measurementFieldDefs, plan).label}</p>
+                              <p className="font-medium">{it.measurement?.values?.[key]} {it.measurement?.unit}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 

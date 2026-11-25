@@ -4,7 +4,7 @@
 import type { Category, Product } from "./types";
 import { findOccasion } from "./occasions";
 import { searchProducts, normalise } from "./search";
-import { inCategory, stockState } from "./product-utils";
+import { effectivePrice, inCategory, stockState } from "./product-utils";
 
 export interface ShopQuery {
   q: string;
@@ -88,7 +88,7 @@ export function applyQuery(products: Product[], q: ShopQuery, categories: Catego
     if (q.color.length && !p.colors.some((c) => q.color.includes(c.name))) return false;
     if (q.size.length && !p.sizes.some((s) => q.size.includes(s))) return false;
     if (q.gender.length && !q.gender.includes(p.gender)) return false;
-    if (q.maxPrice && p.price > q.maxPrice) return false;
+    if (q.maxPrice && effectivePrice(p) > q.maxPrice) return false;
     if (q.availability.length) {
       const state = stockState(p);
       const bucket = state === "made-to-order" || p.customizable ? "made-to-order" : state === "sold-out" ? "sold-out" : "in-stock";
@@ -96,12 +96,14 @@ export function applyQuery(products: Product[], q: ShopQuery, categories: Catego
     }
     return true;
   });
-  if (q.q && q.sort === "featured") return result; // keep relevance order for searches
+  const soldOutLast = (a: Product, b: Product) => Number(stockState(a) === "sold-out") - Number(stockState(b) === "sold-out");
+  // Searches keep relevance order (stable sort), with sold-out pieces last.
+  if (q.q && q.sort === "featured") return [...result].sort(soldOutLast);
   const sorted = [...result];
   if (q.sort === "newest") sorted.sort((a, b) => Number(b.isNew) - Number(a.isNew) || b.createdAt.localeCompare(a.createdAt));
-  if (q.sort === "price-asc") sorted.sort((a, b) => a.price - b.price);
-  if (q.sort === "price-desc") sorted.sort((a, b) => b.price - a.price);
-  if (q.sort === "featured") sorted.sort((a, b) => Number(b.isSignature) - Number(a.isSignature) || Number(b.isFeatured) - Number(a.isFeatured));
+  if (q.sort === "price-asc") sorted.sort((a, b) => effectivePrice(a) - effectivePrice(b));
+  if (q.sort === "price-desc") sorted.sort((a, b) => effectivePrice(b) - effectivePrice(a));
+  if (q.sort === "featured") sorted.sort((a, b) => soldOutLast(a, b) || Number(b.isSignature) - Number(a.isSignature) || Number(b.isFeatured) - Number(a.isFeatured));
   return sorted;
 }
 
@@ -116,7 +118,7 @@ export function facets(products: Product[]) {
     p.colors.forEach((c) => colors.set(c.name, c.hex));
     p.sizes.forEach((s) => sizes.add(s));
     productFabrics(p).forEach((f) => fabrics.add(f));
-    maxPrice = Math.max(maxPrice, p.price);
+    maxPrice = Math.max(maxPrice, effectivePrice(p));
   }
   const letterOrder = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
   const sortedSizes = [...sizes].sort((a, b) => {
