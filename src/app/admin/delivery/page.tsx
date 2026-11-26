@@ -44,7 +44,7 @@ function Zones() {
 
   const columns: Column<DeliveryZone>[] = [
     { key: "name", label: "Zone", render: (z) => z.name, sortValue: (z) => z.name, csvValue: (z) => z.name },
-    { key: "countries", label: "Countries", render: (z) => <span className="line-clamp-1 max-w-[220px]">{z.countries.join(", ")}</span>, csvValue: (z) => z.countries.join(", ") },
+    { key: "countries", label: "Covers", render: (z) => <span className="line-clamp-1 max-w-[220px]">{z.states?.length ? `${z.states.join(", ")} (${z.countries.join(", ")})` : z.countries.join(", ")}</span>, csvValue: (z) => [...(z.states ?? []), ...z.countries].join(", ") },
     { key: "standardFee", label: "Standard Fee", align: "right", render: (z) => formatNaira(z.standardFee), sortValue: (z) => z.standardFee, csvValue: (z) => z.standardFee },
     { key: "expressFee", label: "Express Fee", align: "right", render: (z) => (z.expressAvailable ? formatNaira(z.expressFee) : "—"), csvValue: (z) => z.expressFee },
     { key: "standardDays", label: "Standard Days", render: (z) => `${z.standardDays[0]}–${z.standardDays[1]}`, csvValue: (z) => `${z.standardDays[0]}-${z.standardDays[1]}` },
@@ -88,7 +88,7 @@ function Zones() {
 
 function ZoneModal({ zone, onCancel, onSave, onDelete }: { zone: DeliveryZone | null; onCancel: () => void; onSave: (z: DeliveryZone) => void; onDelete?: () => void }) {
   const [form, setForm] = useState<DeliveryZone>(
-    zone ?? { id: "", name: "", countries: [], standardFee: 0, expressFee: 0, standardDays: [5, 9], expressDays: [3, 5], expressAvailable: true, active: true }
+    zone ?? { id: "", name: "", countries: [], states: [], standardFee: 0, expressFee: 0, standardDays: [5, 9], expressDays: [3, 5], expressAvailable: true, active: true }
   );
   function set<K extends keyof DeliveryZone>(key: K, value: DeliveryZone[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -98,6 +98,10 @@ function ZoneModal({ zone, onCancel, onSave, onDelete }: { zone: DeliveryZone | 
       <div className="space-y-4">
         <Field label="Zone Name" required value={form.name} onChange={(v) => set("name", v)} />
         <TagInput label="Countries" values={form.countries} onChange={(v) => set("countries", v)} placeholder="Add a country and press Enter" />
+        <div>
+          <TagInput label="States (optional)" values={form.states ?? []} onChange={(v) => set("states", v)} placeholder="e.g. Lagos, then press Enter" />
+          <p className="mt-1 text-xs text-ink/55">Leave empty to cover the whole country. A zone that names a state is used for addresses in that state, so you can charge Lagos less than the rest of Nigeria.</p>
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <NumberField label="Standard Fee (₦)" value={form.standardFee} onChange={(v) => set("standardFee", v)} />
           <NumberField label="Express Fee (₦)" value={form.expressFee} onChange={(v) => set("expressFee", v)} />

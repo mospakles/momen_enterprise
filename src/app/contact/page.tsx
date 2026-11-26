@@ -12,7 +12,7 @@ export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", topic: "Order Inquiry", message: "" });
   const [sending, setSending] = useState(false);
   const { systemSettings } = useAdminStore();
-  const email = systemSettings.general.supportEmail || "hello@momen.style";
+  const email = systemSettings.general.supportEmail || "hello@momenclothing.com";
   const phone = systemSettings.general.supportPhone ?? "";
   const whatsapp = phone.replace(/[^\d]/g, "");
 

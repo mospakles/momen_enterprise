@@ -6,11 +6,15 @@ const entries = [
   ...bespoke.map((style) => ({ style, slug: bespokeSlug(style), madeToMeasure: true })),
 ];
 
-// --publish puts the campaign live; Ready-to-Wear pieces get --stock units each
-// (default 10) when they are published. Bespoke pieces are made to order.
+// --publish puts the campaign live. It needs --stock=N: every Ready-to-Wear
+// size gets N units, counted per size so one size can't sell another's stock.
+// Set the real count for each size afterwards in Admin → Products. Bespoke
+// pieces are made to order and have no stock.
 const publish = process.argv.includes('--publish');
 const stockArg = process.argv.find((arg) => arg.startsWith('--stock='));
-const stock = stockArg ? Number(stockArg.slice('--stock='.length)) : 10;
+const stock = stockArg ? Number(stockArg.slice('--stock='.length)) : 0;
+/** Product total and per-size counts for a Ready-to-Wear piece being published. */
+const stockFor = (sizeCount: number) => ({ total: stock * Math.max(1, sizeCount), perSize: sizeCount > 1 ? stock : null });
 
 async function importDrafts() {
   const prisma = new PrismaClient();
@@ -54,8 +58,11 @@ async function importDrafts() {
       for (const { style, slug, madeToMeasure } of entries) {
         const sku = `MOM-CAM-${slug.toUpperCase()}`;
         const price = campaignPrice(style, madeToMeasure);
-        const sizes = campaignSizes(style, madeToMeasure).map((label, sortOrder) => ({
+        const stocked = publish && !madeToMeasure;
+        const labels = campaignSizes(style, madeToMeasure);
+        const sizes = labels.map((label, sortOrder) => ({
           label, sortOrder, sizeOptionId: sizeOptions.get(label),
+          ...(stocked ? { stockQuantity: stockFor(labels.length).perSize } : {}),
         }));
         const existing = await tx.product.findUnique({
           where: { slug },
@@ -93,10 +100,14 @@ async function importDrafts() {
             sized += result.count;
           }
           if (publish) {
-            published += (await tx.product.updateMany({
+            const going = await tx.product.updateMany({
               where: { id: existing.id, publishStatus: { not: PublishStatus.published } },
-              data: { publishStatus: PublishStatus.published, ...(madeToMeasure ? {} : { stockQuantity: stock }) },
-            })).count;
+              data: { publishStatus: PublishStatus.published, ...(stocked ? { stockQuantity: stockFor(labels.length).total } : {}) },
+            });
+            if (going.count && stocked && labels.length > 1) {
+              await tx.productSize.updateMany({ where: { productId: existing.id }, data: { stockQuantity: stock } });
+            }
+            published += going.count;
           }
           continue;
         }
@@ -120,7 +131,7 @@ async function importDrafts() {
             customizable: madeToMeasure,
             specialInstructionsAllowed: madeToMeasure,
             price: price ?? 0,
-            stockQuantity: publish && !madeToMeasure ? stock : 0,
+            stockQuantity: stocked ? stockFor(labels.length).total : 0,
             productionDaysStandardMin: 0,
             productionDaysStandardMax: 0,
             productionDaysExpressMin: 0,
@@ -143,8 +154,8 @@ function categorySlug(style: CampaignStyle) {
   return style.slug === 'kaftan' || style.slug === 'kaftan-senator' ? 'kaftans' : style.slug;
 }
 
-if (!Number.isInteger(stock) || stock < 0) {
-  console.error('--stock must be a whole number, e.g. --stock=10');
+if (!Number.isInteger(stock) || stock < 0 || (publish && !stockArg)) {
+  console.error('With --publish, say how many of each Ready-to-Wear size you hold, e.g. --stock=3 (per size).');
   process.exitCode = 1;
 } else if (process.argv.includes('--apply')) {
   void importDrafts().catch((error: unknown) => {
@@ -156,5 +167,5 @@ if (!Number.isInteger(stock) || stock < 0) {
     const sizes = campaignSizes(style, madeToMeasure);
     console.log(`${madeToMeasure ? 'Bespoke' : 'Ready-to-Wear'}  ${slug}${sizes.length ? ` (${sizes.join(', ')})` : ''}`);
   }
-  console.log(`Dry run. Use --apply to import${publish ? ` and publish (Ready-to-Wear stock ${stock} each)` : ' as drafts'}.`);
+  console.log(`Dry run. Use --apply to import${publish ? ` and publish (${stock} of each Ready-to-Wear size)` : ' as drafts'}.`);
 }

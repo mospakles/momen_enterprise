@@ -77,7 +77,7 @@ function sanitize(lines: StoredCartLine[]): StoredCartLine[] {
       productId: l.productId,
       size: String(l.size).slice(0, 60),
       color: String(l.color ?? '').slice(0, 60),
-      quantity: Math.min(20, Math.max(1, Math.floor(Number(l.quantity) || 1))),
+      quantity: Math.min(10, Math.max(1, Math.floor(Number(l.quantity) || 1))),
       measurement: l.measurement,
       fit: l.fit === 'measure' || l.fit === 'standard' ? l.fit : undefined,
       customizations: l.customizations,

@@ -16,7 +16,7 @@ const DEFAULT_PLATFORM_SETTINGS = {
     brandName: 'Momen',
     logoUrl: '',
     faviconUrl: '',
-    supportEmail: 'hello@momen.style',
+    supportEmail: 'hello@momenclothing.com',
     supportPhone: DEFAULT_SUPPORT_PHONE,
     instagram: 'https://www.instagram.com/momen__clothings/',
     tiktok: 'https://www.tiktok.com/@momen',
@@ -30,7 +30,7 @@ const DEFAULT_PLATFORM_SETTINGS = {
   },
   notifications: {
     emailFromName: 'Momen',
-    emailFromAddress: 'hello@momen.style',
+    emailFromAddress: 'hello@momenclothing.com',
     smsEnabled: false,
   },
   integrations: {
@@ -86,7 +86,7 @@ export class PlatformService {
       data: { ...dto, email: dto.email.toLowerCase() },
     });
     const supportEmail =
-      this.config.get('SUPPORT_EMAIL') ?? 'hello@momen.style';
+      this.config.get('SUPPORT_EMAIL') ?? 'hello@momenclothing.com';
     await this.email.send(
       supportEmail,
       `[Contact] ${dto.topic}`,

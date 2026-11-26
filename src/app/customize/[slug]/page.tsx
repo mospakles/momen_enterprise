@@ -63,9 +63,23 @@ interface Draft {
   referenceNotes: string;
   specialInstructions: string;
   quantity: number;
+  /** The style picture chosen to have made. */
+  look?: string;
+  /** Date needed by, YYYY-MM-DD. */
+  neededBy?: string;
 }
 
 type StepKey = "customize" | "measurements" | "preferences" | "review";
+
+/** Every picture of the style, once: the looks a customer can choose from. */
+function looksOf(product: Product) {
+  return [...new Set([...product.colors.flatMap((c) => c.images ?? []), ...product.images])];
+}
+
+/** Bespoke is cut in 10 to 21 business days: about four weeks to be safe. */
+const SAFE_LEAD_DAYS = 28;
+const isoDay = (date: Date) => date.toISOString().slice(0, 10);
+const daysUntil = (day: string) => Math.round((new Date(`${day}T12:00:00`).getTime() - Date.now()) / 86_400_000);
 
 function draftKey(slug: string) {
   return `momen.customize-draft.${slug}`;
@@ -199,6 +213,8 @@ function Wizard({ product }: { product: Product }) {
       referenceImages: draft.referenceImages,
       referenceNotes: draft.referenceNotes || undefined,
       specialInstructions: draft.specialInstructions || undefined,
+      look: draft.look,
+      neededBy: draft.neededBy,
     };
     addCustomItem({
       product,
@@ -364,7 +380,7 @@ function Wizard({ product }: { product: Product }) {
         <aside className="h-fit border border-line p-5 lg:sticky lg:top-24" aria-label="Order summary">
           <div className="flex gap-4 lg:block">
             <div className="relative aspect-[4/5] w-24 shrink-0 overflow-hidden bg-bone lg:mb-4 lg:w-full">
-              {product.images[0] && <Image src={product.images[0]} alt={product.name} fill sizes="(min-width:1024px) 340px, 96px" unoptimized={/^https?:/.test(product.images[0])} className="object-cover" />}
+              {(draft.look ?? product.images[0]) && <Image src={draft.look ?? product.images[0]} alt={product.name} fill sizes="(min-width:1024px) 340px, 96px" unoptimized={/^https?:/.test(draft.look ?? product.images[0])} className="object-cover" />}
             </div>
             <div className="min-w-0">
               <p className="display text-xl">{product.name}</p>
@@ -443,8 +459,35 @@ function CustomizeStep({
   hasSizingChoice: boolean;
   plan: MeasurementPlan;
 }) {
+  const looks = looksOf(product);
+  const today = isoDay(new Date());
+  const tight = draft.neededBy ? daysUntil(draft.neededBy) < SAFE_LEAD_DAYS : false;
   return (
     <div className="space-y-10">
+      {looks.length > 1 && (
+        <section aria-labelledby="look-heading">
+          <p id="look-heading" className="eyebrow mb-1">Which look?</p>
+          <p className="mb-3 text-xs text-ink/55">Tap the picture closest to what you want made. Our tailors work from it.</p>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6" role="radiogroup" aria-labelledby="look-heading">
+            {looks.map((src, i) => (
+              <button
+                key={src}
+                type="button"
+                role="radio"
+                aria-checked={draft.look === src}
+                aria-label={`Look ${i + 1} of ${looks.length}`}
+                onClick={() => update("look", draft.look === src ? undefined : src)}
+                className={`relative aspect-[4/5] overflow-hidden bg-bone transition-shadow ${draft.look === src ? "shadow-[0_0_0_2px_var(--color-ivory),0_0_0_4px_var(--color-ink)]" : "opacity-85 hover:opacity-100"}`}
+              >
+                <Image src={src} alt="" fill sizes="120px" unoptimized={/^https?:/.test(src)} className="object-cover object-top" />
+                {draft.look === src && <span className="absolute bottom-1 left-1 bg-ink px-1.5 py-0.5 text-[10px] text-ivory">Chosen</span>}
+              </button>
+            ))}
+          </div>
+          {!draft.look && <p className="mt-2 text-xs text-ink/50">Optional, but it helps us get it right first time.</p>}
+        </section>
+      )}
+
       {availableFabrics.length > 0 && (
         <section>
           <p className="eyebrow mb-1">Fabric</p>
@@ -556,6 +599,24 @@ function CustomizeStep({
         {sizingModeOf(product) === "made-to-measure" && (
           <p className="mt-2 text-sm leading-relaxed text-ink/65">
             This piece is always cut to your measurements. Next, we&rsquo;ll guide you through the {plan.fields.length} measurements a {plan.styleName.toLowerCase()} needs.
+          </p>
+        )}
+      </section>
+
+      <section aria-labelledby="needed-heading">
+        <label id="needed-heading" htmlFor="needed-by" className="eyebrow mb-1 block">When do you need it?</label>
+        <p className="mb-3 text-xs text-ink/55">For a wedding, owambe or trip, tell us the date so we can plan your piece around it.</p>
+        <input
+          id="needed-by"
+          type="date"
+          min={today}
+          value={draft.neededBy ?? ""}
+          onChange={(e) => update("neededBy", e.target.value || undefined)}
+          className="min-h-11 border border-line bg-ivory px-3 py-2 text-sm focus:border-ink"
+        />
+        {tight && (
+          <p role="status" className="mt-2 max-w-md text-xs leading-relaxed text-terracotta">
+            That&rsquo;s under four weeks away. Bespoke takes 10 to 21 business days, so message us before you pay and we&rsquo;ll confirm we can make it in time.
           </p>
         )}
       </section>
@@ -810,8 +871,24 @@ function ReviewStep({
               <dd>{choice.label}</dd>
             </Fragment>
           ))}
+          {draft.look && (
+            <>
+              <dt className="text-ink/55">Look</dt>
+              <dd>
+                <span className="relative block aspect-[4/5] w-16 overflow-hidden bg-bone">
+                  <Image src={draft.look} alt="The look you chose" fill sizes="64px" unoptimized={/^https?:/.test(draft.look)} className="object-cover object-top" />
+                </span>
+              </dd>
+            </>
+          )}
           <dt className="text-ink/55">Fit</dt>
           <dd>{needsMeasurements ? "Cut to your measurements" : `Standard size ${draft.size}`}</dd>
+          {draft.neededBy && (
+            <>
+              <dt className="text-ink/55">Needed by</dt>
+              <dd>{new Date(`${draft.neededBy}T12:00:00`).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}</dd>
+            </>
+          )}
           <dt className="text-ink/55">Quantity</dt>
           <dd>{draft.quantity}</dd>
         </dl>

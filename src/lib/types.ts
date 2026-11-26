@@ -266,6 +266,10 @@ export interface CustomOrderDetails {
   referenceImages?: string[];
   referenceNotes?: string;
   specialInstructions?: string;
+  /** Bespoke: the style picture the customer chose to have made. */
+  look?: string;
+  /** Bespoke: the date the customer needs the piece by (YYYY-MM-DD). */
+  neededBy?: string;
 }
 
 export interface CartItem {

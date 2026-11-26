@@ -3,6 +3,7 @@ import { PaymentsService } from './payments.service';
 import { PaystackProvider } from './providers/paystack/paystack.provider';
 import { FlutterwaveProvider } from './providers/flutterwave/flutterwave.provider';
 import { OrdersModule } from '../orders/orders/orders.module';
+import { UnpaidOrderSweeper } from './unpaid-order-sweeper.service';
 
 // Split out from PaymentsModule so RefundsModule (which needs PaymentsService
 // for its provider-refund call) doesn't have to import the top-level
@@ -11,7 +12,7 @@ import { OrdersModule } from '../orders/orders/orders.module';
 // without importing OrdersModule separately.
 @Module({
   imports: [OrdersModule],
-  providers: [PaymentsService, PaystackProvider, FlutterwaveProvider],
+  providers: [PaymentsService, PaystackProvider, FlutterwaveProvider, UnpaidOrderSweeper],
   exports: [OrdersModule, PaymentsService, PaystackProvider, FlutterwaveProvider],
 })
 export class PaymentsCoreModule {}

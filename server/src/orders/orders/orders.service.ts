@@ -18,7 +18,7 @@ import { ProductsService } from '../../catalog/products/products.service';
 import { ProductionStaffService } from '../../production/production-staff/production-staff.service';
 import { ProductionTimelineResolverService } from '../../production/production-timeline-rules/production-timeline-resolver.service';
 import { DeliveryZonesService } from '../../delivery/delivery-zones/delivery-zones.service';
-import { CouponsService, isFirstOrder } from '../../promotions/coupons/coupons.service';
+import { CouponsService, isFirstOrder, normalizeEmail } from '../../promotions/coupons/coupons.service';
 import { WELCOME_CODE } from '../../common/storefront-offer';
 import { GiftCardsService } from '../../promotions/gift-cards/gift-cards.service';
 import { generateOrderId } from './order-id.util';
@@ -545,6 +545,7 @@ export class OrdersService {
       dto.productionSpeed,
       subtotal,
       deliveryMethod,
+      dto.address.state,
     );
     const stages = stagesForItems(pricedItems);
     const now = new Date();
@@ -584,14 +585,14 @@ export class OrdersService {
       // Guest and signed-in checkouts share the email lock.
       const lockKeys = [
         ...(actor.customerId ? [`checkout:account:${actor.customerId}`] : []),
-        `checkout:email:${checkoutEmail}`,
+        `checkout:email:${normalizeEmail(checkoutEmail)}`,
       ];
       for (const key of lockKeys) {
         await tx.$queryRaw`SELECT 1 FROM pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
       }
       const couponContext = {
         customerId: actor.customerId,
-        isFirstOrder: await isFirstOrder(tx, checkoutEmail, actor.customerId),
+        isFirstOrder: await isFirstOrder(tx, checkoutEmail, actor.customerId, dto.address.phone),
         subtotal,
         items: pricedItems.map((p) => ({
           productId: p.dtoItem.productId,

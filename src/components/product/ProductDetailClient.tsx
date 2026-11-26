@@ -29,6 +29,8 @@ import { Modal } from "@/components/ui/Modal";
 import { WelcomeNote } from "@/components/layout/WelcomeOffer";
 
 const CITIES = ["Lagos", "Abuja", "Port Harcourt", "Ibadan", "Kano", "Enugu", "Benin City"];
+/** The state each delivery city is in, so the estimate uses that state's zone. */
+const CITY_STATE: Record<string, string> = { Lagos: "Lagos", Abuja: "FCT Abuja", "Port Harcourt": "Rivers", Ibadan: "Oyo", Kano: "Kano", Enugu: "Enugu", "Benin City": "Edo" };
 const CITY_KEY = "momen.delivery-city";
 
 type PendingMeasurement = { mode: "profile" | "manual"; profileId?: string; values?: MeasurementValues; unit: MeasurementUnit };
@@ -38,7 +40,6 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const { addItem, setItemMeasurement, toggleWishlist, isWishlisted } = useCart();
   const { products, categories } = useAdminStore();
   const { flyToBag } = useUI();
-  const delivery = useDeliverySettings();
   const recentSlugs = useRecentlyViewed(product.slug);
 
   const oneSize = isOneSize(product);
@@ -55,6 +56,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [sizeError, setSizeError] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [city, setCity] = useState("Lagos");
+  const delivery = useDeliverySettings("Nigeria", CITY_STATE[city]);
   const [ctaVisible, setCtaVisible] = useState(true);
 
   const galleryRef = useRef<HTMLDivElement>(null);
@@ -435,6 +437,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               </>
             )}
 
+            <WhatsAppAsk product={product} />
+
             {/* Delivery estimate */}
             {arrival && (
               <div className="mt-8 flex items-start gap-3 border-t border-line pt-6 text-sm">
@@ -580,6 +584,30 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
 /** Customizable pieces go through the existing wizard (fabric, colour, fit,
  * required style choices); this is its invitation. */
+/** "Questions about this piece?" straight to WhatsApp, with the piece named. */
+function WhatsAppAsk({ product }: { product: Product }) {
+  const { systemSettings } = useAdminStore();
+  const phone = (systemSettings.general.supportPhone ?? "").replace(/[^\d]/g, "");
+  if (!phone) return null;
+  const note = encodeURIComponent(`Hello momen., I have a question about ${product.name}: ${typeof window !== "undefined" ? window.location.href : ""}`);
+  return (
+    <a
+      href={`https://wa.me/${phone}?text=${note}`}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-5 flex min-h-11 items-center gap-2.5 text-sm text-ink/75 hover:text-ink"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0 text-[#1f7a4d]">
+        <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.6a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z" />
+      </svg>
+      <span>
+        Questions about fit, fabric or timing? <span className="underline underline-offset-4">Chat with us on WhatsApp</span>
+        <span className="sr-only"> (opens in a new tab)</span>
+      </span>
+    </a>
+  );
+}
+
 function DesignYours({
   product,
   wished,

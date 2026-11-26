@@ -24,7 +24,23 @@ const NIGERIA_ZONE = {
   active: true,
 };
 
+const LAGOS_ZONE = { ...NIGERIA_ZONE, id: 'zone-lagos', name: 'Lagos', states: ['Lagos'], standardFee: 1500 };
+
 describe('DeliveryZonesService.quote', () => {
+  it('uses the zone that names the state before the whole-country zone', async () => {
+    const service = makeService([NIGERIA_ZONE, LAGOS_ZONE]);
+    const lagos = await service.quote('Nigeria', ProductionSpeed.standard, 10000, undefined, 'Lagos State');
+    const kano = await service.quote('Nigeria', ProductionSpeed.standard, 10000, undefined, 'Kano');
+    expect(lagos.zoneId).toBe('zone-lagos');
+    expect(lagos.deliveryFee).toBe(1500);
+    expect(kano.zoneId).toBe('zone-ng');
+  });
+
+  it('refuses a state no zone covers when every zone in the country is state-specific', async () => {
+    const service = makeService([LAGOS_ZONE]);
+    await expect(service.quote('Nigeria', ProductionSpeed.standard, 10000, undefined, 'Kano')).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it("matches a country case-insensitively against a zone's country list", async () => {
     const service = makeService([NIGERIA_ZONE]);
     const quote = await service.quote(

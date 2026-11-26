@@ -19,7 +19,7 @@ export default function CampaignStyleDetail({ style, madeToMeasure }: { style: C
   const price = campaignPrice(style, madeToMeasure);
   const sizes = campaignSizes(style, madeToMeasure);
   const media: Media[] = colour.photos.map((photo) => ({ type: "image", src: campaignPhoto(photo) }));
-  const email = systemSettings.general.supportEmail || "hello@momen.style";
+  const email = systemSettings.general.supportEmail || "hello@momenclothing.com";
   const subject = madeToMeasure ? `Bespoke order: ${style.name}` : `Order: ${style.name}`;
   const enquiry = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(madeToMeasure
     ? `Hello momen.,\n\nI'd like to order ${style.name}${colour.illustration && colours.length === 1 ? "" : ` in ${colour.name}`}, made to my measurements.${colour.photos.length > 1 ? "\n\nThe look I like: " : ""}`

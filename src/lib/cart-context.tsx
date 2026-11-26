@@ -41,7 +41,9 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null);
 
 /** Cap for pieces made per order (made-to-measure / made-to-order). */
-export const MADE_TO_ORDER_MAX_QTY = 20;
+export const MADE_TO_ORDER_MAX_QTY = 10;
+/** Most of one piece in a single order (the API refuses more). */
+export const MAX_LINE_QTY = 10;
 
 /** Pieces cut per order (made-to-measure, made-to-order, or untracked
  * stock) — their quantity isn't limited by inventory. */
@@ -55,7 +57,7 @@ export function isMadePerOrder(product: Product) {
 export function maxQuantityFor(product: Product, size: string) {
   if (isMadePerOrder(product)) return MADE_TO_ORDER_MAX_QTY;
   const perSize = product.sizeStock?.[size];
-  return Math.max(0, perSize ?? availableUnits(product));
+  return Math.max(0, Math.min(MAX_LINE_QTY, perSize ?? availableUnits(product)));
 }
 
 /** Whether a size is sold out (tracked per size with zero units left). */

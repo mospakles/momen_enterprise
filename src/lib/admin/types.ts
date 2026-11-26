@@ -145,6 +145,8 @@ export interface DeliveryZone {
   id: string;
   name: string;
   countries: string[];
+  /** States this zone covers; empty means the whole country. */
+  states: string[];
   standardFee: number;
   expressFee: number;
   freeDeliveryThreshold?: number;

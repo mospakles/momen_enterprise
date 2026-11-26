@@ -226,6 +226,7 @@ function normalizeDeliveryZone(value: Record<string, unknown>): DeliveryZone {
     id: String(value.id),
     name: String(value.name),
     countries: value.countries as string[],
+    states: Array.isArray(value.states) ? (value.states as string[]) : [],
     standardFee: numberValue(value.standardFee),
     expressFee: numberValue(value.expressFee),
     freeDeliveryThreshold: value.freeDeliveryThreshold == null ? undefined : numberValue(value.freeDeliveryThreshold),
@@ -665,7 +666,7 @@ export function AdminStoreProvider({ children }: { children: React.ReactNode }) 
 
   const upsertDeliveryZone = useCallback((z: DeliveryZone) => {
     const exists = deliveryZones.some((x) => x.id === z.id);
-    const body = { name: z.name, countries: z.countries, standardFee: z.standardFee, expressFee: z.expressFee, freeDeliveryThreshold: z.freeDeliveryThreshold, standardDaysMin: z.standardDays[0], standardDaysMax: z.standardDays[1], expressDaysMin: z.expressDays[0], expressDaysMax: z.expressDays[1], expressAvailable: z.expressAvailable, pickupAvailable: z.pickupAvailable ?? false, pickupLocation: z.pickupLocation || undefined, pickupFee: z.pickupFee ?? 0, active: z.active };
+    const body = { name: z.name, countries: z.countries, states: z.states ?? [], standardFee: z.standardFee, expressFee: z.expressFee, freeDeliveryThreshold: z.freeDeliveryThreshold, standardDaysMin: z.standardDays[0], standardDaysMax: z.standardDays[1], expressDaysMin: z.expressDays[0], expressDaysMax: z.expressDays[1], expressAvailable: z.expressAvailable, pickupAvailable: z.pickupAvailable ?? false, pickupLocation: z.pickupLocation || undefined, pickupFee: z.pickupFee ?? 0, active: z.active };
     void apiRequest<Record<string, unknown>>(exists ? `/admin/delivery-zones/${z.id}` : "/admin/delivery-zones", { method: exists ? "PUT" : "POST", body })
       .then((saved) => setDeliveryZones((prev) => exists ? prev.map((x) => x.id === z.id ? normalizeDeliveryZone(saved) : x) : [normalizeDeliveryZone(saved), ...prev])).catch(mutationFailed);
   }, [deliveryZones, setDeliveryZones]);

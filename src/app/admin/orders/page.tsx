@@ -322,8 +322,20 @@ function OrderDrawer({
                       <p className="text-xs text-ink/45">
                         {it.size}, {it.color}
                         {isMadeToMeasure(it.product) && (it.measurement && it.measurement.mode !== "pending" ? " · measurements attached" : it.size === "Made-to-Measure" ? " · measurements pending" : " · standard size from the size guide")}
-                        {it.customOrder && " · custom order"}
+                        {it.customOrder && (it.customOrder.referenceImages?.length || it.customOrder.specialInstructions || it.customOrder.fabricId) && " · custom order"}
                       </p>
+                      {it.customOrder?.neededBy && (
+                        <p className="mt-1 text-xs font-medium text-terracotta">
+                          Needed by {new Date(`${it.customOrder.neededBy}T12:00:00`).toLocaleDateString("en-NG", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
+                        </p>
+                      )}
+                      {it.customOrder?.look && (
+                        <a href={it.customOrder.look} target="_blank" rel="noreferrer" className="mt-2 flex items-center gap-2 text-xs text-ink/60 hover:text-ink">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- small admin thumbnail */}
+                          <img src={it.customOrder.look} alt="" className="h-16 w-12 object-cover object-top" />
+                          Chosen look
+                        </a>
+                      )}
                     </div>
                     <p>{formatNaira((it.product.price + (it.customizationCost ?? 0)) * it.quantity)}</p>
                   </div>

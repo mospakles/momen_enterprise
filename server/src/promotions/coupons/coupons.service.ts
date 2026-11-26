@@ -19,21 +19,51 @@ export interface CouponValidationResult {
   discountAmount: number;
 }
 
+/** One mailbox, however it's written: lower case, no "+tag", and for Gmail
+ * no dots (a.b+promo@gmail.com and ab@googlemail.com are the same inbox). */
+export function normalizeEmail(email: string) {
+  const [local = '', domain = ''] = email.trim().toLowerCase().split('@');
+  const base = local.split('+')[0];
+  return domain === 'gmail.com' || domain === 'googlemail.com'
+    ? `${base.replace(/\./g, '')}@gmail.com`
+    : `${base}@${domain}`;
+}
+
+/** The last ten digits, so +234 803…, 234803… and 0803… match. */
+export function normalizePhone(phone?: string) {
+  const digits = (phone ?? '').replace(/\D/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : undefined;
+}
+
+/** True when this person has no earlier order that's paid or still awaiting
+ * payment. Failed and cancelled attempts don't count, so a customer whose
+ * first payment didn't go through keeps the welcome offer. The same mailbox
+ * under a "+tag" or Gmail dots, or the same phone number, counts as the same
+ * person. */
 export async function isFirstOrder(
-  db: Pick<Prisma.TransactionClient, 'order'>,
+  db: Pick<Prisma.TransactionClient, '$queryRaw'>,
   customerEmail: string,
   customerId?: string,
+  phone?: string,
 ) {
-  const previousOrder = await db.order.findFirst({
-    where: {
-      OR: [
-        { customerEmail: { equals: customerEmail.trim(), mode: 'insensitive' } },
-        ...(customerId ? [{ customerId }] : []),
-      ],
-    },
-    select: { id: true },
-  });
-  return !previousOrder;
+  const email = normalizeEmail(customerEmail);
+  const phoneKey = normalizePhone(phone) ?? null;
+  const rows = await db.$queryRaw<{ id: string }[]>`
+    SELECT "id" FROM "Order"
+    WHERE ("paymentStatus" IN ('paid', 'refunded', 'partially_refunded')
+           OR ("paymentStatus" = 'pending' AND "status" <> 'Cancelled'))
+      AND (
+        (CASE WHEN split_part(lower("customerEmail"), '@', 2) IN ('gmail.com', 'googlemail.com')
+              THEN replace(split_part(split_part(lower("customerEmail"), '@', 1), '+', 1), '.', '') || '@gmail.com'
+              ELSE split_part(split_part(lower("customerEmail"), '@', 1), '+', 1) || '@' || split_part(lower("customerEmail"), '@', 2)
+         END) = ${email}
+        OR "customerId" = ${customerId ?? null}
+        OR (${phoneKey}::text IS NOT NULL
+            AND length(regexp_replace(coalesce("addressSnapshot"->>'phone', ''), '\D', '', 'g')) >= 10
+            AND right(regexp_replace("addressSnapshot"->>'phone', '\D', '', 'g'), 10) = ${phoneKey})
+      )
+    LIMIT 1`;
+  return rows.length === 0;
 }
 
 @Injectable()

@@ -185,7 +185,7 @@ export default function CheckoutPage() {
 
   // Delivery pricing/timelines come from the admin-configured zone matching
   // the customer's country (Admin → Delivery).
-  const settings = useDeliverySettings(address.country);
+  const settings = useDeliverySettings(address.country, address.state);
   const { zone } = settings;
 
   // If the destination's zone doesn't support express, fall back to standard
