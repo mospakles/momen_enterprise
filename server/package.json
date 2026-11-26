@@ -21,6 +21,8 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:campaign": "ts-node prisma/scripts/import-campaign.ts",
+    "db:retire-old": "ts-node prisma/scripts/retire-old-catalogue.ts",
+    "db:policies": "ts-node prisma/scripts/publish-policies.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {

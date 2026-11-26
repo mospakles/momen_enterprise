@@ -6,6 +6,12 @@ const entries = [
   ...bespoke.map((style) => ({ style, slug: bespokeSlug(style), madeToMeasure: true })),
 ];
 
+// --publish puts the campaign live; Ready-to-Wear pieces get --stock units each
+// (default 10) when they are published. Bespoke pieces are made to order.
+const publish = process.argv.includes('--publish');
+const stockArg = process.argv.find((arg) => arg.startsWith('--stock='));
+const stock = stockArg ? Number(stockArg.slice('--stock='.length)) : 10;
+
 async function importDrafts() {
   const prisma = new PrismaClient();
   try {
@@ -13,7 +19,7 @@ async function importDrafts() {
       const collections = await Promise.all([
         tx.collection.upsert({
           where: { slug: 'ready-to-wear' },
-          update: {},
+          update: publish ? { publishStatus: PublishStatus.published } : {},
           create: {
             slug: 'ready-to-wear', name: 'Ready-to-Wear',
             description: 'The momen. campaign collection in standard sizes.',
@@ -22,7 +28,7 @@ async function importDrafts() {
         }),
         tx.collection.upsert({
           where: { slug: 'bespoke' },
-          update: {},
+          update: publish ? { publishStatus: PublishStatus.published } : {},
           create: {
             slug: 'bespoke', name: 'Bespoke',
             description: 'Campaign pieces made to your measurements.',
@@ -43,6 +49,8 @@ async function importDrafts() {
       let created = 0;
       let priced = 0;
       let sized = 0;
+      let synced = 0;
+      let published = 0;
       for (const { style, slug, madeToMeasure } of entries) {
         const sku = `MOM-CAM-${slug.toUpperCase()}`;
         const price = campaignPrice(style, madeToMeasure);
@@ -53,13 +61,28 @@ async function importDrafts() {
           where: { slug },
           select: { id: true, sku: true, publishStatus: true, sizes: { select: { label: true } } },
         });
+        const category = await tx.category.upsert({
+          where: { slug: categorySlug(style) },
+          update: publish ? { publishStatus: PublishStatus.published } : {},
+          create: {
+            slug: categorySlug(style), name: style.name,
+            image: campaignPhoto(style.colours[0].photos[0]),
+            publishStatus: PublishStatus.published,
+          },
+        });
+        const colourVariants = offeredColours(style, madeToMeasure).map((colour, sortOrder) => ({
+          name: colour.name, hex: colour.hex, sortOrder, images: colour.photos.map(campaignPhoto),
+        }));
+        const images = offeredColours(style, madeToMeasure)[0].photos.map(campaignPhoto);
         if (existing) {
-          if (existing.sku !== sku || existing.publishStatus !== PublishStatus.draft) continue;
+          if (existing.sku !== sku) continue;
+          // Pictures always follow the catalogue in campaign-range.ts.
+          await tx.product.update({ where: { id: existing.id }, data: { images } });
+          await tx.productColorVariant.deleteMany({ where: { productId: existing.id } });
+          await tx.productColorVariant.createMany({ data: colourVariants.map((variant) => ({ ...variant, productId: existing.id })) });
+          synced++;
           if (price !== undefined) {
-            priced += (await tx.product.updateMany({
-              where: { slug, sku, publishStatus: PublishStatus.draft, price: 0 },
-              data: { price },
-            })).count;
+            priced += (await tx.product.updateMany({ where: { id: existing.id, price: 0 }, data: { price } })).count;
           }
           const existingSizes = new Set(existing.sizes.map(({ label }) => label));
           const missingSizes = sizes.filter(({ label }) => !existingSizes.has(label));
@@ -69,18 +92,14 @@ async function importDrafts() {
             });
             sized += result.count;
           }
+          if (publish) {
+            published += (await tx.product.updateMany({
+              where: { id: existing.id, publishStatus: { not: PublishStatus.published } },
+              data: { publishStatus: PublishStatus.published, ...(madeToMeasure ? {} : { stockQuantity: stock }) },
+            })).count;
+          }
           continue;
         }
-        const category = await tx.category.upsert({
-          where: { slug: categorySlug(style) },
-          update: {},
-          create: {
-            slug: categorySlug(style), name: style.name,
-            image: campaignPhoto(style.colours[0].photos[0]),
-            publishStatus: PublishStatus.published,
-          },
-        });
-        const images = style.colours[0].photos.map(campaignPhoto);
         await tx.product.create({
           data: {
             slug,
@@ -94,28 +113,27 @@ async function importDrafts() {
             collections: { create: { collectionId: collections[madeToMeasure ? 1 : 0].id } },
             images,
             sizes: { create: sizes },
-            colorVariants: { create: offeredColours(style, madeToMeasure).map((colour, sortOrder) => ({
-              name: colour.name, hex: colour.hex, sortOrder, images: colour.photos.map(campaignPhoto),
-            })) },
+            colorVariants: { create: colourVariants },
             productionType: madeToMeasure ? ProductionType.made_to_measure : ProductionType.ready_to_wear,
             productType: madeToMeasure ? ProductType.customizable : style.garment === 'accessory' ? ProductType.accessory : ProductType.ready_to_wear,
             sizingMode: madeToMeasure ? SizingMode.made_to_measure : SizingMode.standard,
             customizable: madeToMeasure,
             specialInstructionsAllowed: madeToMeasure,
             price: price ?? 0,
-            stockQuantity: 0,
+            stockQuantity: publish && !madeToMeasure ? stock : 0,
             productionDaysStandardMin: 0,
             productionDaysStandardMax: 0,
             productionDaysExpressMin: 0,
             productionDaysExpressMax: 0,
-            publishStatus: PublishStatus.draft,
+            publishStatus: publish ? PublishStatus.published : PublishStatus.draft,
           },
         });
         created++;
+        if (publish) published++;
       }
-      return { created, priced, sized };
-    }, { timeout: 15_000, isolationLevel: 'Serializable' });
-    console.log(`Campaign drafts created: ${counts.created}. Draft prices added: ${counts.priced}. Draft size options added: ${counts.sized}.`);
+      return { created, priced, sized, synced, published };
+    }, { timeout: 60_000, isolationLevel: 'Serializable' });
+    console.log(`Created: ${counts.created}. Pictures synced: ${counts.synced}. Prices added: ${counts.priced}. Sizes added: ${counts.sized}. Published: ${counts.published}.`);
   } finally {
     await prisma.$disconnect();
   }
@@ -125,7 +143,10 @@ function categorySlug(style: CampaignStyle) {
   return style.slug === 'kaftan' || style.slug === 'kaftan-senator' ? 'kaftans' : style.slug;
 }
 
-if (process.argv.includes('--apply')) {
+if (!Number.isInteger(stock) || stock < 0) {
+  console.error('--stock must be a whole number, e.g. --stock=10');
+  process.exitCode = 1;
+} else if (process.argv.includes('--apply')) {
   void importDrafts().catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : 'Campaign import failed.');
     process.exitCode = 1;
@@ -135,5 +156,5 @@ if (process.argv.includes('--apply')) {
     const sizes = campaignSizes(style, madeToMeasure);
     console.log(`${madeToMeasure ? 'Bespoke' : 'Ready-to-Wear'}  ${slug}${sizes.length ? ` (${sizes.join(', ')})` : ''}`);
   }
-  console.log('Dry run. Use --apply to import the campaign as drafts.');
+  console.log(`Dry run. Use --apply to import${publish ? ` and publish (Ready-to-Wear stock ${stock} each)` : ' as drafts'}.`);
 }
