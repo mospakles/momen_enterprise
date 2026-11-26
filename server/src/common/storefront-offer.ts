@@ -1,3 +1,0 @@
-export const WELCOME_CODE = 'WELCOME10';
-export const WELCOME_PERCENT = 10;
-export const DEFAULT_SUPPORT_PHONE = '+2348147441749';

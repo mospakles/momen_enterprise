@@ -2,9 +2,6 @@ node_modules
 .next
 .git
 .env*
-server/node_modules
-server/dist
-server/uploads
 coverage
 
 public/brand

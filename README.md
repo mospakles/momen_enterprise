@@ -1,80 +1,35 @@
-# Momen
+# Momen storefront
 
-Momen is a full-stack made-to-measure commerce platform: a Next.js 16 storefront and a NestJS/Prisma/PostgreSQL API with a permissioned admin portal.
+Next.js storefront and admin dashboard for Momen. The separate `momen-api` repository owns the NestJS API, PostgreSQL schema, and uploaded media. The storefront connects to it over HTTP.
 
-## What is implemented
+## Local development
 
-- Customer accounts: sign-up, login/logout, cookie sessions with refresh rotation, profile and password changes, password reset, saved addresses, measurements, wishlist, and order history.
-- Commerce: catalog, customizable made-to-measure orders, server-side prices/coupons/delivery quotes, stock reservation, gift cards, bank transfer orders, and Paystack checkout/verification/webhooks.
-- Admin: role/permission enforcement, catalog, inventory, customers, orders, production, delivery zones, promotions, refunds, payment-provider configuration, CMS, media uploads, notification rules, audit logs, and health checks.
-- Platform services: PostgreSQL migration, Swagger at `/docs`, uploaded media at `/uploads`, Resend-compatible email delivery, and a Docker Compose development stack.
-
-The implementation inventory and outstanding operational follow-ups are tracked in [docs/FULL_STACK_AUDIT.md](docs/FULL_STACK_AUDIT.md).
-
-## Requirements
-
-- Node 20.9+ (the repo includes `.nvmrc`; Node 22 is recommended)
-- PostgreSQL 16+ or Docker
-
-## Local setup
+Use the Node version in `.nvmrc`. Start the API from `momen-api` and follow its README to set up PostgreSQL and the initial administrator. Then run these commands here:
 
 ```bash
+nvm use
+npm ci
 cp .env.example .env.local
-cp server/.env.example server/.env
-npm install
-npm --prefix server install
-```
-
-Set a unique `JWT_ACCESS_SECRET`, database URL, and initial admin credentials in `server/.env`. The seed command intentionally refuses to create an administrator without `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.
-
-```bash
-cd server
-npx prisma migrate deploy
-npm run db:seed
-npm run start:dev
-```
-
-In another terminal:
-
-```bash
 npm run dev
 ```
 
-The storefront is available at `http://localhost:3000`, the admin login at `http://localhost:3000/admin/login`, the API at `http://localhost:4000/api`, and Swagger at `http://localhost:4000/docs`. Sign in to the admin with the `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` values used when running the seed command.
+Open `http://localhost:3000` for the storefront or `http://localhost:3000/admin/login` for the admin dashboard. The example connects to `http://localhost:4000/api`. Sign in with the administrator credentials used when seeding the API.
 
-## Docker
+## Deployment
 
-Set `JWT_ACCESS_SECRET` in your shell, then run:
+Set `NEXT_PUBLIC_API_URL` before building, including the `/api` suffix. Set `NEXT_PUBLIC_SITE_URL` to the storefront's public origin for canonical links and search indexing. In production, these values are `https://api.momenclothing.com/api` and `https://momenclothing.com` once those domains are configured. Only the API needs database, Paystack, JWT, or Resend credentials.
 
-```bash
-docker compose up --build
-```
+For a standalone Docker deployment, put the public variables in your shell or in Compose's `.env` and run `docker compose up --build`. If the frontend container and the API use a private network, `API_INTERNAL_URL` can point server-side catalogue reads to the API on that network.
 
-This starts Postgres, the API, and the storefront. Run the initial seed once after the API is healthy, providing the seed variables explicitly:
+## Campaign data
 
-```bash
-docker compose exec -e SEED_ADMIN_EMAIL=admin@example.com -e SEED_ADMIN_PASSWORD='use-a-unique-password' api npm run db:seed
-```
-
-## Production configuration
-
-Configure the API environment variables from [server/.env.example](server/.env.example), particularly `DATABASE_URL`, `JWT_ACCESS_SECRET`, `CORS_ORIGIN`, `FRONTEND_URL`, `AUTH_COOKIE_SAME_SITE`, `PAYSTACK_SECRET_KEY`, `PAYSTACK_CALLBACK_URL`, `RESEND_API_KEY`, and `EMAIL_FROM`.
-
-For the complete Railway service layout, reference variables, persistent upload
-volume, health checks, and Paystack callback/webhook setup, follow
-[docs/RAILWAY_DEPLOYMENT.md](docs/RAILWAY_DEPLOYMENT.md).
-
-For a cross-site frontend/API deployment, HTTPS is mandatory and `AUTH_COOKIE_SAME_SITE=none`; otherwise use `lax`. Configure Paystack’s callback URL to `/checkout/payment-callback` and its webhook URL to `/api/payments/webhooks/paystack`.
-
-`NEXT_PUBLIC_API_URL` is a browser-visible build-time setting; set it to the public API base ending in `/api` before building the frontend.
+`src/lib/campaign-range.ts` supplies the editorial catalogue and lookbook. The API keeps a matching copy at `prisma/campaign-range.ts` for its import script. Update both files when campaign slugs, prices, or image assignments change. Live pricing and availability come from the API.
 
 ## Verification
 
 ```bash
-nvm use
 npx tsc --noEmit
-npm --prefix server run build
 npm run build -- --webpack
 ```
 
-The webpack build option is useful in restricted local environments where Turbopack cannot create its CSS worker port.
+See [the feature audit](docs/FULL_STACK_AUDIT.md) for storefront and API coverage.
