@@ -1,7 +1,7 @@
 // Every photograph in public/images/campaign, each tied to the style it shows,
 // so any page can show campaign imagery that links straight to the product.
 
-import { bespokeSlug, campaignPhoto, campaignRange, type CampaignStyle } from "../../server/prisma/campaign-range";
+import { bespokeSlug, campaignPhoto, campaignRange, type CampaignStyle } from "./campaign-range";
 
 export interface CampaignShot {
   name: string;

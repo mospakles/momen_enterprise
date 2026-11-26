@@ -15,9 +15,8 @@ export const DEFAULT_DESCRIPTION =
   "Nigerian ready-to-wear and bespoke in Lagos. Ankara pants, aso-oke patchwork, jalabia, two-piece sets, vintage shirts, linen tees and fila.";
 export const DEFAULT_OG_IMAGE = campaignHero.src;
 
-// The server can reach the API on a private address when one is configured
-// (e.g. Railway's internal network); otherwise it uses the public URL.
-const API = (process.env.API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api").replace(/\/$/, "");
+// Prefer the private API address for server-side catalogue reads when set.
+const API = (process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api").replace(/\/$/, "");
 
 /** `missing` is true only when the API answered 404, never on network
  * errors, so a brief outage can't turn a real page into a 404. */

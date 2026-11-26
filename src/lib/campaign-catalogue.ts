@@ -1,9 +1,9 @@
 export {
   bespoke, bespokeSlug, campaignPhoto, campaignPrice, campaignRange, campaignSizes, findCampaignStyle, offeredColours, readyToWear,
   type CampaignColour, type CampaignStyle,
-} from "../../server/prisma/campaign-range";
+} from "./campaign-range";
 
-import { bespokeSlug, campaignPhoto, type CampaignStyle } from "../../server/prisma/campaign-range";
+import { bespokeSlug, campaignPhoto, type CampaignStyle } from "./campaign-range";
 import type { Product } from "./types";
 import { effectivePrice } from "./product-utils";
 import { normalise } from "./search";

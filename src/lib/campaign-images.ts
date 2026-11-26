@@ -1,4 +1,4 @@
-import { campaignPhoto } from "../../server/prisma/campaign-range";
+import { campaignPhoto } from "./campaign-range";
 export { campaignPhoto };
 
 export const campaignHero = {

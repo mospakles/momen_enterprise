@@ -1,7 +1,7 @@
 "use client";
 
 // The first-order welcome offer. The server applies WELCOME10 automatically
-// to a customer's first order (server/src/common/storefront-offer.ts); the
+// to a customer's first order (momen-api/src/common/storefront-offer.ts); the
 // storefront only has to tell people about it. Whether a visitor has seen the
 // pop-up or hidden the bar is remembered in this browser only.
 
