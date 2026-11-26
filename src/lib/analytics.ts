@@ -1,3 +1,4 @@
+import { effectivePrice } from "./product-utils";
 // Commerce analytics events (GA4 e-commerce naming). Events are pushed to
 // `window.dataLayer` when a tag manager is present and always re-dispatched as
 // a `momen:analytics` DOM event, so any provider can be wired in later
@@ -5,7 +6,7 @@
 
 import type { Product } from "./types";
 
-export type AnalyticsEvent =
+type AnalyticsEvent =
   | "view_item"
   | "view_item_list"
   | "add_to_cart"
@@ -23,7 +24,7 @@ export function itemFromProduct(product: Product, extra: { size?: string; color?
     item_name: product.name,
     item_category: product.category,
     item_variant: [extra.color, extra.size].filter(Boolean).join(" / ") || undefined,
-    price: extra.price ?? product.price,
+    price: extra.price ?? effectivePrice(product),
     quantity: extra.quantity ?? 1,
   };
 }

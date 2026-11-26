@@ -12,7 +12,7 @@ const STATUS_PALETTE = [STATUS.good, STATUS.warning, STATUS.serious, STATUS.crit
 
 /* ─────────────────────────────── Legend ─────────────────────────────── */
 
-export function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
+function ChartLegend({ items }: { items: { label: string; color: string }[] }) {
   if (items.length < 2) return null;
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink/60">
@@ -28,7 +28,7 @@ export function ChartLegend({ items }: { items: { label: string; color: string }
 
 /* ─────────────────────────────── Line chart ─────────────────────────────── */
 
-export interface LineSeries {
+interface LineSeries {
   label: string;
   color?: string;
   values: number[];
@@ -137,87 +137,6 @@ export function LineChart({
   );
 }
 
-/* ─────────────────────────────── Bar chart ─────────────────────────────── */
-
-export interface BarSeries {
-  label: string;
-  color?: string;
-  values: number[];
-}
-
-export function BarChart({
-  labels,
-  series,
-  height = 220,
-  formatValue = (v: number) => String(v),
-}: {
-  labels: string[];
-  series: BarSeries[];
-  height?: number;
-  formatValue?: (v: number) => string;
-}) {
-  const [hover, setHover] = useState<{ group: number; s: number } | null>(null);
-  const width = 640;
-  const padding = { top: 16, right: 12, bottom: 24, left: 12 };
-  const innerW = width - padding.left - padding.right;
-  const innerH = height - padding.top - padding.bottom;
-  const max = Math.max(1, ...series.flatMap((s) => s.values));
-
-  const groupW = innerW / labels.length;
-  const barGap = 3;
-  const barW = Math.max(4, (groupW - barGap * (series.length + 1)) / series.length);
-
-  return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label="Bar chart" preserveAspectRatio="none" style={{ height }}>
-        <title>{series.map((s) => s.label).join(", ")}</title>
-        <line x1={padding.left} x2={width - padding.right} y1={height - padding.bottom} y2={height - padding.bottom} stroke={CHART_CHROME.baseline} strokeWidth={1} />
-        {labels.map((_, gi) =>
-          series.map((s, si) => {
-            const color = s.color ?? CATEGORICAL[si % CATEGORICAL.length];
-            const v = s.values[gi] ?? 0;
-            const barH = (v / max) * innerH;
-            const bx = padding.left + gi * groupW + barGap + si * (barW + barGap);
-            const by = height - padding.bottom - barH;
-            const isHover = hover?.group === gi && hover?.s === si;
-            return (
-              <rect
-                key={`${gi}-${si}`}
-                x={bx}
-                y={by}
-                width={barW}
-                height={Math.max(1, barH)}
-                rx={2}
-                fill={color}
-                opacity={hover && !isHover ? 0.55 : 1}
-                onMouseEnter={() => setHover({ group: gi, s: si })}
-                onMouseLeave={() => setHover(null)}
-              />
-            );
-          })
-        )}
-      </svg>
-      <div className="mt-1 flex text-[10px] text-ink/40" style={{ paddingLeft: padding.left, paddingRight: padding.right }}>
-        {labels.map((l, i) => (
-          <span key={i} style={{ width: `${(1 / labels.length) * 100}%` }} className="truncate text-center">
-            {l}
-          </span>
-        ))}
-      </div>
-      {hover && (
-        <div className="pointer-events-none absolute top-0 left-1/2 z-10 -translate-x-1/2 rounded-sm border border-line bg-ink px-2.5 py-1.5 text-xs text-ivory shadow-lg">
-          <p className="font-medium">{labels[hover.group]}</p>
-          <p className="text-stone-light">
-            {series[hover.s].label}: {formatValue(series[hover.s].values[hover.group] ?? 0)}
-          </p>
-        </div>
-      )}
-      <div className="mt-2">
-        <ChartLegend items={series.map((s, i) => ({ label: s.label, color: s.color ?? CATEGORICAL[i % CATEGORICAL.length] }))} />
-      </div>
-    </div>
-  );
-}
 
 /* ─────────────────────────────── Donut chart ─────────────────────────────── */
 

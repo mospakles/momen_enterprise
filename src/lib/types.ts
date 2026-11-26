@@ -181,6 +181,9 @@ export interface Category {
   sortOrder: number;
   publishStatus: PublishStatus;
   seo: SEO;
+  /** Measurements this style needs when cut to measure (e.g. Agbada: robe,
+   * inner top and trousers). Products can override; empty = garment default. */
+  measurementFieldKeys?: string[];
 }
 
 export type MeasurementField =
@@ -189,8 +192,12 @@ export type MeasurementField =
   | "waist"
   | "hip"
   | "shoulder"
+  | "sleeveShort"
+  | "sleeveThreeQuarter"
   | "sleeveLength"
   | "bicep"
+  | "roundSleeveThreeQuarter"
+  | "roundSleeveLong"
   | "armhole"
   | "wrist"
   | "length"
@@ -259,6 +266,10 @@ export interface CustomOrderDetails {
   referenceImages?: string[];
   referenceNotes?: string;
   specialInstructions?: string;
+  /** Bespoke: the style picture the customer chose to have made. */
+  look?: string;
+  /** Bespoke: the date the customer needs the piece by (YYYY-MM-DD). */
+  neededBy?: string;
 }
 
 export interface CartItem {
@@ -268,6 +279,9 @@ export interface CartItem {
   color: string;
   quantity: number;
   measurement?: CartMeasurement;
+  /** How a made-to-measure piece is cut: a standard size from the size guide
+   * (no measurements needed) or to the customer's measurements. */
+  fit?: "standard" | "measure";
   customizations?: Record<string, string>; // groupId -> choiceId
   customOrder?: CustomOrderDetails;
   customizationCost?: number;
@@ -382,10 +396,3 @@ export interface Address {
   phone: string;
 }
 
-export interface ProductionSettings {
-  standardDays: [number, number];
-  expressDays: [number, number];
-  standardFee: number;
-  expressFee: number;
-  regions: string[];
-}

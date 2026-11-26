@@ -19,6 +19,6 @@ export class CouponsController {
     @CurrentUser() user: AuthenticatedCustomer | null,
     @Body() dto: ValidateCouponDto,
   ) {
-    return this.couponsService.previewValidate(dto, user?.id);
+    return this.couponsService.previewValidate(dto, user?.id, user?.email);
   }
 }

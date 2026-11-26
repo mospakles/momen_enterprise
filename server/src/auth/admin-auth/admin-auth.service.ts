@@ -16,7 +16,7 @@ import {
 import type { AdminLoginDto } from './dto/login.dto';
 import { EmailSenderService } from '../../notifications/email-sender.service';
 
-export interface TokenPair {
+interface TokenPair {
   accessToken: string;
   refreshToken: string;
 }

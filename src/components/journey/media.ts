@@ -1,150 +1,85 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// MEDIA — every image and video slot in the brand journey.
-//
-// Most slots use momen. brand photography (public/images/brand, optimised
-// from the originals in public/brand). The three slots still marked
-// PLACEHOLDER (measure / cut / sew in the making strip) are Unsplash
-// stand-ins until atelier photography exists; `brief` describes the shot.
-// ─────────────────────────────────────────────────────────────────────────────
+import type React from "react";
+import { campaignHero, campaignPhoto } from "@/lib/campaign-images";
 
 export interface MediaSlot {
   src: string;
   alt: string;
-  /** What real brand photography should go here. */
-  brief: string;
+  pos?: string;
+  posMobile?: string;
 }
 
-const u = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=2000&q=80`;
-/** momen. brand photography (optimised copies in public/images/brand). */
-const b = (name: string) => `/images/brand/${name}.jpg`;
+function shot(name: string, alt: string, pos = "50% 35%"): MediaSlot {
+  return { src: campaignPhoto(name), alt, pos };
+}
 
-/** Optional hero film. Muted, looping, ~6–10s, ≤ 4MB, H.264 MP4. Leave
- * undefined to use the still `hero` image (which is also the poster). */
+/** Optional hero film. Leave undefined to use the campaign stills. */
 export const HERO_VIDEO: string | undefined = undefined;
 
+export function focal(slot: Pick<MediaSlot, "pos" | "posMobile">) {
+  return {
+    className: "[object-position:var(--pos-m)] lg:[object-position:var(--pos-d)]",
+    style: { "--pos-d": slot.pos ?? "50% 50%", "--pos-m": slot.posMobile ?? slot.pos ?? "50% 50%" } as React.CSSProperties,
+  };
+}
+
+const burgundy = shot("burgundy-robe-studio", "A man in a full-length burgundy robe in a warmly lit studio", "50% 32%");
+const blue = shot("blue-geometric-set-full-length", "A man in a sky-blue tunic and trousers with a patterned cap");
+const ivory = shot("ivory-textured-set-front", "A man wearing a textured ivory polo and matching trousers", "50% 26%");
+const cap = shot("burgundy-striped-cap-profile", "A close-up of a folded cap in burgundy and grey stripes", "50% 18%");
+const panel = shot("ivory-woven-panel-shirt-detail", "Diagonal burgundy and grey woven stripes across an ivory shirt", "50% 50%");
+const trousers = shot("patterned-trousers-group-side", "Side views of three patterned trousers with contrasting panels and cuffs", "50% 55%");
+
 export const MEDIA = {
-  hero: {
-    src: b("agbada8"),
-    alt: "A man in a gold embroidered agbada and cap stands in window light",
-    brief: "Full-length agbada in motion: sleeves catching wind, low sun, Lagos architecture. Portrait + landscape crops.",
-  },
+  hero: campaignHero,
+  heroMobile: burgundy,
   story: [
-    {
-      src: b("logo"),
-      alt: "A momen. clothing tag resting on folds of charcoal cloth",
-      brief: "The cloth: bolts of aso-oke and brocade in the atelier, raking light across the weave.",
-    },
-    {
-      src: b("logo1"),
-      alt: "A woven momen. clothing label stitched into a brown jacket",
-      brief: "The hands: a momen. tailor at work, close on hands and chalk, black and white.",
-    },
-    {
-      src: b("kaftan8"),
-      alt: "A man in a taupe kaftan with embroidered chest detail and matching trousers",
-      brief: "The line: a clean modern kaftan silhouette against a plain wall.",
-    },
-    {
-      src: b("2piecelong6"),
-      alt: "A man in a black long-sleeve shirt and trousers stands composed",
-      brief: "The man: candid portrait of the momen. customer, relaxed, unposed.",
-    },
+    panel,
+    shot("burgundy-robe-detail", "Tonal detailing on a burgundy robe"),
+    blue,
+    shot("ivory-and-blue-sets", "Two men in coordinated ivory and blue outfits"),
   ],
   process: [
-    {
-      src: u("1744808336885-c6b2425c3f1e"),
-      alt: "A tailor with a measuring tape draped around his neck",
-      brief: "PLACEHOLDER — Measure: tape across a client's shoulders during a fitting.",
-    },
-    {
-      src: u("1631628559428-f79ca90b9ef8"),
-      alt: "A tailor cuts thread with scissors over dark fabric",
-      brief: "PLACEHOLDER — Cut: shears through cloth on the cutting table, chalk lines visible.",
-    },
-    {
-      src: u("1687422808289-e721259c9eb4"),
-      alt: "A tailor guides printed fabric through a black sewing machine",
-      brief: "PLACEHOLDER — Sew: needle plate and fabric close-up on the machine.",
-    },
-    {
-      src: b("logo3"),
-      alt: "A momen. clothing hang tag on a finished white garment",
-      brief: "Finish: hand embroidery or hand-felled hem, macro.",
-    },
+    shot("ivory-textured-set-side", "Side view of an ivory polo and matching trousers"),
+    shot("patchwork-trousers-detail", "Bright woven panels on patchwork trousers", "50% 62%"),
+    panel,
+    shot("cobalt-striped-cuff-trousers-front", "Blue geometric trousers finished with striped cuffs", "50% 68%"),
   ],
   looks: [
-    {
-      src: b("agbada7"),
-      alt: "A man in a white agbada with gold embroidery and a matching cap",
-      brief: "Look 01: full-length occasion look.",
-    },
-    {
-      src: b("kaftan11"),
-      alt: "A man in a navy kaftan with tonal embroidery and sunglasses",
-      brief: "Look 02: embroidered kaftan.",
-    },
-    {
-      src: b("shirt"),
-      alt: "A man in a burnt-orange textured shirt and wide stone trousers",
-      brief: "Look 03: shirt and wide trouser.",
-    },
-    {
-      src: b("2pieceshort9"),
-      alt: "A man in a green short-sleeve two-piece with patterned trim",
-      brief: "Look 04: weekend two-piece.",
-    },
-    {
-      src: b("menasooke5"),
-      alt: "A man in a white shirt and burgundy striped aso-oke cargo trousers",
-      brief: "Look 05: aso-oke trouser.",
-    },
+    { ...campaignHero, title: "Patterned trousers" },
+    { ...burgundy, title: "Burgundy robe" },
+    { ...blue, title: "Sky-blue set" },
+    { ...shot("ivory-and-blue-sets", "Two men in coordinated ivory and blue outfits", "50% 22%"), title: "Coordinated textures" },
+    { ...shot("landscape-print-shirt-front", "A short-sleeve shirt with a green and gold landscape print"), title: "Landscape print shirt" },
   ],
   occasions: {
-    wedding: {
-      src: b("agbada6"),
-      alt: "A man in a white agbada with black geometric embroidery and cap",
-      brief: "Wedding: groom in full occasion wear, golden hour.",
-    },
-    owambe: {
-      src: b("agbada9"),
-      alt: "A man in a burnt-orange agbada and matching cap",
-      brief: "Owambe: celebration energy, agbada mid-movement.",
-    },
-    office: {
-      src: b("kaftan7"),
-      alt: "A man in an all-black kaftan and cap",
-      brief: "Office: senator or native shirt in a modern workplace.",
-    },
-    weekend: {
-      src: b("2pieceshort11"),
-      alt: "A man in a teal short-sleeve two-piece and sunglasses",
-      brief: "Weekend: relaxed linen and woven pieces, outdoors.",
-    },
-    bespoke: {
-      src: b("agbada11"),
-      alt: "A man in an emerald agbada with embroidered chest panel",
-      brief: "Bespoke: the fitting room, tape and pins.",
-    },
+    wedding: burgundy,
+    owambe: blue,
+    office: ivory,
+    weekend: shot("blue-abstract-shirt-front", "A blue abstract-print short-sleeve shirt"),
+    bespoke: panel,
   },
-  bespoke: {
-    src: b("agbada10"),
-    alt: "A man in a brown agbada with gold embroidery and cap",
-    brief: "Bespoke invitation: a warm fitting-room moment, client and tailor.",
+  bespoke: shot("burgundy-robe-front", "A front view of the tonal embroidery on a burgundy robe", "50% 28%"),
+  handoff: trousers,
+  shopHero: trousers,
+  aboutHero: shot("ivory-and-blue-sets", "Two men in coordinated ivory and blue outfits", "50% 20%"),
+  aboutFounder: { src: "/images/brand/founder-portrait-laughing-amber.jpg", alt: "Motunrayo Odusina, founder of momen., laughing in a violet and blue printed top", pos: "50% 30%" },
+  aboutFounderDetails: [
+    { src: "/images/brand/founder-portrait-laughing-studio.jpg", alt: "Motunrayo Odusina laughing in a black and magenta printed peplum dress", pos: "55% 30%" },
+    { src: "/images/brand/founder-portrait-hands-on-heart.jpg", alt: "Motunrayo Odusina with her hands on her heart", pos: "50% 30%" },
+  ],
+  aboutAtelier: shot("cobalt-striped-cuff-trousers-detail", "Striped aso-oke cuffs stitched onto cobalt Ankara trousers", "50% 55%"),
+  madeToMeasureHero: shot("burgundy-robe-full-length", "A full-length burgundy robe styled with a black cap", "50% 25%"),
+  shopFeatures: {
+    wedding: burgundy,
+    cloth: panel,
+    bespoke: blue,
+    accessories: cap,
   },
-  handoff: {
-    src: b("agbada"),
-    alt: "A man in a burgundy agbada with gold embroidery",
-    brief: "Handoff: one quiet campaign image, generous negative space.",
+  emptyBag: shot("ivory-textured-set-portrait", "A man in a textured ivory polo with his arms crossed", "50% 25%"),
+  footer: shot("patterned-trousers-trio", "Three pairs of Ankara pants with tan, patchwork and striped cuffs", "50% 60%"),
+  auth: {
+    login: shot("blue-geometric-set-portrait", "A man in a sky-blue kaftan with a geometric placket and matching cap", "50% 25%"),
+    signup: shot("cobalt-trousers-duo-side", "Two men back to back in cobalt Ankara pants", "50% 30%"),
+    recover: shot("burgundy-robe-full-length", "A full-length burgundy jalabia styled with a black fila", "50% 30%"),
   },
-} satisfies Record<string, MediaSlot | MediaSlot[] | Record<string, MediaSlot>>;
-
-/** Lookbook pairing: each editorial image links to a real product. Edit the
- * slugs to curate; when a slug isn't published, the lookbook falls back to the
- * next signature/featured product from the catalogue. */
-export const LOOK_PRODUCT_SLUGS = [
-  "adebayo-complete-agbada-set",
-  "obasi-embroidered-kaftan",
-  "obi-native-shirt",
-  "weekend-two-piece-set",
-  "femi-straight-trouser",
-];
+};

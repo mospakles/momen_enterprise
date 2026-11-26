@@ -6,8 +6,6 @@
 // direct labels, never color alone. Do not reorder the categorical slots —
 // the order IS the CVD-safety mechanism.
 
-export const CHART_SURFACE = "#FEFDFA";
-
 export const CATEGORICAL = [
   "#2a78d6", // 1 blue
   "#eb6834", // 2 orange
@@ -18,8 +16,6 @@ export const CATEGORICAL = [
   "#4a3aa7", // 7 violet
   "#e34948", // 8 red
 ] as const;
-
-export const SEQUENTIAL_BLUE = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"];
 
 // Fixed — never themed, never reused for a categorical series. Always shown
 // with an icon + label, never color alone (several sit sub-3:1 on light).

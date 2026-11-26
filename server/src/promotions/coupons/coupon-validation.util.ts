@@ -3,6 +3,8 @@ import { Coupon, DiscountType, PromotionScope } from '@prisma/client';
 
 export interface CouponValidationContext {
   customerId?: string;
+  /** Only checkout may vouch for a guest email on the welcome offer. */
+  guestFirstOrder?: boolean;
   isFirstOrder: boolean;
   subtotal: number;
   items: { productId: string; collectionSlugs: string[]; lineTotal: number }[];
@@ -48,7 +50,7 @@ export function computeCouponDiscount(
   }
 
   if (coupon.scope === PromotionScope.first_order) {
-    if (!context.customerId)
+    if (!context.customerId && !context.guestFirstOrder)
       throw new BadRequestException('Sign in to use this coupon');
     if (!context.isFirstOrder)
       throw new BadRequestException(

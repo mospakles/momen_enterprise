@@ -1,9 +1,8 @@
-// The canonical order timeline and the logic that decides which stages
-// apply to a given order — shared by real checkout (`checkout/page.tsx`),
-// demo seed data (`admin/seed-orders.ts`), and anywhere else that needs to
-// know an order's expected stage list, so these never drift apart.
+// The canonical order timeline and how an order is classified — shared by
+// the storefront's order tracking and the admin, so they never drift apart.
 
 import type { CartItem, OrderStage } from "./types";
+import { isMadeToMeasure as productIsMadeToMeasure } from "./product-utils";
 
 export const ORDER_STAGES: OrderStage[] = [
   "Order Placed",
@@ -28,7 +27,7 @@ export function isCustomOrder(items: CartItem[]): boolean {
 }
 
 function isMadeToMeasure(items: CartItem[]): boolean {
-  return items.some((i) => i.product.productionType === "made-to-measure");
+  return items.some((i) => productIsMadeToMeasure(i.product));
 }
 
 export type OrderTypeLabel = "Ready-to-Wear" | "Made-to-Measure" | "Custom" | "Accessory";
@@ -44,19 +43,4 @@ export function orderType(items: CartItem[]): OrderTypeLabel {
   if (items.length > 0 && items.every((i) => i.product.productType === "accessory")) return "Accessory";
   if (isMadeToMeasure(items)) return "Made-to-Measure";
   return "Ready-to-Wear";
-}
-
-/** The subset of `ORDER_STAGES` that applies to a given order's items —
- * "Customization Review" only appears for genuine custom orders, and
- * "Awaiting Measurements" / "Measurements Confirmed" only for made-to-
- * measure orders. A plain ready-to-wear order skips straight from payment
- * to the production queue. */
-export function stagesForItems(items: CartItem[]): OrderStage[] {
-  const custom = isCustomOrder(items);
-  const mtm = isMadeToMeasure(items);
-  return ORDER_STAGES.filter((stage) => {
-    if (stage === "Customization Review") return custom;
-    if (stage === "Awaiting Measurements" || stage === "Measurements Confirmed") return mtm;
-    return true;
-  });
 }

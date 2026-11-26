@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
 import { MediaAssetsService } from './media-assets.service';
@@ -18,6 +19,8 @@ export class ReferenceMediaController {
   constructor(private readonly media: MediaAssetsService) {}
 
   @Post()
+  // A few reference photos per order; stops one visitor filling the disk.
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', referenceImageMulterOptions))
   upload(

@@ -3,10 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { Reveal, ClipReveal } from "@/lib/motion/Reveal";
 import { SplitText } from "@/lib/motion/SplitText";
+import { MEDIA, focal } from "@/components/journey/media";
+import { placeholderFor } from "@/lib/brand-images";
+import PhotoStrip from "@/components/campaign/PhotoStrip";
+import { shots } from "@/lib/campaign-shots";
 
 export const metadata: Metadata = {
   title: "The house — momen.",
-  description: "momen. is an African clothing house in Lagos: heritage garments cut with a modern hand, ready-to-wear and made to measure.",
+  description: "A Lagos clothing house working with Ankara, aso-oke and linen across ready-to-wear and bespoke.",
 };
 
 // ── Founder copy ─────────────────────────────────────────────────────────────
@@ -47,7 +51,7 @@ export default function AboutPage() {
     <div>
       {/* Hero */}
       <section data-tone="dark" className="relative flex h-[78vh] min-h-[480px] items-end overflow-hidden bg-night">
-        <Image src="/images/brand/agbada12.jpg" alt="A man in a burgundy agbada with gold embroidery and cap" fill preload sizes="100vw" className="object-cover object-[50%_25%] opacity-85" />
+        <Image src={MEDIA.aboutHero.src} alt={MEDIA.aboutHero.alt} fill preload sizes="100vw" placeholder={placeholderFor(MEDIA.aboutHero.src)} style={focal(MEDIA.aboutHero).style} className={`object-cover opacity-90 ${focal(MEDIA.aboutHero).className}`} />
         <div className="absolute inset-0 bg-linear-to-t from-night/90 via-night/25 to-night/30" />
         <div className="relative mx-auto w-full max-w-[1600px] px-5 pb-14 sm:px-10 lg:px-16 lg:pb-20">
           <p className="label text-sand">The house</p>
@@ -62,21 +66,21 @@ export default function AboutPage() {
 
       {/* About the house — founder */}
       <section aria-labelledby="founder-heading" className="mx-auto max-w-[1600px] px-5 py-24 sm:px-10 lg:grid lg:grid-cols-12 lg:gap-10 lg:px-16 lg:py-36">
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-6">
           <ClipReveal className="relative aspect-[4/5] w-full bg-bone">
-            <Image src="/images/brand/me.jpg" alt={`${FOUNDER.name}, ${FOUNDER.role} of momen.`} fill sizes="(min-width:1024px) 40vw, 100vw" className="object-cover object-top" />
+            <Image src={MEDIA.aboutFounder.src} alt={MEDIA.aboutFounder.alt} fill sizes="(min-width:1024px) 48vw, 100vw" placeholder={placeholderFor(MEDIA.aboutFounder.src)} style={focal(MEDIA.aboutFounder).style} className={`object-cover ${focal(MEDIA.aboutFounder).className}`} />
           </ClipReveal>
           <div className="mt-4 grid grid-cols-2 gap-4">
-            <ClipReveal className="relative aspect-square w-full bg-bone" delay={0.15}>
-              <Image src="/images/brand/meeee.jpg" alt={`${FOUNDER.name} laughing in the studio`} fill sizes="(min-width:1024px) 20vw, 50vw" className="object-cover object-top" />
+            <ClipReveal className="relative aspect-[4/5] w-full bg-bone" delay={0.15}>
+              <Image src={MEDIA.aboutFounderDetails[0].src} alt={MEDIA.aboutFounderDetails[0].alt} fill sizes="(min-width:1024px) 24vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[0].src)} style={focal(MEDIA.aboutFounderDetails[0]).style} className={`object-cover ${focal(MEDIA.aboutFounderDetails[0]).className}`} />
             </ClipReveal>
-            <ClipReveal className="relative aspect-square w-full bg-bone" delay={0.25}>
-              <Image src="/images/brand/motunnn.jpg" alt={`${FOUNDER.name} in an ankara ruffle dress`} fill sizes="(min-width:1024px) 20vw, 50vw" className="object-cover object-top" />
+            <ClipReveal className="relative aspect-[4/5] w-full bg-bone" delay={0.25}>
+              <Image src={MEDIA.aboutFounderDetails[1].src} alt={MEDIA.aboutFounderDetails[1].alt} fill sizes="(min-width:1024px) 24vw, 50vw" placeholder={placeholderFor(MEDIA.aboutFounderDetails[1].src)} style={focal(MEDIA.aboutFounderDetails[1]).style} className={`object-cover ${focal(MEDIA.aboutFounderDetails[1]).className}`} />
             </ClipReveal>
           </div>
         </div>
 
-        <div className="mt-14 lg:col-span-6 lg:col-start-7 lg:mt-0 lg:pt-16">
+        <div className="mt-14 lg:col-span-5 lg:col-start-8 lg:mt-0 lg:sticky lg:top-28 lg:self-start lg:pt-16">
           <p className="label text-clay">About the house — the founder</p>
           <SplitText as="h2" text={FOUNDER.heading} className="display mt-5 text-[clamp(2.4rem,5vw,4.5rem)]" />
           <span id="founder-heading" className="sr-only">About the founder</span>
@@ -114,28 +118,29 @@ export default function AboutPage() {
       {/* Atelier + process */}
       <section className="mx-auto grid max-w-[1600px] items-center gap-12 px-5 py-24 sm:px-10 lg:grid-cols-12 lg:px-16 lg:py-36">
         <ClipReveal from="left" className="relative aspect-[4/3] w-full bg-bone lg:col-span-7">
-          <Image src="/images/brand/logo1.jpg" alt="A woven momen. clothing label stitched into a garment" fill sizes="(min-width:1024px) 55vw, 100vw" className="object-cover" />
+          <Image src={MEDIA.aboutAtelier.src} alt={MEDIA.aboutAtelier.alt} fill sizes="(min-width:1024px) 55vw, 100vw" placeholder={placeholderFor(MEDIA.aboutAtelier.src)} style={focal(MEDIA.aboutAtelier).style} className={`object-cover ${focal(MEDIA.aboutAtelier).className}`} />
         </ClipReveal>
         <div className="lg:col-span-4 lg:col-start-9">
-          <p className="label text-clay">The made-to-measure process</p>
-          <h2 className="display mt-5 text-[clamp(2rem,3.6vw,3.2rem)]">From your numbers to a pattern of one.</h2>
+          <h2 className="display text-[clamp(2rem,3.6vw,3.2rem)]">Make a piece your own</h2>
           <Reveal>
             <p className="mt-6 text-sm leading-relaxed text-ink/70">
-              You choose a piece, share measurements you already have or work through our guided steps, and our pattern cutters translate
-              those numbers into a paper pattern unique to you. Every piece is then cut, sewn and finished by hand — checked at three stages
-              before it ships.
+              Explore our bespoke kaftan, jalabia, two-piece set, linen tee with aso-oke detailing and fila. Choose a style and tell us how you’d like it to fit.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link href="/made-to-measure" className="bg-ink px-6 py-3.5 text-sm tracking-wide text-ivory transition-colors hover:bg-terracotta">
-                Book a fitting
+                Explore Bespoke
               </Link>
               <Link href="/shop" className="label link-line self-center text-ink">
-                Enter the collection
+                Shop Ready-to-Wear
               </Link>
             </div>
           </Reveal>
         </div>
       </section>
+      <PhotoStrip title="The house, in pictures" shots={shots(
+        "ivory-and-blue-sets", "burgundy-robe-studio", "patterned-trousers-group-front", "blue-geometric-set-seated",
+        "cobalt-trousers-duo-front", "ivory-woven-panel-shirt-front", "patchwork-trousers-full-length", "landscape-print-shirt-front", "white-cap-profile",
+      )} className="bg-ivory" />
     </div>
   );
 }

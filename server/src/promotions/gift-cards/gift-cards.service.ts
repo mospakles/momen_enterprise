@@ -80,8 +80,9 @@ export class GiftCardsService {
   async validate(
     code: string,
     requestedAmount: number,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<{ giftCardId: string; code: string; amountToApply: number }> {
-    const card = await this.prisma.giftCard.findUnique({
+    const card = await db.giftCard.findUnique({
       where: { code: code.trim().toUpperCase() },
     });
     if (!card) throw new BadRequestException('Invalid gift card code');

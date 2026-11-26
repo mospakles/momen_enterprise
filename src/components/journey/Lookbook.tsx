@@ -1,9 +1,6 @@
 "use client";
 
-// The collection, as a magazine spread rather than a product grid. Each look
-// pairs an editorial image with a real published product and links into the
-// existing product page. No prices here; this is the first point the visitor
-// can click into commerce.
+// Campaign looks link to a product once that photo is in its published gallery.
 
 import Image from "next/image";
 import Link from "next/link";
@@ -14,34 +11,27 @@ import type { Product } from "@/lib/types";
 import { ClipReveal, Reveal } from "@/lib/motion/Reveal";
 import { SplitText } from "@/lib/motion/SplitText";
 import { useIsDesktop, usePrefersReducedMotion } from "@/lib/motion/hooks";
-import { LOOK_PRODUCT_SLUGS, MEDIA } from "./media";
+import { MEDIA, focal } from "./media";
+import { placeholderFor } from "@/lib/brand-images";
 
 // Asymmetric placement per look on the 12-column desktop grid.
 const LAYOUT = [
-  { col: "lg:col-start-1 lg:col-span-6", aspect: "aspect-[4/5]", offset: "lg:mt-0", speed: 40 },
-  { col: "lg:col-start-8 lg:col-span-5", aspect: "aspect-[3/4]", offset: "lg:mt-[28vh]", speed: -50 },
-  { col: "lg:col-start-2 lg:col-span-4", aspect: "aspect-[4/5]", offset: "lg:-mt-[8vh]", speed: 60 },
-  { col: "lg:col-start-7 lg:col-span-5", aspect: "aspect-[2/3]", offset: "lg:mt-[14vh]", speed: -30 },
-  { col: "lg:col-start-4 lg:col-span-6", aspect: "aspect-[4/5]", offset: "lg:mt-[12vh]", speed: 30 },
+  { col: "lg:col-start-1 lg:col-span-8", aspect: "aspect-[4/3] lg:aspect-[16/10]", offset: "lg:mt-0", speed: 30 },
+  { col: "lg:col-start-9 lg:col-span-4", aspect: "aspect-[4/5] lg:aspect-[2/3]", offset: "lg:mt-[22vh]", speed: -50 },
+  { col: "lg:col-start-2 lg:col-span-4", aspect: "aspect-[4/5]", offset: "lg:-mt-[6vh]", speed: 60 },
+  { col: "lg:col-start-6 lg:col-span-7", aspect: "aspect-[4/3] lg:aspect-[16/10]", offset: "lg:mt-[16vh]", speed: -30 },
+  { col: "lg:col-start-4 lg:col-span-5", aspect: "aspect-[4/5]", offset: "lg:mt-[12vh]", speed: 30 },
 ];
 
 function pickLooks(products: Product[]) {
-  const published = products.filter((p) => p.publishStatus === "published");
-  const used = new Set<string>();
-  const fallback = [...published]
-    .filter((p) => p.productType !== "accessory")
-    .sort((a, b) => Number(b.isSignature) - Number(a.isSignature) || Number(b.isFeatured) - Number(a.isFeatured));
-
-  return LOOK_PRODUCT_SLUGS.map((slug) => {
-    let product = published.find((p) => p.slug === slug && !used.has(p.id));
-    if (!product) product = fallback.find((p) => !used.has(p.id));
-    if (product) used.add(product.id);
-    return product;
-  });
+  return MEDIA.looks.map((image) => products.find((product) =>
+    product.publishStatus === "published" &&
+    (product.images.includes(image.src) || product.colors.some((color) => color.images?.includes(image.src))),
+  ));
 }
 
 export default function Lookbook() {
-  const { products, isReady } = useAdminStore();
+  const { products } = useAdminStore();
   const looks = useMemo(() => pickLooks(products), [products]);
 
   return (
@@ -58,14 +48,14 @@ export default function Lookbook() {
         </div>
         <Reveal delay={0.15}>
           <p className="max-w-xs text-sm leading-relaxed text-ink/70">
-            Heritage garments, drawn with a modern hand. Select a look to see the piece, its cloth and how it&rsquo;s made.
+            Patterned trousers, woven details and traditional silhouettes from the momen. campaign.
           </p>
         </Reveal>
       </div>
 
       <div className="mt-20 grid gap-x-10 gap-y-20 lg:grid-cols-12 lg:gap-y-0">
         {MEDIA.looks.map((image, i) => (
-          <Look key={image.src + i} index={i} image={image} product={looks[i]} ready={isReady} />
+          <Look key={image.src} index={i} image={image} product={looks[i]} />
         ))}
       </div>
     </section>
@@ -76,12 +66,10 @@ function Look({
   index,
   image,
   product,
-  ready,
 }: {
   index: number;
   image: (typeof MEDIA.looks)[number];
   product?: Product;
-  ready: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const layout = LAYOUT[index % LAYOUT.length];
@@ -101,13 +89,15 @@ function Look({
               src={image.src}
               alt={image.alt}
               fill
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover object-top"
+              sizes="(min-width: 1024px) 60vw, 100vw"
+              placeholder={placeholderFor(image.src)}
+              style={focal(image).style}
+              className={`object-cover ${focal(image).className}`}
             />
           </div>
-          <span className="label absolute bottom-5 left-5 translate-y-3 bg-ivory px-3 py-2 text-ink opacity-0 transition-all duration-700 ease-house group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+          {product && <span className="label absolute bottom-5 left-5 translate-y-3 bg-ivory px-3 py-2 text-ink opacity-0 transition-all duration-700 ease-house group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
             View the look
-          </span>
+          </span>}
         </ClipReveal>
       </m.div>
       <figcaption className="mt-5 grid grid-cols-[auto_1fr] gap-x-6 border-t border-line pt-4">
@@ -119,13 +109,8 @@ function Look({
               <span className="mt-1 block text-sm text-ink/60">{product.fabric || product.shortDescription}</span>
               <span className="label link-line mt-3 inline-block text-ink lg:hidden">View the look</span>
             </>
-          ) : ready ? (
-            <span className="display block text-2xl text-ink/50">Coming soon</span>
           ) : (
-            <span className="block space-y-2" aria-hidden>
-              <span className="shimmer block h-6 w-2/3" />
-              <span className="shimmer block h-4 w-1/3" />
-            </span>
+            <span className="display block text-2xl lg:text-[1.7rem]">{image.title}</span>
           )}
         </span>
       </figcaption>

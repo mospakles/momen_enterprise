@@ -1,13 +1,71 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { CustomizationApprovalStatus, Order, OrderStatus } from "./types";
 import { ORDER_STAGES } from "./order-stages";
 import { apiRequest } from "./api";
 import { useCustomerAuth } from "./customer-auth-context";
 import { toast } from "./toast";
+import { withCurrentItemImages } from "./brand-images";
+
+const withCurrentOrderImages = (order: Order): Order => ({ ...order, items: withCurrentItemImages(order.items) });
 
 export { ORDER_STAGES };
+
+/** sessionStorage key the checkout writes after placing an order — lets
+ * guests get back to it (confirmation, payment retry, order page). */
+export const LAST_ORDER_KEY = "momen.last-order";
+
+export function readLastOrder(): { id?: string; email?: string } {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(LAST_ORDER_KEY) ?? "{}") as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as { id?: string; email?: string }) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Guest order lookup (order number + the email used at checkout). */
+export function fetchGuestOrder(id: string, email: string) {
+  return apiRequest<Order>(`/orders/track?id=${encodeURIComponent(id.trim())}&email=${encodeURIComponent(email.trim())}`).then(withCurrentOrderImages);
+}
+
+/** Whether an order can still be paid by card from the storefront. */
+export function canCompletePayment(order: Order) {
+  return (
+    order.paymentMethod === "card" &&
+    (order.paymentStatus === "pending" || order.paymentStatus === "failed") &&
+    order.status !== "Cancelled" &&
+    !order.cancelledAt
+  );
+}
+
+/** Re-opens the payment provider for an unpaid order. Locked against double
+ * clicks; on success the browser leaves for the provider's page. */
+export function usePaymentRetry() {
+  const lock = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const start = useCallback(async (orderId: string, customerEmail?: string) => {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const { authorizationUrl } = await apiRequest<{ authorizationUrl: string; reference: string }>("/payments/initialize", {
+        method: "POST",
+        body: { orderId, customerEmail: customerEmail || undefined },
+      });
+      window.location.assign(authorizationUrl);
+      // Stay locked while the browser navigates away.
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "We couldn't reach the payment provider. Please try again.");
+      lock.current = false;
+      setBusy(false);
+    }
+  }, []);
+  return { start, busy, error };
+}
 
 interface OrdersContextValue {
   orders: Order[];
@@ -55,7 +113,7 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
     }
     try {
       const path = isAdmin ? "/admin/orders" : "/orders/mine";
-      setOrders(await apiRequest<Order[]>(path));
+      setOrders((await apiRequest<Order[]>(path)).map(withCurrentOrderImages));
     } catch {
       setOrders([]);
     } finally {
@@ -64,13 +122,15 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loading orders from the API (external system)
     void refreshOrders();
     const reload = () => void refreshOrders();
     window.addEventListener("momen:auth-changed", reload);
     return () => window.removeEventListener("momen:auth-changed", reload);
   }, [refreshOrders]);
 
-  const replaceOrder = useCallback((saved: Order) => {
+  const replaceOrder = useCallback((incoming: Order) => {
+    const saved = withCurrentOrderImages(incoming);
     setOrders((previous) => {
       const exists = previous.some((order) => order.id === saved.id);
       return exists ? previous.map((order) => (order.id === saved.id ? saved : order)) : [saved, ...previous];

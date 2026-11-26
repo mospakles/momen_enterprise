@@ -8,6 +8,32 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { MEDIA_UPLOAD_DIR } from './cms/media/media-storage.config';
 
+/** Refuse to start a production API with missing or placeholder settings,
+ * rather than silently emailing localhost links or taking test payments. */
+function assertProductionConfig(config: ConfigService) {
+  if (config.get('NODE_ENV') !== 'production') return;
+  const problems: string[] = [];
+  const need = (key: string, ok: (v: string) => boolean = Boolean, why = 'is required') => {
+    const value = String(config.get(key) ?? '').trim();
+    if (!ok(value)) problems.push(`${key} ${why}`);
+  };
+  need('DATABASE_URL');
+  need('JWT_ACCESS_SECRET', (v) => v.length >= 32 && !/replace|example|secret$/i.test(v), 'must be a random value of at least 32 characters');
+  need('CORS_ORIGIN', (v) => v.split(',').every((o) => /^https:\/\//.test(o.trim())), 'must list the https storefront origin(s)');
+  need('FRONTEND_URL', (v) => /^https:\/\//.test(v), 'must be the https storefront URL');
+  need('PAYSTACK_SECRET_KEY', (v) => /^sk_(live|test)_/.test(v) && !/replace_me/.test(v));
+  need('PAYSTACK_CALLBACK_URL', (v) => /^https:\/\/.+\/checkout\/payment-callback$/.test(v), 'must be https://<storefront>/checkout/payment-callback');
+  if (problems.length) {
+    throw new Error(`Production configuration is incomplete:\n - ${problems.join('\n - ')}`);
+  }
+  if (String(config.get('PAYSTACK_SECRET_KEY')).startsWith('sk_test_')) {
+    console.warn('PAYSTACK_SECRET_KEY is a TEST key: customers cannot pay real money.');
+  }
+  if (!config.get('RESEND_API_KEY')) {
+    console.warn('RESEND_API_KEY is not set: order confirmations and password resets will not be emailed.');
+  }
+}
+
 async function bootstrap() {
   // rawBody: true populates `request.rawBody` alongside the normal parsed
   // `request.body` — needed to verify the Paystack webhook's HMAC signature
@@ -17,6 +43,14 @@ async function bootstrap() {
     rawBody: true,
   });
   const config = app.get(ConfigService);
+  assertProductionConfig(config);
+
+  // Railway (and any CDN in front of it) proxies every request. Without this,
+  // every shopper appears to share the proxy's IP address, so the per-IP rate
+  // limits would be shared by the whole site and start rejecting customers.
+  // TRUST_PROXY is the number of proxies in front of the API (Railway: 1;
+  // add 1 if Cloudflare proxies the API domain too).
+  app.set('trust proxy', Number(config.get('TRUST_PROXY') ?? 1));
 
   app.use(helmet());
   app.enableCors({
@@ -72,6 +106,6 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = config.get<number>('PORT') ?? 4000;
-  await app.listen(port, '0.0.0.0');
+  await app.listen(port, config.get<string>('HOST') ?? '0.0.0.0');
 }
 bootstrap();

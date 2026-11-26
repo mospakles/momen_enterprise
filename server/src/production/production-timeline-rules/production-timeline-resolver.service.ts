@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Garment, ProductionSpeed, TimelineRuleScope } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
-export interface TimelineResolveItem {
+interface TimelineResolveItem {
   productSlug: string;
   collectionSlugs: string[];
   garment: Garment;

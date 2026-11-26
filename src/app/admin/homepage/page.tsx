@@ -34,8 +34,6 @@ export default function AdminHomepagePage() {
     const idx = sorted.findIndex((s) => s.id === id);
     const swapIdx = idx + dir;
     if (swapIdx < 0 || swapIdx >= sorted.length) return;
-    const a = sorted[idx];
-    const b = sorted[swapIdx];
     const orderedIds = [...sorted.map((section) => section.id)];
     [orderedIds[idx], orderedIds[swapIdx]] = [orderedIds[swapIdx], orderedIds[idx]];
     try {

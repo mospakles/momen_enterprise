@@ -6,25 +6,44 @@
 // what the shopper typed. Prices, delivery and discounts are confirmed by
 // the API when the order is created; nothing here is authoritative.
 
-import Image from "next/image";
+import SmartImage from "@/components/ui/SmartImage";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
 import { useCart } from "@/lib/cart-context";
 import { useOrders } from "@/lib/orders-context";
-import { useAdminStore } from "@/lib/admin/store";
+import { useDeliverySettings } from "@/lib/delivery";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 import { useCheckoutPrefs } from "@/lib/checkout-prefs";
+import { WELCOME_CODE, WELCOME_PERCENT, welcomeSaving } from "@/lib/welcome-offer";
 import { formatNaira, addBusinessDays, formatDateRange } from "@/lib/format";
 import { Address, Order, ProductionSpeed } from "@/lib/types";
 import { apiRequest } from "@/lib/api";
 import { itemFromProduct, track } from "@/lib/analytics";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 import { toast } from "@/lib/toast";
+import { effectivePrice, needsMeasurements } from "@/lib/product-utils";
+import MeasurementStatus, { measureHref } from "@/components/shop/MeasurementStatus";
 
 const STEPS = ["Contact", "Delivery", "Payment", "Review"] as const;
 const FORM_KEY = "momen.checkout.form";
+const PAYMENT_RETRY_KEY = "momen.checkout.payment-retry";
+
+/** Just the fields the order API accepts. Saved addresses arrive with id,
+ * customerId, isDefault and timestamps, which the API rejects. */
+function cleanAddress(a: Partial<Address>): Address {
+  return {
+    fullName: a.fullName ?? "",
+    country: a.country ?? "Nigeria",
+    state: a.state ?? "",
+    city: a.city ?? "",
+    address: a.address ?? "",
+    apartment: a.apartment || undefined,
+    postalCode: a.postalCode ?? "",
+    phone: a.phone ?? "",
+  };
+}
 
 const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti",
@@ -60,7 +79,6 @@ function validateAddress(a: Address): Errors {
 export default function CheckoutPage() {
   const { items, subtotal, clearCart, isReady } = useCart();
   const { addOrder } = useOrders();
-  const { deliveryZones, productionSettings } = useAdminStore();
   const { currentUser, refreshProfile } = useCustomerAuth();
   const { prefs, update: updatePrefs, clear: clearPrefs } = useCheckoutPrefs();
   const router = useRouter();
@@ -96,7 +114,9 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per visit
   }, []);
   const [confirmed, setConfirmed] = useState(false);
+  const [confirmError, setConfirmError] = useState(false);
   const [placing, setPlacing] = useState(false);
+  const placeOrderLock = useRef(false);
   const [placeError, setPlaceError] = useState<string | null>(null);
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
@@ -112,7 +132,7 @@ export default function CheckoutPage() {
       if (saved) {
         /* eslint-disable react-hooks/set-state-in-effect -- restoring the shopper's own in-progress form */
         if (saved.contact) setContact(saved.contact);
-        if (saved.address) setAddress(saved.address);
+        if (saved.address) setAddress(cleanAddress(saved.address));
         if (saved.speed) setSpeed(saved.speed);
         if (saved.payment) setPayment(saved.payment);
         if (saved.method) setMethod(saved.method);
@@ -152,7 +172,7 @@ export default function CheckoutPage() {
     setContact((c) => (c.fullName || c.email ? c : { fullName: currentUser.name, email: currentUser.email, phone: currentUser.phone ?? "" }));
     const savedAddress = currentUser.addresses[0];
     if (savedAddress && !address.address) {
-      setAddress(savedAddress);
+      setAddress(cleanAddress(savedAddress));
       setSavedAddressIndex(0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- prefill once per session load, never on later edits
@@ -164,24 +184,9 @@ export default function CheckoutPage() {
   }, [step]);
 
   // Delivery pricing/timelines come from the admin-configured zone matching
-  // the customer's country — falling back to the global production defaults
-  // (Settings → Production & Delivery) when no specific zone applies. This is
-  // the live link between /admin/delivery and the storefront checkout.
-  const zone = useMemo(
-    () => deliveryZones.find((z) => z.active && z.countries.includes(address.country)),
-    [deliveryZones, address.country]
-  );
-  const settings = {
-    standardDays: zone?.standardDays ?? productionSettings.standardDays,
-    expressDays: zone?.expressDays ?? productionSettings.expressDays,
-    standardFee: zone?.standardFee ?? productionSettings.standardFee,
-    expressFee: zone?.expressFee ?? productionSettings.expressFee,
-    expressAvailable: zone?.expressAvailable ?? true,
-    freeDeliveryThreshold: zone?.freeDeliveryThreshold,
-    pickupAvailable: zone?.pickupAvailable ?? false,
-    pickupLocation: zone?.pickupLocation,
-    pickupFee: zone?.pickupFee ?? 0,
-  };
+  // the customer's country (Admin → Delivery).
+  const settings = useDeliverySettings(address.country, address.state);
+  const { zone } = settings;
 
   // If the destination's zone doesn't support express, fall back to standard
   // for all downstream calculations/display without needing to correct state
@@ -204,12 +209,10 @@ export default function CheckoutPage() {
   };
   const deliveryDate = addBusinessDays(completionRange.to, 2);
 
-  const missingMeasurements = items.some(
-    (i) =>
-      i.product.productionType === "made-to-measure" &&
-      !(i.customOrder && i.size !== "Made-to-Measure") && // standard size chosen via the customization wizard
-      (!i.measurement || i.measurement.mode === "pending")
-  );
+  // Only pieces the customer chose to have cut to measure wait on measurements;
+  // a standard size from the size guide goes straight to payment.
+  const unmeasured = items.filter(needsMeasurements);
+  const missingMeasurements = unmeasured.length > 0;
 
   async function applyCoupon(raw = couponInput, silent = false) {
     setCouponError(null);
@@ -235,65 +238,112 @@ export default function CheckoutPage() {
     }
   }
 
+  // The welcome offer comes off a first order automatically. A signed-in
+  // customer can be checked now; for a guest the server confirms it against
+  // their email when the order is placed, so checkout shows it as expected.
+  const welcomeFallback = !appliedCoupon && (!prefs.couponCode || prefs.couponCode === WELCOME_CODE);
+  const [welcomeChecked, setWelcomeChecked] = useState(false);
+  useEffect(() => {
+    if (!isReady || !items.length || !currentUser || !welcomeFallback || welcomeChecked) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- validating against the coupon API (external system)
+    setWelcomeChecked(true);
+    void apiRequest<{ code: string; discountAmount: number }>("/coupons/validate", {
+      method: "POST",
+      body: { code: WELCOME_CODE, subtotal, items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })) },
+    }).then((result) => setAppliedCoupon({ code: result.code, discount: result.discountAmount }), () => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReady, items.length, currentUser, welcomeFallback, welcomeChecked]);
+  const welcomeEstimate = !currentUser && welcomeFallback ? welcomeSaving(subtotal) : 0;
+
   // A code chosen in the bag is re-validated against the live cart here.
   useEffect(() => {
     if (!isReady || !items.length || !prefs.couponCode || appliedCoupon?.code === prefs.couponCode) return;
+    // Guests' welcome offer is confirmed when the order is placed.
+    if (prefs.couponCode === WELCOME_CODE && !currentUser) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- validating against the coupon API (external system)
     void applyCoupon(prefs.couponCode, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady, prefs.couponCode, subtotal]);
 
   async function placeOrder() {
+    if (placeOrderLock.current) return;
+    placeOrderLock.current = true;
     setPlacing(true);
     setPlaceError(null);
-    try {
-      const order = await apiRequest<Order>("/orders", {
+    // Identifies exactly what is being paid for. An order created earlier in
+    // this tab is only reused (when the payment page failed to open) if
+    // nothing about the bag, address or delivery has changed since.
+    const orderBody = {
+      customerEmail: currentUser ? undefined : contact.email,
+      address: cleanAddress(address),
+      productionSpeed: speed,
+      deliveryMethod: pickup ? "pickup" : "delivery",
+      paymentMethod: payment,
+      couponCode: appliedCoupon?.code,
+      giftWrap: prefs.giftWrap || undefined,
+      giftMessage: prefs.giftMessage?.trim() || undefined,
+      items: items.map((item) => ({
+        productId: item.product.id,
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity,
+        fit: item.fit,
+        customizations: item.customizations,
+        customOrder: item.customOrder,
+        // A standard size needs no measurements; the API still wants the field.
+        measurement: item.measurement ?? { mode: "pending", unit: "cm" },
+      })),
+    };
+    const signature = JSON.stringify(orderBody);
+    const startPayment = async (orderId: string) => {
+      const initialized = await apiRequest<{ authorizationUrl: string; reference: string }>("/payments/initialize", {
         method: "POST",
-        body: {
-          customerEmail: currentUser ? undefined : contact.email,
-          address,
-          productionSpeed: speed,
-          deliveryMethod: pickup ? "pickup" : "delivery",
-          paymentMethod: payment,
-          couponCode: appliedCoupon?.code,
-          giftWrap: prefs.giftWrap || undefined,
-          giftMessage: prefs.giftMessage?.trim() || undefined,
-          items: items.map((item) => ({
-            productId: item.product.id,
-            size: item.size,
-            color: item.color,
-            quantity: item.quantity,
-            customizations: item.customizations,
-            customOrder: item.customOrder,
-            measurement: item.measurement ?? { mode: "pending", unit: "cm" },
-          })),
-        },
+        body: { orderId, customerEmail: currentUser ? undefined : contact.email, provider: providers.includes(provider) ? provider : undefined },
       });
+      sessionStorage.removeItem(PAYMENT_RETRY_KEY);
+      // Empty the bag (including the signed-in copy on the server) before
+      // leaving, so it doesn't reappear after payment.
+      await clearCart();
+      clearPrefs();
+      sessionStorage.removeItem(FORM_KEY);
+      window.location.assign(initialized.authorizationUrl);
+    };
+
+    try {
+      if (payment === "card") {
+        let retry: { orderId?: string; signature?: string } = {};
+        try {
+          retry = JSON.parse(sessionStorage.getItem(PAYMENT_RETRY_KEY) ?? "{}");
+        } catch {}
+        if (retry.orderId && retry.signature === signature) {
+          await startPayment(retry.orderId);
+          return;
+        }
+        sessionStorage.removeItem(PAYMENT_RETRY_KEY);
+      }
+      const order = await apiRequest<Order>("/orders", { method: "POST", body: orderBody });
       addOrder(order);
       sessionStorage.setItem("momen.last-order", JSON.stringify({ id: order.id, email: contact.email }));
       if (currentUser && saveAddress && savedAddressIndex === null) {
-        await apiRequest("/auth/addresses", { method: "POST", body: { ...address, isDefault: currentUser.addresses.length === 0 } }).catch(() => undefined);
+        await apiRequest("/auth/addresses", { method: "POST", body: { ...cleanAddress(address), isDefault: currentUser.addresses.length === 0 } }).catch(() => undefined);
         await refreshProfile().catch(() => undefined);
       }
 
       if (payment === "card") {
-        const initialized = await apiRequest<{ authorizationUrl: string; reference: string }>("/payments/initialize", {
-          method: "POST",
-          body: { orderId: order.id, customerEmail: currentUser ? undefined : contact.email, provider: providers.includes(provider) ? provider : undefined },
-        });
-        clearCart();
-        clearPrefs();
-        sessionStorage.removeItem(FORM_KEY);
-        window.location.assign(initialized.authorizationUrl);
+        // If the payment page fails to open, "Place order" again reuses this
+        // order instead of creating a second unpaid one.
+        sessionStorage.setItem(PAYMENT_RETRY_KEY, JSON.stringify({ orderId: order.id, signature }));
+        await startPayment(order.id);
         return;
       }
 
-      clearCart();
+      await clearCart();
       clearPrefs();
       sessionStorage.removeItem(FORM_KEY);
       router.push(`/checkout/confirmation?order=${order.id}`);
     } catch (error) {
       setPlaceError(error instanceof Error ? error.message : "Something interrupted your order. Nothing has been charged — please try again.");
+      placeOrderLock.current = false;
       setPlacing(false);
     }
   }
@@ -334,6 +384,7 @@ export default function CheckoutPage() {
         updatePrefs({ couponCode: undefined });
       }}
       gift={prefs.giftWrap || Boolean(prefs.giftMessage)}
+      welcomeEstimate={welcomeEstimate}
     />
   );
 
@@ -386,7 +437,7 @@ export default function CheckoutPage() {
                             type="button"
                             aria-pressed={savedAddressIndex === i}
                             onClick={() => {
-                              setAddress(a);
+                              setAddress(cleanAddress(a));
                               setSavedAddressIndex(i);
                               setErrors({});
                             }}
@@ -458,9 +509,21 @@ export default function CheckoutPage() {
                   )}
 
                   {missingMeasurements && (
-                    <p role="alert" className="bg-error/5 p-4 text-sm text-error">
-                      One or more made-to-measure pieces still need measurements. <Link href="/cart" className="underline">Add them from your bag</Link> before payment.
-                    </p>
+                    <div role="alert" className="bg-error/5 p-4 text-sm text-error">
+                      <p>
+                        {unmeasured.length === 1 ? "This piece is" : "These pieces are"} cut to your measurements, so we need them before payment:
+                      </p>
+                      <ul className="mt-2 space-y-1">
+                        {unmeasured.map((item) => (
+                          <li key={item.id}>
+                            {item.product.name} —{" "}
+                            <Link href={measureHref(item)} className="underline underline-offset-2">
+                              add measurements
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
 
                   <fieldset>
@@ -562,12 +625,28 @@ export default function CheckoutPage() {
                   )}
 
                   <label className="flex items-start gap-3 text-sm">
-                    <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-0.5 h-4 w-4 accent-ink" />
+                    <input
+                      id="confirm-order"
+                      type="checkbox"
+                      checked={confirmed}
+                      onChange={(e) => {
+                        setConfirmed(e.target.checked);
+                        if (e.target.checked) setConfirmError(false);
+                      }}
+                      aria-invalid={confirmError}
+                      aria-describedby={confirmError ? "confirm-order-error" : undefined}
+                      className="mt-0.5 h-5 w-5 accent-ink"
+                    />
                     <span>
-                      My measurements and order details are correct, and I accept the{" "}
+                      {items.some((i) => i.fit === "measure") ? "My measurements and order details are correct" : "My order details are correct"}, and I accept the{" "}
                       <Link href="/terms-and-conditions" className="underline underline-offset-2">terms</Link>.
                     </span>
                   </label>
+                  {confirmError && (
+                    <p id="confirm-order-error" role="alert" className="-mt-2 text-xs text-error">
+                      Tick the box to confirm your order details, then place your order.
+                    </p>
+                  )}
 
                   {placeError && (
                     <div role="alert" className="border border-error/40 bg-error/5 p-4 text-sm text-error">
@@ -601,8 +680,15 @@ export default function CheckoutPage() {
             ) : (
               <button
                 type="button"
-                onClick={placeOrder}
-                disabled={!confirmed || placing || missingMeasurements}
+                onClick={() => {
+                  if (!confirmed) {
+                    setConfirmError(true);
+                    document.getElementById("confirm-order")?.focus();
+                    return;
+                  }
+                  void placeOrder();
+                }}
+                disabled={placing || missingMeasurements}
                 aria-busy={placing}
                 className="flex items-center justify-center gap-3 bg-ink px-10 py-4 text-sm tracking-wide text-ivory transition-colors duration-500 hover:bg-terracotta disabled:opacity-40"
               >
@@ -663,6 +749,7 @@ function Summary({
   onApply,
   onRemoveCoupon,
   gift,
+  welcomeEstimate,
 }: {
   items: ReturnType<typeof useCart>["items"];
   subtotal: number;
@@ -679,6 +766,7 @@ function Summary({
   onApply: () => void;
   onRemoveCoupon: () => void;
   gift: boolean;
+  welcomeEstimate: number;
 }) {
   return (
     <div className="bg-bone/60 p-6">
@@ -687,14 +775,15 @@ function Summary({
         {items.map((item) => (
           <li key={item.id} className="flex gap-3">
             <span className="relative h-20 w-16 shrink-0 overflow-hidden bg-bone">
-              <Image src={item.product.images[0]} alt="" fill sizes="64px" className="object-cover" />
+              <SmartImage src={item.product.images[0]} alt="" fill sizes="64px" className="object-cover" />
               <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center bg-ink px-1 text-[10px] text-ivory">{item.quantity}</span>
             </span>
             <span className="min-w-0 flex-1 text-sm">
               <span className="block truncate">{item.product.name}</span>
               <span className="block text-xs text-ink/55">{item.size} · {item.color}</span>
+              <MeasurementStatus item={item} className="mt-1" />
             </span>
-            <span className="text-sm">{formatNaira((item.product.price + (item.customizationCost ?? 0)) * item.quantity)}</span>
+            <span className="text-sm">{formatNaira((effectivePrice(item.product) + (item.customizationCost ?? 0)) * item.quantity)}</span>
           </li>
         ))}
       </ul>
@@ -729,6 +818,12 @@ function Summary({
           </form>
         )}
         {couponError && <p role="alert" className="mt-1.5 text-xs text-error">{couponError}</p>}
+        {welcomeEstimate > 0 && (
+          <p className="mt-4 border border-terracotta/40 bg-terracotta/10 px-3 py-2.5 text-sm text-ink">
+            <span className="font-semibold">First order? {WELCOME_PERCENT}% off (−{formatNaira(welcomeEstimate)})</span>{" "}
+            comes off automatically when you place your order.
+          </p>
+        )}
       </div>
 
       <dl className="mt-5 space-y-2 text-sm">

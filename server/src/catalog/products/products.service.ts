@@ -23,7 +23,7 @@ const AUDITED_FIELDS = [
   'publishStatus',
 ] as const;
 
-export interface ActorContext {
+interface ActorContext {
   id: string;
   name: string;
 }
@@ -180,6 +180,11 @@ export class ProductsService {
       AND: [this.publishedWhere(), this.buildFilters(query)],
     };
 
+    return this.paginate(where, page, pageSize);
+  }
+
+  /** One page of products, newest first, with the total count. */
+  private async paginate(where: Prisma.ProductWhereInput, page: number, pageSize: number) {
     const [items, total] = await Promise.all([
       this.prisma.product.findMany({
         where,
@@ -190,13 +195,7 @@ export class ProductsService {
       }),
       this.prisma.product.count({ where }),
     ]);
-
-    return {
-      items: items.map((p) => this.serialize(p)),
-      total,
-      page,
-      pageSize,
-    };
+    return { items: items.map((p) => this.serialize(p)), total, page, pageSize };
   }
 
   async findPublishedBySlug(slug: string) {
@@ -228,23 +227,7 @@ export class ProductsService {
         : {}),
     };
 
-    const [items, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        include: PRODUCT_INCLUDE,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.product.count({ where }),
-    ]);
-
-    return {
-      items: items.map((p) => this.serialize(p)),
-      total,
-      page,
-      pageSize,
-    };
+    return this.paginate(where, page, pageSize);
   }
 
   async findOneAdmin(id: string) {

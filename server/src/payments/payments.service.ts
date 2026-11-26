@@ -2,20 +2,62 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PaymentProvider, Prisma } from '@prisma/client';
+import {
+  NoteAudience,
+  OrderStatus,
+  PaymentProvider,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from '../orders/orders/orders.service';
 import { PaystackProvider } from './providers/paystack/paystack.provider';
 import { FlutterwaveProvider } from './providers/flutterwave/flutterwave.provider';
-import type { PaymentProviderAdapter } from './providers/payment-provider.interface';
+import type {
+  PaymentProviderAdapter,
+  VerifyTransactionResult,
+} from './providers/payment-provider.interface';
 import { ConfigService } from '@nestjs/config';
+
+/** A pending provider checkout link is reused (browser retry after a network
+ * timeout) only while it's this fresh — Paystack/Flutterwave links go stale. */
+const REUSE_PENDING_CHECKOUT_MS = 30 * 60 * 1000;
+
+const toMinor = (amount: number | Prisma.Decimal) =>
+  Math.round(Number(amount) * 100);
+
+function asJsonObject(value: unknown): Prisma.JsonObject | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Prisma.JsonObject)
+    : undefined;
+}
+
+/** Keeps what we stored at initialization (notably `authorizationUrl`)
+ * when the provider's verify/webhook payload is written over it. */
+function mergeRawPayload(
+  existing: Prisma.JsonValue | null,
+  incoming: unknown,
+  extra: Prisma.JsonObject = {},
+): Prisma.InputJsonValue {
+  const saved = asJsonObject(existing) ?? {};
+  const fresh = asJsonObject(incoming) ?? (incoming === undefined ? {} : { provider: incoming as Prisma.JsonValue });
+  return {
+    ...saved,
+    ...fresh,
+    ...(typeof saved.authorizationUrl === 'string'
+      ? { authorizationUrl: saved.authorizationUrl }
+      : {}),
+    ...extra,
+  } as Prisma.InputJsonValue;
+}
 
 @Injectable()
 export class PaymentsService {
   private readonly adapters: Map<PaymentProvider, PaymentProviderAdapter>;
+  private readonly logger = new Logger(PaymentsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -81,6 +123,15 @@ export class PaymentsService {
     this.assertOwnsOrder(order, requester);
     if (order.paymentStatus === 'paid')
       throw new BadRequestException('Order is already paid');
+    if (order.status === OrderStatus.cancelled)
+      throw new BadRequestException('This order has been cancelled');
+    if (
+      order.status === OrderStatus.refunded ||
+      order.status === OrderStatus.partially_refunded ||
+      order.paymentStatus === 'refunded' ||
+      order.paymentStatus === 'partially_refunded'
+    )
+      throw new BadRequestException('This order has been refunded');
 
     let adapter: PaymentProviderAdapter;
     if (provider) {
@@ -89,6 +140,23 @@ export class PaymentsService {
       adapter = this.getAdapter(provider);
     } else {
       adapter = await this.getActiveAdapter();
+    }
+    // Reuse an active checkout URL when the browser retries after a network
+    // timeout — but only while the link is fresh and was opened for the
+    // order's current total. Anything older/different is superseded below.
+    const pending = await this.prisma.paymentTransaction.findFirst({
+      where: { orderId, provider: adapter.provider, status: 'pending' },
+      orderBy: { createdAt: 'desc' },
+    });
+    const savedUrl = asJsonObject(pending?.rawPayload)?.authorizationUrl;
+    if (
+      pending &&
+      typeof savedUrl === 'string' &&
+      Date.now() - pending.createdAt.getTime() < REUSE_PENDING_CHECKOUT_MS &&
+      toMinor(pending.amount) === toMinor(order.total) &&
+      pending.currency === 'NGN'
+    ) {
+      return { authorizationUrl: savedUrl, reference: pending.providerRef };
     }
     const result = await adapter.initializeTransaction({
       orderId,
@@ -108,7 +176,22 @@ export class PaymentsService {
         amount: order.total,
         currency: 'NGN',
         status: 'pending',
+        rawPayload: { authorizationUrl: result.authorizationUrl },
       },
+    });
+
+    // Older pending attempts for this order are superseded by the one just
+    // created. PaymentStatus has no "abandoned" value, so they're recorded
+    // as failed — on our side only. If the customer still completes one of
+    // them, the provider webhook/verify re-syncs it to paid from the
+    // provider's own status.
+    await this.prisma.paymentTransaction.updateMany({
+      where: {
+        orderId,
+        status: 'pending',
+        NOT: { provider: adapter.provider, providerRef: result.reference },
+      },
+      data: { status: 'failed' },
     });
 
     return result;
@@ -127,37 +210,95 @@ export class PaymentsService {
 
     const adapter = this.getAdapter(transaction.provider);
     const verified = await adapter.verifyTransaction(reference);
-    return this.syncTransactionStatus(
-      transaction.id,
-      verified.status,
-      verified.raw,
-    );
+    return this.syncTransactionStatus(transaction.id, verified, verified.raw);
   }
 
   private async syncTransactionStatus(
     transactionId: string,
-    status: 'success' | 'failed' | 'pending',
+    verified: VerifyTransactionResult,
     rawPayload: unknown,
   ) {
     const transaction = await this.prisma.paymentTransaction.findUniqueOrThrow({
       where: { id: transactionId },
+      include: { order: { select: { total: true, paymentStatus: true } } },
     });
-    const mappedStatus =
-      status === 'success'
+    let mappedStatus: 'paid' | 'failed' | 'pending' =
+      verified.status === 'success'
         ? 'paid'
-        : status === 'failed'
+        : verified.status === 'failed'
           ? 'failed'
           : 'pending';
+
+    // The provider says "success", but for how much? A tampered or partial
+    // charge must not settle the order. An underpayment (or a different
+    // currency) is held as pending — not failed, because money did move and
+    // failing would release the stock and invite a second payment — and
+    // flagged for manual reconciliation via an internal order note.
+    const expectedMinor = Math.max(
+      toMinor(transaction.amount),
+      toMinor(transaction.order.total),
+    );
+    const amountMismatch =
+      mappedStatus === 'paid' &&
+      (verified.currency?.toUpperCase() !== 'NGN' ||
+        transaction.currency.toUpperCase() !== 'NGN' ||
+        !Number.isFinite(verified.amount) ||
+        toMinor(verified.amount) < expectedMinor);
+    const alreadyFlagged =
+      asJsonObject(transaction.rawPayload)?.amountMismatch === true;
+    if (amountMismatch) {
+      mappedStatus = 'pending';
+      this.logger.error(
+        `Payment ${transaction.providerRef} for order ${transaction.orderId} verified as successful for ${verified.amount} ${verified.currency}, expected ${expectedMinor / 100} NGN — not marking the order paid`,
+      );
+    }
 
     await this.prisma.paymentTransaction.update({
       where: { id: transactionId },
       data: {
         status: mappedStatus,
-        rawPayload: rawPayload as Prisma.InputJsonValue,
+        rawPayload: mergeRawPayload(
+          transaction.rawPayload,
+          rawPayload,
+          amountMismatch
+            ? {
+                amountMismatch: true,
+                verifiedAmount: verified.amount,
+                verifiedCurrency: verified.currency ?? null,
+              }
+            : {},
+        ),
       },
     });
 
-    if (mappedStatus === 'paid' || mappedStatus === 'failed') {
+    if (amountMismatch && !alreadyFlagged) {
+      await this.prisma.orderNote.create({
+        data: {
+          orderId: transaction.orderId,
+          audience: NoteAudience.internal,
+          authorName: 'System',
+          message: `Payment ${transaction.providerRef} (${transaction.provider}) was reported successful for ${verified.amount} ${verified.currency ?? '?'} but the order expects ${expectedMinor / 100} NGN. The order was NOT marked paid — reconcile manually.`,
+        },
+      });
+    }
+
+    // A failure on an older, superseded attempt (or any failure after the
+    // order is already paid) must not fail the order.
+    let applyToOrder = mappedStatus === 'paid' || mappedStatus === 'failed';
+    if (mappedStatus === 'failed') {
+      const latest = await this.prisma.paymentTransaction.findFirst({
+        where: { orderId: transaction.orderId },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true },
+      });
+      if (
+        transaction.order.paymentStatus === 'paid' ||
+        latest?.id !== transaction.id
+      )
+        applyToOrder = false;
+    }
+
+    if (applyToOrder) {
       await this.prisma.order.update({
         where: { id: transaction.orderId },
         data: {
@@ -167,7 +308,7 @@ export class PaymentsService {
       });
       await this.ordersService.setPaymentStatus(
         transaction.orderId,
-        mappedStatus,
+        mappedStatus as 'paid' | 'failed',
       );
     }
 
@@ -195,11 +336,7 @@ export class PaymentsService {
     // Never trust the webhook payload's own status field — re-verify
     // directly with the provider before mutating anything.
     const verified = await adapter.verifyTransaction(event.reference);
-    await this.syncTransactionStatus(
-      transaction.id,
-      verified.status,
-      event.raw,
-    );
+    await this.syncTransactionStatus(transaction.id, verified, event.raw);
     return { handled: true };
   }
 

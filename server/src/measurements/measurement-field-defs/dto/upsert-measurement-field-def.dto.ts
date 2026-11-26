@@ -11,6 +11,10 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import {
+  API_MEASUREMENT_UNITS,
+  IsApiMeasurementUnit,
+} from '../../../common/utils/measurement-unit.util';
 
 export class UpsertMeasurementFieldDefDto {
   @ApiProperty({
@@ -39,8 +43,8 @@ export class UpsertMeasurementFieldDefDto {
   @IsString()
   illustration?: string;
   @ApiProperty({ required: false }) @IsOptional() @IsString() videoUrl?: string;
-  @ApiProperty({ enum: MeasurementUnit, default: MeasurementUnit.cm })
-  @IsEnum(MeasurementUnit)
+  @ApiProperty({ enum: API_MEASUREMENT_UNITS, default: 'cm' })
+  @IsApiMeasurementUnit()
   unit!: MeasurementUnit;
   @ApiProperty({ default: false }) @IsBoolean() required!: boolean;
 

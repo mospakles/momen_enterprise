@@ -20,14 +20,3 @@ export function Wordmark({ className = "", fluid = false, title = "momen." }: { 
   );
 }
 
-/** Logo lockup with the "CLOTHINGS" line set beneath, as on the labels. */
-export function WordmarkLockup({ className = "" }: { className?: string }) {
-  return (
-    <span className={`inline-flex flex-col items-center ${className}`}>
-      <Wordmark />
-      <span aria-hidden className="mt-[0.18em] pl-[0.7em] font-body text-[0.16em] font-semibold uppercase tracking-[0.7em]">
-        Clothings
-      </span>
-    </span>
-  );
-}

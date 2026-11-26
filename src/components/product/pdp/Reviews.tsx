@@ -80,8 +80,8 @@ export default function Reviews({ productId, productName }: { productId: string;
           <FitSummary reviews={reviews!} />
           {photos.length > 0 && (
             <ul className="no-scrollbar mt-10 flex gap-3 overflow-x-auto">
-              {photos.map((src) => (
-                <li key={src} className="shrink-0">
+              {photos.map((src, i) => (
+                <li key={`${src}-${i}`} className="shrink-0">
                   <button type="button" onClick={() => setPhoto(src)} className="relative block h-28 w-24 overflow-hidden bg-bone" aria-label="Open customer photo">
                     <Image src={src} alt="Customer photo" fill sizes="96px" className="object-cover" unoptimized />
                   </button>
@@ -250,9 +250,9 @@ function FitSummary({ reviews }: { reviews: Review[] }) {
   );
 }
 
-export function Stars({ value }: { value: number }) {
+function Stars({ value }: { value: number }) {
   return (
-    <span className="inline-flex text-sm tracking-[0.15em]" aria-label={`${value.toFixed(1)} out of 5 stars`}>
+    <span role="img" className="inline-flex text-sm tracking-[0.15em]" aria-label={`${value.toFixed(1)} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((n) => (
         <span key={n} aria-hidden className={n <= Math.round(value) ? "text-terracotta" : "text-ink/15"}>
           ★

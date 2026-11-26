@@ -5,13 +5,14 @@ import Link from "next/link";
 import { ClipReveal, Reveal } from "@/lib/motion/Reveal";
 import { SplitText } from "@/lib/motion/SplitText";
 import { Magnetic } from "@/lib/motion/Magnetic";
-import { MEDIA } from "./media";
+import { MEDIA, focal } from "./media";
+import { placeholderFor } from "@/lib/brand-images";
 
 export default function Bespoke() {
   return (
     <section aria-labelledby="bespoke-heading" className="bg-sand/40 px-5 py-28 sm:px-10 lg:grid lg:grid-cols-12 lg:items-center lg:gap-10 lg:px-16 lg:py-40">
       <ClipReveal from="left" className="relative aspect-[4/5] w-full bg-sand lg:col-span-6 lg:aspect-[5/6]">
-        <Image src={MEDIA.bespoke.src} alt={MEDIA.bespoke.alt} fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
+        <Image src={MEDIA.bespoke.src} alt={MEDIA.bespoke.alt} fill sizes="(min-width: 1024px) 50vw, 100vw" placeholder={placeholderFor(MEDIA.bespoke.src)} style={focal(MEDIA.bespoke).style} className={`object-cover ${focal(MEDIA.bespoke).className}`} />
       </ClipReveal>
 
       <div className="mt-14 lg:col-span-5 lg:col-start-8 lg:mt-0">

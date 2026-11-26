@@ -1,61 +1,39 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import { useAdminStore } from "@/lib/admin/store";
+import CampaignMosaic from "@/components/campaign/CampaignMosaic";
+import { campaignCollections } from "@/lib/campaign-catalogue";
+import { shots } from "@/lib/campaign-shots";
 
 export default function CollectionsPage() {
-  const { collections, isReady } = useAdminStore();
-  const published = [...collections]
-    .filter((c) => c.publishStatus === "published")
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-
   return (
-    <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-      <div className="mb-12 max-w-xl">
-        <p className="eyebrow">Collections</p>
-        <h1 className="mt-2 font-display text-4xl sm:text-5xl">Shop by Collection</h1>
-        <p className="mt-4 text-ink/70">
-          Each collection gathers a considered set of silhouettes — from everyday staples to
-          limited-run occasion pieces.
-        </p>
+    <div className="mx-auto max-w-[1600px] px-5 py-11 sm:px-10 lg:py-16">
+      <h1 className="display text-5xl sm:text-6xl">Collections</h1>
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        {campaignCollections.map((collection) => (
+          <Link key={collection.slug} href={collection.href} className="group block bg-bone">
+            <div className="relative aspect-[5/4] overflow-hidden">
+              <Image src={collection.image} alt="" fill sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover object-[50%_28%] transition-transform duration-500 group-hover:scale-105" />
+            </div>
+            <div className="p-6 lg:p-8">
+              <h2 className="display text-3xl sm:text-4xl">{collection.name}</h2>
+              <p className="mt-3 max-w-md text-base leading-relaxed text-ink/75">{collection.description}</p>
+              <span className="mt-5 inline-block border-b border-current pb-1 text-sm font-medium">Explore {collection.name}</span>
+            </div>
+          </Link>
+        ))}
       </div>
-
-      {!isReady ? (
-        <div className="space-y-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="shimmer aspect-[16/9] sm:aspect-[21/9]" />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {published.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/collections/${c.slug}`}
-              className="group relative flex aspect-[16/9] items-end overflow-hidden bg-ivory-deep sm:aspect-[21/9]"
-            >
-              <Image
-                src={c.image}
-                alt={c.name}
-                fill
-                sizes="100vw"
-                unoptimized={/^https?:/.test(c.image) && !c.image.includes("picsum.photos")}
-                className="object-cover object-[50%_18%] transition-transform duration-700 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent" />
-              <div className="relative w-full p-6 sm:p-10">
-                {c.tag && <p className="eyebrow text-brass-light">{c.tag}</p>}
-                <p className="font-display text-2xl text-ivory sm:text-4xl">{c.name}</p>
-                <p className="mt-2 max-w-md text-sm text-stone-light/90 sm:text-base">{c.description}</p>
-                <p className="eyebrow mt-4 text-ivory underline-offset-4 group-hover:underline">
-                  Explore Collection →
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <div className="mt-14 flex flex-wrap items-end justify-between gap-4">
+        <h2 className="display text-4xl">From the lookbook</h2>
+        <Link href="/lookbook" className="border-b border-current pb-1 text-sm font-medium">View every look</Link>
+      </div>
+      <div className="mt-6">
+        <CampaignMosaic shots={shots(
+          "patterned-trousers-group-front", "blue-geometric-set-seated", "burgundy-robe-front", "cobalt-tan-cuff-trousers-back",
+          "ivory-textured-set-front", "landscape-print-shirt-back", "patchwork-trousers-studio", "cobalt-striped-cuff-trousers-front",
+          "blue-abstract-shirt-side", "ivory-woven-panel-shirt-front", "black-geometric-trousers-side", "patterned-trousers-group-side",
+        )} />
+      </div>
     </div>
   );
 }

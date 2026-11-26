@@ -9,6 +9,8 @@ import { PageHeader, StatusPill, Modal, ConfirmDialog } from "@/components/admin
 import { DataTable, Column } from "@/components/admin/ui/DataTable";
 import { Field, TextareaField, SelectField } from "@/components/admin/ui/form";
 import { Button } from "@/components/ui/Button";
+import { inCategory } from "@/lib/product-utils";
+import { pieceOf } from "@/lib/measurement-guide";
 
 function genId() {
   return `cat-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -35,7 +37,8 @@ export default function AdminCategoriesPage() {
   const columns: Column<Category>[] = [
     { key: "name", label: "Category", render: (c) => c.name, sortValue: (c) => c.name, csvValue: (c) => c.name },
     { key: "slug", label: "Slug", render: (c) => c.slug, sortValue: (c) => c.slug, csvValue: (c) => c.slug },
-    { key: "count", label: "Products", align: "right", render: (c) => products.filter((p) => p.category === c.name).length, sortValue: (c) => products.filter((p) => p.category === c.name).length, csvValue: (c) => products.filter((p) => p.category === c.name).length },
+    { key: "count", label: "Products", align: "right", render: (c) => products.filter((p) => inCategory(p, c)).length, sortValue: (c) => products.filter((p) => inCategory(p, c)).length, csvValue: (c) => products.filter((p) => inCategory(p, c)).length },
+    { key: "measurements", label: "Bespoke measurements", align: "right", render: (c) => c.measurementFieldKeys?.length || "Garment default", sortValue: (c) => c.measurementFieldKeys?.length ?? 0, csvValue: (c) => (c.measurementFieldKeys ?? []).join(" ") },
     { key: "status", label: "Status", render: (c) => <StatusPill status={c.publishStatus} />, sortValue: (c) => c.publishStatus, csvValue: (c) => c.publishStatus },
   ];
 
@@ -73,7 +76,18 @@ export default function AdminCategoriesPage() {
   );
 }
 
+const PIECE_TITLES = { outer: "Agbada robe", top: "Top / inner top", trouser: "Trousers", other: "Other" } as const;
+
 function CategoryModal({ category, onCancel, onSave, onDelete }: { category: Category | null; onCancel: () => void; onSave: (c: Category) => void; onDelete?: () => void }) {
+  const { measurementFieldDefs } = useAdminStore();
+  const fieldsByPiece = useMemo(() => {
+    const groups = new Map<keyof typeof PIECE_TITLES, typeof measurementFieldDefs>();
+    for (const d of [...measurementFieldDefs].sort((a, b) => a.sortOrder - b.sortOrder)) {
+      const piece = pieceOf(d.key, d);
+      groups.set(piece, [...(groups.get(piece) ?? []), d]);
+    }
+    return [...groups.entries()];
+  }, [measurementFieldDefs]);
   const [form, setForm] = useState<Category>(
     category ?? { id: "", slug: "", name: "", description: "", sortOrder: 0, publishStatus: "published", seo: {} }
   );
@@ -89,6 +103,34 @@ function CategoryModal({ category, onCancel, onSave, onDelete }: { category: Cat
         <Field label="Slug" value={form.slug} onChange={(v) => set("slug", v)} placeholder="auto-generated if blank" />
         <TextareaField label="Description" value={form.description ?? ""} onChange={(v) => set("description", v)} rows={2} />
         <SelectField<PublishStatus> label="Status" value={form.publishStatus} onChange={(v) => set("publishStatus", v)} options={[{ value: "draft", label: "Draft" }, { value: "published", label: "Published" }, { value: "archived", label: "Archived" }]} />
+        <fieldset className="border-t border-line pt-4">
+          <legend className="text-sm font-medium">Bespoke measurements for this style</legend>
+          <p className="mt-1 text-xs leading-relaxed text-ink/50">
+            What customers are asked to measure when they order a piece from this category cut to measure, grouped by garment piece.
+            Leave all unticked to use the product&rsquo;s garment type. A product can still override this.
+          </p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+            {fieldsByPiece.map(([piece, defs]) => (
+              <div key={piece}>
+                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ink/50">{PIECE_TITLES[piece]}</p>
+                {defs.map((d) => {
+                  const keys = form.measurementFieldKeys ?? [];
+                  return (
+                    <label key={d.key} className="flex items-center gap-2 py-1 text-sm">
+                      <input
+                        type="checkbox"
+                        className="accent-brass"
+                        checked={keys.includes(d.key)}
+                        onChange={(e) => set("measurementFieldKeys", e.target.checked ? [...keys, d.key] : keys.filter((k) => k !== d.key))}
+                      />
+                      {d.label}
+                    </label>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </fieldset>
       </div>
       <div className="mt-6 flex gap-3">
         <Button
@@ -101,7 +143,7 @@ function CategoryModal({ category, onCancel, onSave, onDelete }: { category: Cat
         </Button>
         <Button variant="secondary" onClick={onCancel}>Cancel</Button>
         {onDelete && (
-          <button onClick={onDelete} className="ml-auto text-xs text-ink/40 hover:text-error">Delete</button>
+          <button type="button" onClick={onDelete} className="ml-auto text-xs text-ink/40 hover:text-error">Delete</button>
         )}
       </div>
     </Modal>

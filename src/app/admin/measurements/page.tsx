@@ -119,8 +119,10 @@ function FieldModal({ field, onCancel, onSave, onDelete }: { field: MeasurementF
           <Field label="Label" required value={form.label} onChange={(v) => set("label", v)} />
           <Field label="Key" required value={form.key} onChange={(v) => set("key", v)} disabled={Boolean(field)} hint="Used internally — cannot change once created." />
         </div>
-        <TextareaField label="Description" value={form.description ?? ""} onChange={(v) => set("description", v)} rows={2} />
-        <TextareaField label="Measurement Instructions" value={form.instructions ?? ""} onChange={(v) => set("instructions", v)} rows={3} />
+        <p className="text-xs leading-relaxed text-ink/50">The storefront already explains how to take every built-in measurement, with the mannequin. Leave the text below blank to use that guide; anything you write here replaces it.</p>
+        <TextareaField label="What it is (optional override)" value={form.description ?? ""} onChange={(v) => set("description", v)} rows={2} />
+        <TextareaField label="Steps (optional override)" value={form.instructions ?? ""} onChange={(v) => set("instructions", v)} rows={3} hint="One step per line." />
+        <TextareaField label="Mistakes to avoid (optional override)" value={form.commonMistakes ?? ""} onChange={(v) => set("commonMistakes", v)} rows={2} hint="One tip per line." />
         <Field label="Illustration URL" value={form.illustration ?? ""} onChange={(v) => set("illustration", v)} />
         <Field label="Instructional Video URL" value={form.videoUrl ?? ""} onChange={(v) => set("videoUrl", v)} hint="Shown to customers as a short watch-how-to-measure link during guided and manual measurement capture." />
         <div className="grid gap-4 sm:grid-cols-2">

@@ -4,16 +4,18 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { withApiUnit } from '../../common/utils/measurement-unit.util';
 import type { UpsertMeasurementFieldDefDto } from './dto/upsert-measurement-field-def.dto';
 
 @Injectable()
 export class MeasurementFieldDefsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.measurementFieldDef.findMany({
+  async findAll() {
+    const defs = await this.prisma.measurementFieldDef.findMany({
       orderBy: { sortOrder: 'asc' },
     });
+    return defs.map(withApiUnit);
   }
 
   async findOne(key: string) {
@@ -21,7 +23,7 @@ export class MeasurementFieldDefsService {
       where: { key },
     });
     if (!def) throw new NotFoundException('Measurement field not found');
-    return def;
+    return withApiUnit(def);
   }
 
   async create(dto: UpsertMeasurementFieldDefDto) {
@@ -32,15 +34,19 @@ export class MeasurementFieldDefsService {
       throw new ConflictException(
         'A measurement field with that key already exists',
       );
-    return this.prisma.measurementFieldDef.create({ data: dto });
+    return withApiUnit(
+      await this.prisma.measurementFieldDef.create({ data: dto }),
+    );
   }
 
   async update(key: string, dto: Omit<UpsertMeasurementFieldDefDto, 'key'>) {
     await this.findOne(key);
-    return this.prisma.measurementFieldDef.update({
-      where: { key },
-      data: dto,
-    });
+    return withApiUnit(
+      await this.prisma.measurementFieldDef.update({
+        where: { key },
+        data: dto,
+      }),
+    );
   }
 
   async remove(key: string) {

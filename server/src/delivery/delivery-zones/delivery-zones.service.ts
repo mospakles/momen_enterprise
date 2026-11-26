@@ -7,7 +7,7 @@ import { DeliveryMethod, ProductionSpeed } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { UpsertDeliveryZoneDto } from './dto/upsert-delivery-zone.dto';
 
-export interface DeliveryQuote {
+interface DeliveryQuote {
   zoneId: string;
   zoneName: string;
   deliveryFee: number;
@@ -15,6 +15,24 @@ export interface DeliveryQuote {
   standardDays: [number, number];
   expressDays: [number, number];
   method: DeliveryMethod;
+}
+
+/** "Lagos State", "lagos" and "Lagos" are the same place; so are FCT and Abuja. */
+export function normalizePlace(value?: string) {
+  const plain = (value ?? '').trim().toLowerCase().replace(/\s+state$/, '').replace(/\s+/g, ' ');
+  return /^(fct|abuja|fct abuja|federal capital territory)$/.test(plain) ? 'fct' : plain;
+}
+
+/** The zone for an address: one naming its state first, then the zone that
+ * covers the whole country. */
+export function pickZone<Z extends { countries: string[]; states?: string[] | null }>(zones: Z[], country: string, state?: string) {
+  const place = normalizePlace(country);
+  const inCountry = zones.filter((z) => z.countries.some((c) => normalizePlace(c) === place));
+  const where = normalizePlace(state);
+  return (
+    (where ? inCountry.find((z) => (z.states ?? []).some((s) => normalizePlace(s) === where)) : undefined) ??
+    inCountry.find((z) => !(z.states ?? []).length)
+  );
 }
 
 @Injectable()
@@ -61,14 +79,12 @@ export class DeliveryZonesService {
     speed: ProductionSpeed,
     subtotal: number,
     method: DeliveryMethod = DeliveryMethod.delivery,
+    state?: string,
   ): Promise<DeliveryQuote> {
     const zones = await this.prisma.deliveryZone.findMany({
       where: { active: true },
     });
-    const normalized = country.trim().toLowerCase();
-    const zone = zones.find((z) =>
-      z.countries.some((c) => c.trim().toLowerCase() === normalized),
-    );
+    const zone = pickZone(zones, country, state);
     if (!zone)
       throw new BadRequestException(
         `Delivery is not available to "${country}"`,

@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
 import { useAdminStore } from "@/lib/admin/store";
+import PhotoBanner from "@/components/campaign/PhotoBanner";
+import { shots } from "@/lib/campaign-shots";
 
 export default function FaqPage() {
   const { faqs, isReady } = useAdminStore();
@@ -16,12 +19,13 @@ export default function FaqPage() {
   }, [faqs]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-      <p className="eyebrow">Support</p>
-      <h1 className="mt-2 font-display text-4xl sm:text-5xl">Frequently Asked Questions</h1>
-      <p className="mt-4 text-ink/70">Everything you need to know about ordering, made-to-measure, and delivery.</p>
+    <>
+      <PhotoBanner shot={shots("burgundy-robe-studio")[0]} eyebrow="Support" title="Frequently Asked Questions">Everything you need to know about ordering, made-to-measure, and delivery.</PhotoBanner>
+    <div className="mx-auto max-w-3xl px-4 pb-16 pt-4 sm:px-6">
 
-      {!isReady ? null : (
+      {!isReady ? null : grouped.size === 0 ? (
+        <EmptyState title="Questions are welcome." body="We're putting our answers in order. Ask us anything about sizing, bespoke orders or delivery and we'll reply personally." />
+      ) : (
         <div className="mt-12 space-y-10">
           {[...grouped.entries()].map(([category, items]) => (
             <div key={category}>
@@ -41,6 +45,24 @@ export default function FaqPage() {
           ))}
         </div>
       )}
+    </div>
+    </>
+  );
+}
+
+function EmptyState({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="mt-12 border border-line p-8 sm:p-10">
+      <p className="display text-3xl">{title}</p>
+      <p className="mt-3 max-w-md text-sm text-ink/60">{body}</p>
+      <div className="mt-8 flex flex-wrap items-center gap-6">
+        <Link href="/shop" className="bg-ink px-6 py-3 text-sm text-ivory transition-colors hover:bg-terracotta">
+          Shop the collection
+        </Link>
+        <Link href="/contact" className="label link-line text-ink/70 hover:text-ink">
+          Contact the atelier
+        </Link>
+      </div>
     </div>
   );
 }

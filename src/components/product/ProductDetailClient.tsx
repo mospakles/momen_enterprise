@@ -1,20 +1,21 @@
 "use client";
 
-import Image from "next/image";
+import SmartImage from "@/components/ui/SmartImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { Product, MeasurementUnit, MeasurementValues } from "@/lib/types";
 import { formatNaira } from "@/lib/format";
-import { useCart } from "@/lib/cart-context";
+import { isMadePerOrder, isSizeSoldOut, maxQuantityFor, useCart } from "@/lib/cart-context";
 import { useAdminStore } from "@/lib/admin/store";
 import { useUI } from "@/lib/ui-context";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { itemFromProduct, track } from "@/lib/analytics";
 import { estimateArrival, formatArrival, useDeliverySettings } from "@/lib/delivery";
-import { availableUnits, inCategory, isAccessory, isMadeToMeasure, isOneSize, stockState } from "@/lib/product-utils";
+import { availableUnits, effectivePrice, inCategory, isAccessory, isMadeToMeasure, isOneSize, sizingModeOf, stockState, wasPrice } from "@/lib/product-utils";
+import { placeholderFor } from "@/lib/brand-images";
 import { useRecentlyViewed } from "@/lib/recently-viewed";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 import { AccordionItem } from "@/components/ui/Accordion";
@@ -25,8 +26,11 @@ import Reviews from "./pdp/Reviews";
 import ProductRail from "./pdp/ProductRail";
 import SpinViewer from "./pdp/SpinViewer";
 import { Modal } from "@/components/ui/Modal";
+import { WelcomeNote } from "@/components/layout/WelcomeOffer";
 
 const CITIES = ["Lagos", "Abuja", "Port Harcourt", "Ibadan", "Kano", "Enugu", "Benin City"];
+/** The state each delivery city is in, so the estimate uses that state's zone. */
+const CITY_STATE: Record<string, string> = { Lagos: "Lagos", Abuja: "FCT Abuja", "Port Harcourt": "Rivers", Ibadan: "Oyo", Kano: "Kano", Enugu: "Enugu", "Benin City": "Edo" };
 const CITY_KEY = "momen.delivery-city";
 
 type PendingMeasurement = { mode: "profile" | "manual"; profileId?: string; values?: MeasurementValues; unit: MeasurementUnit };
@@ -36,7 +40,6 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const { addItem, setItemMeasurement, toggleWishlist, isWishlisted } = useCart();
   const { products, categories } = useAdminStore();
   const { flyToBag } = useUI();
-  const delivery = useDeliverySettings();
   const recentSlugs = useRecentlyViewed(product.slug);
 
   const oneSize = isOneSize(product);
@@ -53,14 +56,14 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [sizeError, setSizeError] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [city, setCity] = useState("Lagos");
+  const delivery = useDeliverySettings("Nigeria", CITY_STATE[city]);
   const [ctaVisible, setCtaVisible] = useState(true);
 
   const galleryRef = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLDivElement>(null);
   const sizeRef = useRef<HTMLFieldSetElement>(null);
 
   useEffect(() => {
-    track("view_item", { value: product.price, items: [itemFromProduct(product)] });
+    track("view_item", { value: effectivePrice(product), items: [itemFromProduct(product)] });
     try {
       const saved = localStorage.getItem(CITY_KEY);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- restoring the visitor's saved delivery city
@@ -70,18 +73,22 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     }
   }, [product]);
 
-  // Mobile sticky bar shows once the main CTA has scrolled out above.
-  useEffect(() => {
-    const el = ctaRef.current;
+  // Mobile sticky bar shows once the main CTA has scrolled out above. A
+  // callback ref re-observes whenever the CTA row (re)mounts, so the bar
+  // never goes stale after the row is swapped out and back.
+  const ctaRef = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
     const observer = new IntersectionObserver(([entry]) => setCtaVisible(entry.isIntersecting || entry.boundingClientRect.top > 0), { threshold: 0 });
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      setCtaVisible(true);
+    };
   }, []);
 
-  // Selecting a colour swaps the gallery to that colour's photos, if any.
+  // A previously illustrated colour may now have an empty gallery of its own.
   const colorImages = product.colors.find((c) => c.name === color)?.images;
-  const galleryImages = colorImages && colorImages.length > 0 ? colorImages : product.images;
+  const galleryImages = colorImages ?? product.images;
   const media: Media[] = useMemo(
     () => [...galleryImages.map((src) => ({ type: "image" as const, src })), ...(product.videos ?? []).map((src) => ({ type: "video" as const, src }))],
     [galleryImages, product.videos],
@@ -91,8 +98,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
   // Per-size availability (only for sizes tracked individually).
   const sizeLeft = (s: string) => product.sizeStock?.[s];
-  const sizeSoldOut = (s: string) => soldOut || sizeLeft(s) === 0;
+  const sizeSoldOut = (s: string) => soldOut || isSizeSoldOut(product, s);
   const selectedSizeSoldOut = size !== null && sizeSoldOut(size);
+  // Quantity is capped by the selected size's stock (or overall stock) for
+  // ready-to-wear; pieces made per order get a sane per-order cap.
+  const maxQty = Math.max(1, maxQuantityFor(product, size ?? ""));
+  const qty = Math.min(quantity, maxQty);
+  const stockLimited = !isMadePerOrder(product);
 
   const category = categories.find((c) => inCategory(product, c));
   const published = useMemo(() => products.filter((p) => p.publishStatus === "published" && p.id !== product.id), [products, product.id]);
@@ -131,27 +143,41 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     return false;
   }
 
+  const fit = isMTM && fitMode === "measure" ? "measure" : "standard";
+
   function handleAdd(buyNow: boolean, origin?: HTMLElement | null) {
     if (!requireSize()) return;
     if (selectedSizeSoldOut) {
       sizeRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    const id = addItem(product, size!, color, quantity);
-    if (isMTM && fitMode === "measure" && pendingMeasurement) {
+    // Buy now adds quietly (no bag drawer) and goes straight to checkout.
+    const id = addItem(product, size!, color, qty, fit, { silent: buyNow });
+    if (!id) return;
+    if (fit === "measure" && pendingMeasurement) {
       setItemMeasurement(id, pendingMeasurement);
     }
+    if (buyNow) {
+      router.push("/checkout");
+      return;
+    }
     const rect = (origin ?? galleryRef.current)?.getBoundingClientRect();
-    flyToBag(product.images[0], rect);
-    if (buyNow) router.push("/checkout");
+    flyToBag(galleryImages[0], rect);
   }
 
+  const was = wasPrice(product);
   const price = (
-    <div className="flex items-baseline gap-3">
-      <p className="text-lg">{formatNaira(product.price)}</p>
-      {product.compareAtPrice && product.compareAtPrice > product.price && (
-        <p className="text-sm text-ink/40 line-through">{formatNaira(product.compareAtPrice)}</p>
-      )}
+    <div>
+      <div className="flex items-baseline gap-3">
+        <p className="text-lg">{formatNaira(effectivePrice(product))}</p>
+        {was !== undefined && (
+          <p className="text-sm text-ink/40 line-through">
+            <span className="sr-only">Was </span>
+            {formatNaira(was)}
+          </p>
+        )}
+      </div>
+      {effectivePrice(product) > 0 && <WelcomeNote price={effectivePrice(product)} className="mt-1" />}
     </div>
   );
 
@@ -268,6 +294,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                     ))}
                   </div>
                 )}
+                {isMTM && (
+                  <p className="mt-3 text-xs leading-relaxed text-ink/60">
+                    {fitMode === "standard"
+                      ? "Pick your size with the size guide — no measurements needed, straight through to payment."
+                      : "You'll add your measurements now or before payment — we guide you step by step."}
+                  </p>
+                )}
 
                 {/* Size */}
                 {!oneSize && (
@@ -277,7 +310,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                         {isMTM && fitMode === "measure" ? "Base size" : "Size"}
                         {size && <span className="text-ink"> — {size}</span>}
                       </legend>
-                      <button type="button" onClick={() => setGuideOpen(true)} className="label link-line text-ink">
+                      <button
+                        type="button"
+                        onClick={() => setGuideOpen(true)}
+                        aria-haspopup="dialog"
+                        className="label -mr-2 flex min-h-11 items-center gap-2 px-2 text-ink underline-offset-4 hover:underline"
+                      >
+                        <RulerIcon />
                         Size guide
                       </button>
                     </div>
@@ -293,16 +332,23 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                           type="button"
                           role="radio"
                           aria-checked={size === s}
-                          aria-label={sizeSoldOut(s) ? `${s}, sold out` : sizeLeft(s) !== undefined && sizeLeft(s)! <= 3 ? `${s}, ${sizeLeft(s)} left` : s}
+                          aria-label={sizeSoldOut(s) ? `${s} — sold out` : sizeLeft(s) !== undefined && sizeLeft(s)! <= 3 ? `${s}, ${sizeLeft(s)} left` : s}
+                          title={sizeSoldOut(s) ? "Sold out — select to get notified" : undefined}
                           onClick={() => {
                             setSize(s);
                             setSizeError(false);
                           }}
                           className={`relative py-3 text-sm transition-colors duration-300 ${
-                            size === s ? "bg-ink text-ivory" : "border border-line hover:border-ink"
-                          } ${sizeSoldOut(s) ? (size === s ? "text-ivory/60 line-through" : "text-ink/35 line-through") : ""}`}
+                            sizeSoldOut(s)
+                              ? size === s
+                                ? "border border-ink bg-bone text-ink/50"
+                                : "border border-dashed border-line text-ink/35 hover:border-ink/50"
+                              : size === s
+                                ? "bg-ink text-ivory"
+                                : "border border-line hover:border-ink"
+                          }`}
                         >
-                          {s}
+                          <span className={sizeSoldOut(s) ? "line-through" : undefined}>{s}</span>
                           {!sizeSoldOut(s) && sizeLeft(s) !== undefined && sizeLeft(s)! <= 3 && (
                             <span aria-hidden className="absolute right-1 top-1 h-1 w-1 rounded-full bg-terracotta" />
                           )}
@@ -325,49 +371,73 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 {isMTM && fitMode === "measure" && (
                   <div className="mt-6">
                     <MeasurementCapture
-                      garment={product.garment}
+                      product={product}
                       storageKey={`measure-draft-${product.slug}`}
-                      fieldOverride={product.measurementFieldKeys}
                       onSaved={(payload) => setPendingMeasurement(payload)}
                     />
                     {!pendingMeasurement && <p className="mt-2 text-xs text-clay">You can also add measurements from your bag before checkout — progress is saved.</p>}
                   </div>
                 )}
 
-                {soldOut || selectedSizeSoldOut ? (
-                  <NotifyMe product={product} size={selectedSizeSoldOut ? size : null} color={color} />
-                ) : (
-                  <div ref={ctaRef} className="mt-8 flex gap-3">
-                    <div className="flex items-center border border-line" aria-label="Quantity">
-                      <button type="button" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="h-full w-10 text-ink/70 hover:text-ink disabled:opacity-30">−</button>
-                      <span className="w-6 text-center text-sm tabular-nums" aria-live="polite">{quantity}</span>
+                {/* The CTA row always renders (the heart stays reachable even
+                    when sold out); purchase buttons disable with a reason. */}
+                <div ref={ctaRef} className="mt-8 flex gap-3">
+                  {!soldOut && (
+                    <div className="flex items-center border border-line" role="group" aria-label="Quantity">
+                      <button type="button" aria-label="Decrease quantity" disabled={qty <= 1} onClick={() => setQuantity(Math.max(1, qty - 1))} className="h-full w-10 text-ink/70 hover:text-ink disabled:opacity-30">−</button>
+                      <span className="w-6 text-center text-sm tabular-nums" aria-live="polite">{qty}</span>
                       <button
                         type="button"
                         aria-label="Increase quantity"
-                        disabled={stock === "low-stock" && quantity >= availableUnits(product) && availableUnits(product) > 0}
-                        onClick={() => setQuantity((q) => q + 1)}
+                        disabled={qty >= maxQty || selectedSizeSoldOut}
+                        onClick={() => setQuantity(Math.min(maxQty, qty + 1))}
                         className="h-full w-10 text-ink/70 hover:text-ink disabled:opacity-30"
                       >
                         +
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(e) => handleAdd(false, e.currentTarget)}
-                      className="flex-1 bg-ink px-6 py-4 text-sm tracking-wide text-ivory transition-[background-color,transform] duration-500 hover:bg-terracotta active:scale-[0.99]"
-                    >
-                      Add to bag
-                    </button>
-                    <WishButton wished={wished} onClick={() => toggleWishlist(product.id)} />
-                  </div>
-                )}
-                {!soldOut && !selectedSizeSoldOut && (
-                  <button type="button" onClick={() => handleAdd(true)} className="label link-line mt-4 text-ink/70 hover:text-ink">
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => handleAdd(false, e.currentTarget)}
+                    disabled={soldOut || selectedSizeSoldOut}
+                    aria-describedby={soldOut || selectedSizeSoldOut ? "cta-reason" : undefined}
+                    className="flex-1 bg-ink px-6 py-4 text-sm tracking-wide text-ivory transition-[background-color,transform] duration-500 hover:bg-terracotta active:scale-[0.99] disabled:cursor-not-allowed disabled:bg-ink/30 disabled:hover:bg-ink/30"
+                  >
+                    {soldOut ? "Sold out" : selectedSizeSoldOut ? `${size} is sold out` : "Add to bag"}
+                  </button>
+                  <WishButton wished={wished} onClick={() => toggleWishlist(product.id)} />
+                </div>
+                {!soldOut && (
+                  <button
+                    type="button"
+                    onClick={() => handleAdd(true)}
+                    disabled={selectedSizeSoldOut}
+                    aria-describedby={selectedSizeSoldOut ? "cta-reason" : undefined}
+                    className="mt-3 w-full border border-ink px-6 py-4 text-sm tracking-wide text-ink transition-colors duration-500 hover:bg-ink hover:text-ivory disabled:cursor-not-allowed disabled:border-line disabled:text-ink/35 disabled:hover:bg-transparent"
+                  >
                     Buy now
                   </button>
                 )}
+                {stockLimited && !soldOut && !selectedSizeSoldOut && qty >= maxQty && (
+                  <p className="mt-2 text-xs text-terracotta" role="status">
+                    Only {maxQty} available{size && !oneSize ? ` in ${size}` : ""}.
+                  </p>
+                )}
+                {(soldOut || selectedSizeSoldOut) && (
+                  <>
+                    <p id="cta-reason" className="mt-3 text-xs text-ink/65">
+                      {soldOut
+                        ? "This piece is sold out for now — save it to your wishlist or get notified below."
+                        : `Size ${size} is sold out. Choose another size, or we'll tell you when it's back.`}
+                    </p>
+                    <NotifyMe product={product} size={selectedSizeSoldOut && !soldOut ? size : null} color={color} />
+                  </>
+                )}
               </>
             )}
+
+            <WhatsAppAsk product={product} />
 
             {/* Delivery estimate */}
             {arrival && (
@@ -487,14 +557,23 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           >
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm">{product.name}</p>
-              <p className="text-sm text-ink/60">{formatNaira(product.price)}{size && !oneSize ? ` · ${size}` : ""}</p>
+              <p className="text-sm text-ink/60">{formatNaira(effectivePrice(product))}{size && !oneSize ? ` · ${size}` : ""}</p>
             </div>
             {product.customizable ? (
               <Link href={`/customize/${product.slug}`} className="bg-ink px-5 py-3 text-sm text-ivory">Design yours</Link>
+            ) : selectedSizeSoldOut ? (
+              <span className="px-2 text-sm text-ink/55">{size} sold out</span>
             ) : (
-              <button type="button" onClick={(e) => handleAdd(false, e.currentTarget)} className="bg-ink px-5 py-3 text-sm text-ivory active:scale-[0.98]">
-                {size ? "Add to bag" : "Select size"}
-              </button>
+              <div className="flex shrink-0 gap-2">
+                {size && (
+                  <button type="button" onClick={() => handleAdd(true)} className="border border-ink px-4 py-3 text-sm text-ink active:scale-[0.98]">
+                    Buy now
+                  </button>
+                )}
+                <button type="button" onClick={(e) => handleAdd(false, e.currentTarget)} className="bg-ink px-5 py-3 text-sm text-ivory active:scale-[0.98]">
+                  {size ? "Add to bag" : "Select size"}
+                </button>
+              </div>
             )}
           </m.div>
         )}
@@ -505,6 +584,30 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
 /** Customizable pieces go through the existing wizard (fabric, colour, fit,
  * required style choices); this is its invitation. */
+/** "Questions about this piece?" straight to WhatsApp, with the piece named. */
+function WhatsAppAsk({ product }: { product: Product }) {
+  const { systemSettings } = useAdminStore();
+  const phone = (systemSettings.general.supportPhone ?? "").replace(/[^\d]/g, "");
+  if (!phone) return null;
+  const note = encodeURIComponent(`Hello momen., I have a question about ${product.name}: ${typeof window !== "undefined" ? window.location.href : ""}`);
+  return (
+    <a
+      href={`https://wa.me/${phone}?text=${note}`}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-5 flex min-h-11 items-center gap-2.5 text-sm text-ink/75 hover:text-ink"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden className="shrink-0 text-[#1f7a4d]">
+        <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.4.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.6a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z" />
+      </svg>
+      <span>
+        Questions about fit, fabric or timing? <span className="underline underline-offset-4">Chat with us on WhatsApp</span>
+        <span className="sr-only"> (opens in a new tab)</span>
+      </span>
+    </a>
+  );
+}
+
 function DesignYours({
   product,
   wished,
@@ -516,7 +619,7 @@ function DesignYours({
   wished: boolean;
   onWish: () => void;
   onGuide: () => void;
-  ctaRef: React.RefObject<HTMLDivElement | null>;
+  ctaRef: React.Ref<HTMLDivElement>;
 }) {
   return (
     <div className="mt-8">
@@ -530,8 +633,13 @@ function DesignYours({
             </li>
           ))}
         </ol>
-        <p className="mt-4 text-xs text-ink/55">
-          {product.sizes.length > 0 && <>Standard sizes {product.sizes[0]}–{product.sizes[product.sizes.length - 1]}. </>}
+        <p className="mt-4 text-xs leading-relaxed text-ink/70">
+          {sizingModeOf(product) === "made-to-measure"
+            ? "Cut only to your measurements — you'll add them while you design, and can save them to your account for next time."
+            : "Choose a standard size from the size guide and go straight to payment, or have it cut to your measurements."}
+        </p>
+        <p className="mt-2 text-xs text-ink/55">
+          {product.sizes.length > 0 && sizingModeOf(product) !== "made-to-measure" && <>Standard sizes {product.sizes[0]}–{product.sizes[product.sizes.length - 1]}. </>}
           <button type="button" onClick={onGuide} className="underline underline-offset-2">Size guide</button>
         </p>
       </div>
@@ -707,7 +815,7 @@ function CompleteTheLook({ anchor, items }: { anchor: Product; items: Product[] 
       toast("Choose a size first", { description: p.name });
       return false;
     }
-    addItem(p, s, p.colors[0]?.name ?? "", 1);
+    if (!addItem(p, s, p.colors[0]?.name ?? "", 1, "standard")) return false;
     flyToBag(p.images[0], origin?.getBoundingClientRect());
     return true;
   }
@@ -740,12 +848,20 @@ function CompleteTheLook({ anchor, items }: { anchor: Product; items: Product[] 
         {items.map((p) => (
           <li key={p.id} className="group">
             <Link href={`/product/${p.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-bone">
-              <Image src={p.images[0]} alt={p.name} fill sizes="(min-width:640px) 30vw, 100vw" className="object-cover transition-transform duration-[1.2s] ease-house group-hover:scale-[1.04]" />
+              <SmartImage src={p.images[0]} alt={p.name} fill sizes="(min-width:640px) 30vw, 100vw" placeholder={placeholderFor(p.images[0])} className="object-cover transition-transform duration-[1.2s] ease-house group-hover:scale-[1.04]" />
             </Link>
             <div className="mt-4 flex items-start justify-between gap-3">
               <div>
                 <Link href={`/product/${p.slug}`} className="text-sm hover:underline">{p.name}</Link>
-                <p className="text-sm text-ink/55">{formatNaira(p.price)}</p>
+                <p className="text-sm text-ink/55">
+                  {formatNaira(effectivePrice(p))}
+                  {wasPrice(p) !== undefined && (
+                    <span className="ml-2 text-ink/35 line-through">
+                      <span className="sr-only">Was </span>
+                      {formatNaira(wasPrice(p)!)}
+                    </span>
+                  )}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 {!isOneSize(p) && (
@@ -758,7 +874,9 @@ function CompleteTheLook({ anchor, items }: { anchor: Product; items: Product[] 
                     >
                       <option value="" disabled>Size</option>
                       {p.sizes.map((s) => (
-                        <option key={s}>{s}</option>
+                        <option key={s} value={s} disabled={isSizeSoldOut(p, s)}>
+                          {isSizeSoldOut(p, s) ? `${s} — sold out` : s}
+                        </option>
                       ))}
                     </select>
                   </label>
@@ -778,6 +896,15 @@ function CompleteTheLook({ anchor, items }: { anchor: Product; items: Product[] 
         ))}
       </ul>
     </section>
+  );
+}
+
+function RulerIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.2" aria-hidden>
+      <rect x="1.5" y="6.5" width="17" height="7" rx="0.5" />
+      <path d="M4.5 6.5v3M7.5 6.5v2M10.5 6.5v3M13.5 6.5v2M16.5 6.5v3" />
+    </svg>
   );
 }
 

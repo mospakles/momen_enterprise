@@ -1,61 +1,77 @@
-"use client";
+import type { Metadata } from "next";
+import ProductPageClient from "@/components/product/ProductPageClient";
+import { notFound } from "next/navigation";
+import { SITE_NAME, SITE_URL, absoluteUrl, getProduct, getProductResult, plainText } from "@/lib/site";
+import { effectivePrice } from "@/lib/product-utils";
+import PhotoStrip from "@/components/campaign/PhotoStrip";
+import { campaignPhoto, campaignRange, findCampaignStyle } from "@/lib/campaign-catalogue";
+import { shotsForStyle } from "@/lib/campaign-shots";
 
-import { useParams } from "next/navigation";
-import Link from "next/link";
-import { useAdminStore } from "@/lib/admin/store";
-import ProductDetailClient from "@/components/product/ProductDetailClient";
+type Props = { params: Promise<{ slug: string }> };
 
-export default function ProductPage() {
-  const { slug } = useParams<{ slug: string }>();
-  const { products, isReady } = useAdminStore();
-
-  if (!isReady) return <ProductSkeleton />;
-
-  const product = products.find((p) => p.slug === slug && p.publishStatus === "published");
-
-  if (!product) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-32 text-center">
-        <p className="label text-clay">Not found</p>
-        <h1 className="display mt-4 text-5xl">This piece has moved on.</h1>
-        <p className="mt-4 text-ink/60">It may have sold out, been renamed, or retired from the collection.</p>
-        <div className="mt-10 flex justify-center gap-4">
-          <Link href="/shop" className="bg-ink px-6 py-3 text-sm text-ivory transition-colors hover:bg-terracotta">
-            Enter the collection
-          </Link>
-          <Link href="/made-to-measure" className="border border-line px-6 py-3 text-sm hover:border-ink">
-            Commission a piece
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  return <ProductDetailClient product={product} />;
+// Other pieces from the campaign: the shots this piece wasn't photographed in,
+// two per style, starting from a different style on each product page.
+function lookFor(styleSlug?: string) {
+  const others = campaignRange.filter((style) => style.slug !== styleSlug);
+  const start = Math.max(0, campaignRange.findIndex((style) => style.slug === styleSlug));
+  const rotated = [...others.slice(start), ...others.slice(0, start)];
+  return rotated.flatMap((style) => shotsForStyle(style.slug).filter((shot) => !shot.wide).slice(1, 3));
 }
 
-/** Matches the product page layout so nothing shifts when data arrives. */
-function ProductSkeleton() {
+// Titles, descriptions and photos for search results and shared links
+// (WhatsApp, Instagram, X). The page itself renders client-side.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const style = findCampaignStyle(slug);
+  const product = await getProduct(slug);
+  if (style && (!product || effectivePrice(product) <= 0)) {
+    const image = absoluteUrl(campaignPhoto(style.colours[0].photos[0]));
+    return {
+      title: style.name,
+      description: style.description,
+      alternates: { canonical: `/product/${slug}` },
+      openGraph: { title: style.name, description: style.description, images: [{ url: image, alt: style.name }] },
+    };
+  }
+  if (!product) return { title: "Piece not found", robots: { index: false } };
+  const description = plainText(product.shortDescription || product.description) || `${product.name} by ${SITE_NAME}`;
+  const images = product.images.slice(0, 3).map((src) => ({ url: absoluteUrl(src), alt: product.name }));
+  return {
+    title: product.seo?.title || product.name,
+    description: product.seo?.description || description,
+    alternates: { canonical: `/product/${product.slug}` },
+    openGraph: { type: "website", title: product.name, description, url: `/product/${product.slug}`, images },
+    twitter: { card: "summary_large_image", title: product.name, description, images: images.map((i) => i.url) },
+    robots: product.seo?.noIndex ? { index: false } : undefined,
+  };
+}
+
+export default async function ProductPage({ params }: Props) {
+  const { slug } = await params;
+  const { data: product, missing } = await getProductResult(slug);
+  if (missing && !findCampaignStyle(slug)) notFound();
+  // Product structured data, so Google can show price and availability.
+  const jsonLd = product && effectivePrice(product) > 0 && {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: plainText(product.description, 500),
+    image: product.images.map((src) => absoluteUrl(src)),
+    sku: product.sku,
+    brand: { "@type": "Brand", name: "momen." },
+    offers: {
+      "@type": "Offer",
+      url: `${SITE_URL}/product/${product.slug}`,
+      priceCurrency: "NGN",
+      price: effectivePrice(product),
+      availability: product.stock === "out-of-stock" ? "https://schema.org/OutOfStock" : product.stock === "made-to-order" ? "https://schema.org/PreOrder" : "https://schema.org/InStock",
+    },
+  };
   return (
-    <div className="mx-auto max-w-[1600px] px-4 pt-6 sm:px-6 lg:px-10 lg:pt-8" aria-busy="true" aria-label="Loading product">
-      <div className="grid gap-8 lg:grid-cols-12 lg:gap-14">
-        <div className="lg:col-span-7 lg:grid lg:grid-cols-[72px_1fr] lg:gap-4">
-          <div className="hidden flex-col gap-3 lg:flex">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="shimmer block aspect-[4/5] w-full" />
-            ))}
-          </div>
-          <span className="shimmer -mx-4 block aspect-[4/5] sm:-mx-6 lg:mx-0" />
-        </div>
-        <div className="space-y-4 lg:col-span-5">
-          <span className="shimmer block h-3 w-32" />
-          <span className="shimmer block h-12 w-4/5" />
-          <span className="shimmer block h-5 w-28" />
-          <span className="shimmer mt-8 block h-16 w-full" />
-          <span className="shimmer block h-24 w-full" />
-          <span className="shimmer block h-14 w-full" />
-        </div>
-      </div>
-    </div>
+    <>
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />}
+      <ProductPageClient />
+      <PhotoStrip title="Complete the look" shots={lookFor(findCampaignStyle(slug)?.slug)} className="mt-10 border-t border-line" />
+    </>
   );
 }

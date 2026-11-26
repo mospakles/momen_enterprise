@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { serializeMeasurementProfile } from '../measurements/measurement-profiles/measurement-profiles.service';
 import type { AddCustomerNoteDto } from './dto/add-customer-note.dto';
 import type { UpdateCustomerDto } from './dto/update-customer.dto';
 
@@ -64,7 +65,12 @@ export class CustomersService {
       },
     });
     if (!customer) throw new NotFoundException('Customer not found');
-    return customer;
+    return {
+      ...customer,
+      measurementProfiles: customer.measurementProfiles.map(
+        serializeMeasurementProfile,
+      ),
+    };
   }
 
   async update(id: string, dto: UpdateCustomerDto) {

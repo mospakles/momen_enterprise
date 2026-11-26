@@ -3,14 +3,30 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MeasurementUnit, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  toApiUnit,
+  withApiUnit,
+} from '../../common/utils/measurement-unit.util';
 import { AuditLogService } from '../../audit-log/audit-log.service';
 import type { UpsertMeasurementProfileDto } from './dto/upsert-measurement-profile.dto';
 
 interface Actor {
   id: string;
   name: string;
+}
+
+/** Rewrites the profile's unit — and each history entry's — to the wire
+ * spelling ("in", not Prisma's "inch"). */
+export function serializeMeasurementProfile<
+  T extends { unit: MeasurementUnit; history?: { unit: MeasurementUnit }[] },
+>(profile: T) {
+  return {
+    ...profile,
+    unit: toApiUnit(profile.unit),
+    ...(profile.history ? { history: profile.history.map(withApiUnit) } : {}),
+  };
 }
 
 @Injectable()
@@ -20,22 +36,24 @@ export class MeasurementProfilesService {
     private readonly auditLog: AuditLogService,
   ) {}
 
-  findAllForCustomer(customerId: string) {
-    return this.prisma.measurementProfile.findMany({
+  async findAllForCustomer(customerId: string) {
+    const profiles = await this.prisma.measurementProfile.findMany({
       where: { customerId },
       include: { history: { orderBy: { changedAt: 'desc' } } },
       orderBy: { updatedAt: 'desc' },
     });
+    return profiles.map(serializeMeasurementProfile);
   }
 
-  findAllAdmin() {
-    return this.prisma.measurementProfile.findMany({
+  async findAllAdmin() {
+    const profiles = await this.prisma.measurementProfile.findMany({
       include: {
         customer: { select: { id: true, name: true, email: true } },
         history: { orderBy: { changedAt: 'desc' } },
       },
       orderBy: { updatedAt: 'desc' },
     });
+    return profiles.map(serializeMeasurementProfile);
   }
 
   async findOwned(id: string, customerId: string) {
@@ -48,8 +66,8 @@ export class MeasurementProfilesService {
     return profile;
   }
 
-  create(customerId: string, dto: UpsertMeasurementProfileDto) {
-    return this.prisma.measurementProfile.create({
+  async create(customerId: string, dto: UpsertMeasurementProfileDto) {
+    const profile = await this.prisma.measurementProfile.create({
       data: {
         customerId,
         label: dto.label,
@@ -57,6 +75,7 @@ export class MeasurementProfilesService {
         values: dto.values as Prisma.InputJsonValue,
       },
     });
+    return serializeMeasurementProfile(profile);
   }
 
   /** `customerId` is whose profile this is (the ownership check); `actor` is
@@ -109,7 +128,7 @@ export class MeasurementProfilesService {
       });
     }
 
-    return updated;
+    return serializeMeasurementProfile(updated);
   }
 
   async remove(id: string, customerId: string) {

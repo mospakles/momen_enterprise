@@ -41,7 +41,7 @@ export default function AdminBannersPage() {
           {[...banners].sort((a, b) => a.sortOrder - b.sortOrder).map((b) => (
             <Card key={b.id} className="!p-0 overflow-hidden">
               <div className="relative h-28 w-full bg-ivory-deep">
-                <Image src={b.image} alt="" fill className="object-cover" sizes="360px" unoptimized />
+                {b.image && <Image src={b.image} alt="" fill className="object-cover" sizes="360px" unoptimized />}
               </div>
               <div className="p-4">
                 <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -81,7 +81,7 @@ export default function AdminBannersPage() {
 
 function BannerModal({ banner, nextOrder, onCancel, onSave }: { banner: Banner | null; nextOrder: number; onCancel: () => void; onSave: (b: Banner) => void }) {
   const [form, setForm] = useState<Banner>(
-    banner ?? { id: "", title: "", subtitle: "", image: "https://picsum.photos/seed/new-banner/1800/700", ctaLabel: "", ctaHref: "", placement: "homepage-promo", active: true, sortOrder: nextOrder }
+    banner ?? { id: "", title: "", subtitle: "", image: "", ctaLabel: "", ctaHref: "", placement: "homepage-promo", active: true, sortOrder: nextOrder }
   );
   function set<K extends keyof Banner>(key: K, value: Banner[K]) {
     setForm((f) => ({ ...f, [key]: value }));

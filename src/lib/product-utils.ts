@@ -2,14 +2,34 @@
 // underscores ("made_to_measure", "one_size") while the frontend types use
 // hyphens ("made-to-measure"); these helpers accept both.
 
-import type { Product } from "./types";
+import type { CartItem, Product } from "./types";
 
 const norm = (value: string | undefined) => (value ?? "").replace(/_/g, "-");
 
+/** What the customer actually pays per unit. The API charges
+ * `salePrice ?? price`, so every displayed price must use this too. */
+export const effectivePrice = (p: Pick<Product, "price" | "salePrice">) => p.salePrice ?? p.price;
+/** The struck-through "was" price, when there is one. */
+export const wasPrice = (p: Pick<Product, "price" | "salePrice" | "compareAtPrice">) => {
+  const now = effectivePrice(p);
+  const was = now < p.price ? p.price : p.compareAtPrice;
+  return was != null && was > now ? was : undefined;
+};
+
+/** Sizing mode with hyphens ("made-to-measure", "both", "one-size", "standard"). */
+export const sizingModeOf = (p: Product) => norm(p.sizingMode);
 export const isMadeToMeasure = (p: Product) => norm(p.productionType) === "made-to-measure";
 export const isAccessory = (p: Product) => norm(p.productType) === "accessory";
 export const isOneSize = (p: Product) => norm(p.sizingMode) === "one-size" || p.sizes.length <= 1;
-export const offersMadeToMeasure = (p: Product) => ["made-to-measure", "both"].includes(norm(p.sizingMode)) || isMadeToMeasure(p);
+/** A bag item that can't go to payment until measurements are added: only a
+ * made-to-measure piece the customer chose to have cut to their measurements.
+ * A standard size picked from the size guide goes straight through. */
+export function needsMeasurements(item: CartItem) {
+  if (!isMadeToMeasure(item.product)) return false;
+  if (item.measurement && item.measurement.mode !== "pending") return false;
+  if (item.customOrder) return item.size === "Made-to-Measure";
+  return item.fit === "measure";
+}
 
 /** Category comparison that works whether `product.category` holds the slug
  * (API) or the display name (legacy data). */
@@ -18,7 +38,7 @@ export function inCategory(p: Product, category: { slug: string; name: string })
   return c === category.slug.toLowerCase() || c === category.name.toLowerCase();
 }
 
-export type StockState = "in-stock" | "low-stock" | "made-to-order" | "sold-out";
+type StockState = "in-stock" | "low-stock" | "made-to-order" | "sold-out";
 
 export function stockState(p: Product): StockState {
   const s = norm(p.stock);

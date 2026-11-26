@@ -5,7 +5,8 @@
 // carousel with a counter. Any image (or video) opens a full-screen lightbox
 // with keyboard, swipe and tap-to-zoom.
 
-import Image from "next/image";
+import SmartImage from "@/components/ui/SmartImage";
+import { placeholderFor } from "@/lib/brand-images";
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "motion/react";
 import { trapFocus, useDialog } from "@/lib/a11y";
@@ -41,15 +42,26 @@ export const Gallery = forwardRef<HTMLDivElement, { media: Media[]; name: string
     return () => observer.disconnect();
   }, [media.length]);
 
+  const many = media.length > 6;
   const goTo = (i: number) => {
     slides.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  if (media.length === 0) {
+    return (
+      <div ref={ref} className="relative grid aspect-[4/5] place-items-center bg-bone">
+        {badge}
+        <p className="text-sm text-ink/65">Photography coming soon</p>
+      </div>
+    );
+  }
+
   return (
     <div ref={ref}>
       {/* Desktop */}
-      <div className="hidden gap-4 lg:grid lg:grid-cols-[72px_1fr]">
-        <div className="sticky top-24 flex h-fit flex-col gap-3" role="tablist" aria-label="Product images">
+      {/* Many looks (style books) browse as a two-column grid instead. */}
+      <div className={`hidden gap-4 lg:grid ${many ? "" : "lg:grid-cols-[72px_1fr]"}`}>
+        <div className={`sticky top-24 h-fit flex-col gap-3 ${many ? "hidden" : "flex"}`} role="tablist" aria-label="Product images">
           {media.map((item, i) => (
             <button
               key={item.src + i}
@@ -63,12 +75,12 @@ export const Gallery = forwardRef<HTMLDivElement, { media: Media[]; name: string
               {item.type === "video" ? (
                 <span className="flex h-full items-center justify-center text-xs text-ink/60">▶</span>
               ) : (
-                <Image src={item.src} alt="" fill sizes="72px" className="object-cover" />
+                <SmartImage src={item.src} alt="" fill sizes="72px" className="object-cover" />
               )}
             </button>
           ))}
         </div>
-        <div className="flex flex-col gap-4">
+        <div className={many ? "grid grid-cols-2 gap-4" : "flex flex-col gap-4"}>
           {media.map((item, i) => (
             <div key={item.src + i} ref={(el) => { slides.current[i] = el; }} data-index={i} className="relative">
               {i === 0 && badge}
@@ -102,12 +114,17 @@ export const Gallery = forwardRef<HTMLDivElement, { media: Media[]; name: string
               {item.type === "video" ? (
                 <video src={item.src} className="h-full w-full object-cover" muted playsInline autoPlay loop aria-hidden />
               ) : (
-                <Image src={item.src} alt={i === 0 ? name : ""} fill sizes="100vw" preload={i === 0} className="object-cover" />
+                <SmartImage src={item.src} alt={i === 0 ? name : ""} fill sizes="100vw" preload={i === 0} placeholder={placeholderFor(item.src)} className="object-cover" />
               )}
             </button>
           ))}
         </div>
-        {media.length > 1 && (
+        {many && (
+          <span className="pointer-events-none absolute bottom-4 right-4 bg-night/70 px-2.5 py-1 text-xs text-ivory" aria-hidden>
+            {active + 1} / {media.length}
+          </span>
+        )}
+        {media.length > 1 && !many && (
           <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center gap-1.5" aria-hidden>
             {media.map((_, i) => (
               <span key={i} className={`h-[3px] rounded-full bg-ivory transition-all duration-500 ${active === i ? "w-6 opacity-100" : "w-3 opacity-50"}`} />
@@ -148,11 +165,12 @@ function ZoomFrame({ item, alt, priority, onOpen }: { item: Media; alt: string; 
         setOrigin(`${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`);
       }}
     >
-      <Image
+      <SmartImage
         src={item.src}
         alt={alt}
         fill
         preload={priority}
+        placeholder={placeholderFor(item.src)}
         sizes="(min-width: 1024px) 55vw, 100vw"
         className="object-cover transition-transform duration-500 ease-house"
         style={{ transformOrigin: origin, transform: zoom ? "scale(1.9)" : "scale(1)" }}
@@ -258,7 +276,7 @@ function Lightbox({
                 {item.type === "video" ? (
                   <video src={item.src} className="h-full w-full object-contain" controls autoPlay playsInline />
                 ) : (
-                  <Image
+                  <SmartImage
                     src={item.src}
                     alt={`${name} — image ${index! + 1}`}
                     fill

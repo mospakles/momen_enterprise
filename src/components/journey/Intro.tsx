@@ -11,7 +11,7 @@ import { EASE_CURTAIN, EASE_HOUSE } from "@/lib/motion/ease";
 import { usePrefersReducedMotion, useScrollLock } from "@/lib/motion/hooks";
 import { Wordmark } from "@/components/brand/Wordmark";
 
-export const INTRO_KEY = "momen.intro.seen";
+const INTRO_KEY = "momen.intro.seen";
 
 const noop = () => () => undefined;
 const readSeen = () => {

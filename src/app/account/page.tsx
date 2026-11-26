@@ -41,19 +41,22 @@ export default function AccountPage() {
 function AccountContent() {
   const { currentUser, isReady: authReady, logout } = useCustomerAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
 
   if (authReady && !currentUser) {
+    const query = searchParams.toString();
+    const next = encodeURIComponent(`${pathname || "/account"}${query ? `?${query}` : ""}`);
     return (
       <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col justify-center px-4 py-20 sm:px-6">
         <p className="label text-clay">Your account</p>
         <h1 className="display mt-4 text-5xl">Welcome to the house.</h1>
         <p className="mt-4 text-ink/65">Follow your orders from atelier to doorstep, keep your measurements on file, and save the pieces you&rsquo;re considering.</p>
         <div className="mt-10 flex flex-wrap gap-3">
-          <Link href={`/login?next=${encodeURIComponent(pathname || "/account")}`} className="bg-ink px-7 py-3.5 text-sm tracking-wide text-ivory transition-colors hover:bg-terracotta">Sign in</Link>
-          <Link href={`/signup?next=${encodeURIComponent(pathname || "/account")}`} className="border border-line px-7 py-3.5 text-sm tracking-wide hover:border-ink">Create an account</Link>
+          <Link href={`/login?next=${next}`} className="bg-ink px-7 py-3.5 text-sm tracking-wide text-ivory transition-colors hover:bg-terracotta">Sign in</Link>
+          <Link href={`/signup?next=${next}`} className="border border-line px-7 py-3.5 text-sm tracking-wide hover:border-ink">Create an account</Link>
         </div>
-        <Link href="/account?tab=Wishlist" className="label link-line mt-10 self-start text-ink/60">Your wishlist (saved on this device)</Link>
+        <Link href="/wishlist" className="label link-line mt-10 self-start text-ink/60">Your wishlist (saved on this device)</Link>
       </div>
     );
   }
@@ -98,7 +101,8 @@ function AccountDashboard({
   const { wishlist } = useCart();
   const { products } = useAdminStore();
   const { updateProfile, refreshProfile } = useCustomerAuth();
-  const wishlistProducts = products.filter((p) => wishlist.includes(p.id));
+  // Same rule as the header badge: only saved pieces that are still published.
+  const wishlistProducts = products.filter((p) => p.publishStatus === "published" && wishlist.includes(p.id));
   const [profileDraft, setProfileDraft] = useState({ name, email, phone: phone ?? "" });
   const firstName = name.split(" ")[0];
   const greeting = useMemo(() => {
@@ -295,7 +299,8 @@ function OrderCard({ order, products }: { order: Order; products: Product[] }) {
         void _id;
         addCustomItem({ ...rest, product: current });
       } else {
-        const id = addItem(current, item.size, item.color, item.quantity);
+        const measured = item.measurement && item.measurement.mode !== "pending";
+        const id = addItem(current, item.size, item.color, item.quantity, measured || item.fit === "measure" ? "measure" : "standard");
         if (item.measurement && item.measurement.mode !== "pending") setItemMeasurement(id, item.measurement);
       }
       added++;
@@ -371,7 +376,7 @@ function WishlistPanel({ products }: { products: Product[] }) {
             <m.li key={p.id} layout exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.4, ease: EASE_HOUSE }} className="group">
               <div className="relative aspect-3/4 overflow-hidden bg-bone">
                 <Link href={`/product/${p.slug}`} aria-label={p.name}>
-                  <Image src={p.images[0]} alt={p.name} fill sizes="(min-width:640px) 25vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />
+                  {p.images[0] && <Image src={p.images[0]} alt={p.name} fill sizes="(min-width:640px) 25vw, 50vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.03]" />}
                 </Link>
                 <button
                   type="button"

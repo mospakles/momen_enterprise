@@ -145,7 +145,10 @@ export class PaystackProvider implements PaymentProviderAdapter {
 
   private mapStatus(paystackStatus: string): ProviderTransactionStatus {
     if (paystackStatus === 'success') return 'success';
-    if (paystackStatus === 'failed' || paystackStatus === 'abandoned')
+    // 'abandoned' only means the customer hasn't finished the Paystack
+    // checkout page yet (they may still come back to it) — not a failure.
+    // 'reversed' is a declined/rolled-back charge.
+    if (paystackStatus === 'failed' || paystackStatus === 'reversed')
       return 'failed';
     return 'pending';
   }

@@ -12,6 +12,7 @@
 // the app needs them to function.
 
 import { PrismaClient, PermissionAction, PermissionResource, PublishStatus, NotificationEvent } from '@prisma/client';
+import { linkStyleMeasurements } from './style-measurements';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -140,21 +141,42 @@ async function seedSuperAdmin() {
 }
 
 async function seedMeasurementFields() {
-  const fields: { key: string; label: string; description: string; garments: ('top' | 'trouser' | 'set' | 'agbada' | 'accessory')[]; sortOrder: number }[] = [
-    { key: 'chest', label: 'Chest', description: 'Chest circumference.', garments: ['top', 'set', 'agbada'], sortOrder: 1 },
-    { key: 'neck', label: 'Neck', description: 'Neck circumference.', garments: ['top', 'set', 'agbada'], sortOrder: 2 },
-    { key: 'shoulder', label: 'Shoulder', description: 'Shoulder-to-shoulder width.', garments: ['top', 'set', 'agbada'], sortOrder: 3 },
-    { key: 'sleeveLength', label: 'Sleeve Length', description: 'Shoulder seam to wrist.', garments: ['top', 'set', 'agbada'], sortOrder: 4 },
-    { key: 'waist', label: 'Waist', description: 'Waist circumference.', garments: ['trouser', 'set'], sortOrder: 5 },
-    { key: 'hip', label: 'Hip', description: 'Hip circumference.', garments: ['trouser', 'set'], sortOrder: 6 },
-    { key: 'inseam', label: 'Inseam', description: 'Crotch to ankle.', garments: ['trouser', 'set'], sortOrder: 7 },
-    { key: 'length', label: 'Length', description: 'Full garment length, nape to hem.', garments: ['top', 'set', 'agbada'], sortOrder: 8 },
+  // One definition per body measurement. How to take each one is written in
+  // the storefront's measurement guide (src/lib/measurement-guide.ts); the
+  // description/instructions columns here are optional admin overrides.
+  // Which measurements a style needs is set per category (see the
+  // 20261114220000_measurement_guide_fields migration).
+  type G = 'top' | 'trouser' | 'set' | 'agbada' | 'accessory';
+  const TOP: G[] = ['top', 'set', 'agbada'];
+  const TROUSER: G[] = ['trouser', 'set', 'agbada'];
+  const fields: { key: string; label: string; garments: G[]; required: boolean; sortOrder: number; minCm: number; maxCm: number }[] = [
+    { key: 'agbadaLength', label: 'Agbada length', garments: ['agbada'], required: true, sortOrder: 1, minCm: 110, maxCm: 165 },
+    { key: 'agbadaWidth', label: 'Agbada width (wrist to wrist)', garments: ['agbada'], required: true, sortOrder: 2, minCm: 120, maxCm: 220 },
+    { key: 'neck', label: 'Neck', garments: TOP, required: true, sortOrder: 10, minCm: 28, maxCm: 60 },
+    { key: 'shoulder', label: 'Shoulder width', garments: TOP, required: true, sortOrder: 11, minCm: 33, maxCm: 65 },
+    { key: 'chest', label: 'Chest', garments: TOP, required: true, sortOrder: 12, minCm: 70, maxCm: 170 },
+    { key: 'stomach', label: 'Stomach', garments: TOP, required: true, sortOrder: 13, minCm: 60, maxCm: 180 },
+    // Sleeves: measure the lengths that match the styles you want.
+    { key: 'sleeveShort', label: 'Short sleeve length', garments: TOP, required: false, sortOrder: 14, minCm: 12, maxCm: 40 },
+    { key: 'sleeveThreeQuarter', label: 'Three-quarter sleeve length', garments: TOP, required: false, sortOrder: 15, minCm: 30, maxCm: 60 },
+    { key: 'sleeveLength', label: 'Long sleeve length', garments: TOP, required: false, sortOrder: 16, minCm: 45, maxCm: 80 },
+    { key: 'bicep', label: 'Round sleeve (short)', garments: TOP, required: false, sortOrder: 17, minCm: 20, maxCm: 55 },
+    { key: 'roundSleeveThreeQuarter', label: 'Round sleeve (three-quarter)', garments: TOP, required: false, sortOrder: 18, minCm: 18, maxCm: 45 },
+    { key: 'roundSleeveLong', label: 'Round sleeve (long)', garments: TOP, required: false, sortOrder: 19, minCm: 13, maxCm: 30 },
+    { key: 'length', label: 'Top length', garments: TOP, required: true, sortOrder: 26, minCm: 55, maxCm: 130 },
+    { key: 'waist', label: 'Waist', garments: TROUSER, required: true, sortOrder: 20, minCm: 55, maxCm: 170 },
+    { key: 'hip', label: 'Hip', garments: TROUSER, required: true, sortOrder: 21, minCm: 70, maxCm: 180 },
+    { key: 'thigh', label: 'Thigh', garments: TROUSER, required: false, sortOrder: 22, minCm: 40, maxCm: 90 },
+    { key: 'trouserLength', label: 'Trouser length', garments: TROUSER, required: true, sortOrder: 23, minCm: 80, maxCm: 125 },
+    { key: 'ankle', label: 'Trouser bottom', garments: TROUSER, required: false, sortOrder: 24, minCm: 25, maxCm: 60 },
+    { key: 'inseam', label: 'Inside leg', garments: [], required: false, sortOrder: 90, minCm: 60, maxCm: 100 },
   ];
 
   for (const field of fields) {
+    // Create only: later seed runs never overwrite an administrator's edits.
     await prisma.measurementFieldDef.upsert({
       where: { key: field.key },
-      create: { key: field.key, label: field.label, description: field.description, garments: field.garments, unit: 'cm', required: true, sortOrder: field.sortOrder },
+      create: { ...field, unit: 'cm' },
       update: {},
     });
   }
@@ -173,7 +195,7 @@ async function seedCatalog() {
       slug: 'heritage',
       name: 'Heritage',
       description: 'Traditional silhouettes, modern tailoring.',
-      image: 'https://picsum.photos/seed/heritage/1200/1500',
+      image: '/images/brand/campaign-ivory-kaftan-white-agbada.jpg',
       publishStatus: PublishStatus.published,
       sortOrder: 1,
     },
@@ -182,7 +204,7 @@ async function seedCatalog() {
 
   const fabric = await prisma.fabric.upsert({
     where: { id: 'fabric-senator-cotton' },
-    create: { id: 'fabric-senator-cotton', name: 'Senator Cotton', category: 'Cotton', image: 'https://picsum.photos/seed/fabric1/600/600', description: 'Breathable, structured cotton blend.', additionalCost: 0, available: true, sortOrder: 1 },
+    create: { id: 'fabric-senator-cotton', name: 'Senator Cotton', category: 'Cotton', image: '', description: 'Breathable, structured cotton blend.', additionalCost: 0, available: true, sortOrder: 1 },
     update: {},
   });
 
@@ -198,7 +220,7 @@ async function seedCatalog() {
         sku: 'MOM-KAF-001',
         categoryId: category.id,
         price: 65000,
-        images: ['https://picsum.photos/seed/onyeka1/1200/1500'],
+        images: ['/images/brand/kaftan-embroidered-beige.jpg'],
         productionType: 'made_to_measure',
         productType: 'made_to_measure',
         gender: 'men',
@@ -222,7 +244,6 @@ async function seedCatalog() {
         fabrics: { create: [{ fabricId: fabric.id }] },
         sizes: { create: [{ sizeOptionId: sizeM.id, label: 'M', sortOrder: 1 }, { sizeOptionId: sizeL.id, label: 'L', sortOrder: 2 }] },
         colorVariants: { create: [{ name: 'Ivory', hex: '#F4F1EA', sortOrder: 1 }, { name: 'Charcoal', hex: '#36454F', sortOrder: 2 }] },
-        measurementFieldDefs: { connect: [{ key: 'chest' }, { key: 'neck' }, { key: 'shoulder' }, { key: 'sleeveLength' }, { key: 'length' }] },
       },
     });
   }
@@ -281,7 +302,8 @@ async function seedDelivery() {
 async function seedPromotions() {
   await prisma.coupon.upsert({
     where: { code: 'WELCOME10' },
-    create: { code: 'WELCOME10', type: 'percentage', value: 10, scope: 'all', active: true },
+    // The first-order welcome offer, applied automatically at checkout.
+    create: { code: 'WELCOME10', type: 'percentage', value: 10, scope: 'first_order', perCustomerLimit: 1, active: true },
     update: {},
   });
 }
@@ -329,6 +351,7 @@ async function main() {
   await seedRoles();
   await seedSuperAdmin();
   await seedMeasurementFields();
+  await linkStyleMeasurements(prisma);
   await seedProductionTimeline();
   await seedPaymentProvider();
   await seedNotifications();

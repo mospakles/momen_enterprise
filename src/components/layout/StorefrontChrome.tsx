@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import StylistButton from "./StylistButton";
+import { WelcomeModal } from "./WelcomeOffer";
 import FlyToBag from "@/components/shop/FlyToBag";
 import { Wordmark } from "@/components/brand/Wordmark";
 
@@ -47,16 +48,16 @@ export default function StorefrontChrome({ children }: { children: React.ReactNo
     );
   }
 
-  const isHome = pathname === "/";
   return (
     <>
       <Navbar />
-      <main className={`flex-1 ${isHome ? "" : "pt-16 lg:pt-18"}`}>{children}</main>
+      <main className="flex-1 pt-[var(--header-h)]">{children}</main>
       <Footer />
       <BagDrawer />
       <SearchOverlay />
       <FlyToBag />
       <StylistButton />
+      <WelcomeModal />
     </>
   );
 }

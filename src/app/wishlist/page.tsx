@@ -10,6 +10,8 @@ import { useAdminStore } from "@/lib/admin/store";
 import { useCart } from "@/lib/cart-context";
 import ProductCard from "@/components/product/ProductCard";
 import { SplitText } from "@/lib/motion/SplitText";
+import PhotoStrip from "@/components/campaign/PhotoStrip";
+import { shots } from "@/lib/campaign-shots";
 
 export default function WishlistPage() {
   return (
@@ -42,6 +44,10 @@ function WishlistContent() {
         <div className="mt-12">
           <p className="text-ink/65">{shared ? "These pieces are no longer available." : "Tap the heart on any piece to keep it here."}</p>
           <Link href="/shop" className="mt-8 inline-block bg-ink px-6 py-3 text-sm text-ivory transition-colors hover:bg-terracotta">Enter the collection</Link>
+          <PhotoStrip title="Something to save" shots={shots(
+            "cobalt-tan-cuff-trousers-motion", "blue-abstract-shirt-front", "patchwork-trousers-studio", "black-geometric-trousers-front",
+            "landscape-print-shirt-front", "cobalt-striped-cuff-trousers-styled", "blue-cap-detail", "ivory-textured-set-front",
+          )} className="-mx-4 mt-6 sm:-mx-6 lg:-mx-10" />
         </div>
       ) : (
         <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-12 lg:grid-cols-4 lg:gap-x-6">

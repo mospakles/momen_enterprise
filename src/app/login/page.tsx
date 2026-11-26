@@ -1,10 +1,17 @@
 "use client";
+import AuthShell from "@/components/auth/AuthShell";
+import { MEDIA } from "@/components/journey/media";
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomerAuth } from "@/lib/customer-auth-context";
 import { Button } from "@/components/ui/Button";
+
+/** Only same-origin paths ("/x", not "//host" or "/\\host") are allowed as a post-auth redirect. */
+function safeNext(value: string | null) {
+  return value && value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\") ? value : "/account";
+}
 
 export default function LoginPage() {
   return (
@@ -18,7 +25,7 @@ function LoginContent() {
   const { login, currentUser, isReady } = useCustomerAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") || "/account";
+  const next = safeNext(searchParams.get("next"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,7 +47,7 @@ function LoginContent() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-16 sm:px-6">
+    <AuthShell image={MEDIA.auth.login}>
       <div className="mb-8 text-center">
         <p className="eyebrow text-clay">Welcome Back</p>
         <h1 className="mt-2 font-display text-3xl">Sign In to Momen</h1>
@@ -53,6 +60,7 @@ function LoginContent() {
             <span className="text-xs text-ink/60">Email</span>
             <input
               type="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -63,6 +71,7 @@ function LoginContent() {
             <span className="text-xs text-ink/60">Password</span>
             <input
               type="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -88,6 +97,6 @@ function LoginContent() {
           Create an account
         </Link>
       </p>
-    </div>
+    </AuthShell>
   );
 }

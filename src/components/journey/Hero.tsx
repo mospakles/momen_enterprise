@@ -1,109 +1,121 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { useRef } from "react";
-import { m, useScroll, useTransform } from "motion/react";
-import { SplitText } from "@/lib/motion/SplitText";
-import { usePointerParallax, usePrefersReducedMotion } from "@/lib/motion/hooks";
-import { EASE_HOUSE } from "@/lib/motion/ease";
-import { HERO_VIDEO, MEDIA } from "./media";
+import Link from "next/link";
+import { shots } from "@/lib/campaign-shots";
 
-/** Full-viewport opening image. The headline waits for the intro (`play`),
- * the image drifts against the cursor and sinks slowly as you scroll. */
-export default function Hero({ play }: { play: boolean }) {
-  const ref = useRef<HTMLElement>(null);
-  const reduce = usePrefersReducedMotion();
-  const pointer = usePointerParallax();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+// The hero photographs, in order. Desktop shows three side by side so no one
+// is cropped at the head or feet; phones show one per slide.
+const photos = shots(
+  "patchwork-trousers-back", "cobalt-striped-cuff-trousers-detail", "blue-abstract-shirt-side",
+  "burgundy-robe-full-length", "ivory-woven-panel-shirt-detail", "patterned-trousers-group-side",
+  "black-geometric-trousers-side", "black-geometric-trousers-side-detail", "blue-geometric-set-full-length",
+  "cobalt-striped-cuff-trousers-side", "cobalt-tan-cuff-trousers-back", "blue-geometric-set-seated-wide",
+  "ivory-textured-polo-detail", "black-cap-profile", "cobalt-trousers-duo-front",
+  "cobalt-tan-cuff-trousers-side", "landscape-print-shirt-back",
+);
 
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", reduce ? "0%" : "18%"]);
-  const imageScale = useTransform(scrollYProgress, [0, 1], [1.08, reduce ? 1.08 : 1.18]);
-  const textY = useTransform(scrollYProgress, [0, 1], ["0%", reduce ? "0%" : "-30%"]);
-  const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
-  const driftX = useTransform(pointer.x, [-1, 1], [18, -18]);
-  const driftY = useTransform(pointer.y, [-1, 1], [12, -12]);
+/** Split into slides of `size`, topping up the last slide from the start. */
+function paginate(size: number) {
+  const count = Math.ceil(photos.length / size);
+  return Array.from({ length: count }, (_, i) =>
+    Array.from({ length: size }, (_, j) => photos[(i * size + j) % photos.length]));
+}
+
+export default function Hero() {
+  const [index, setIndex] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const touchStart = useRef<number | null>(null);
+  const [perView, setPerView] = useState(3);
+  const slides = paginate(perView);
+
+  useEffect(() => {
+    const wide = window.matchMedia("(min-width: 768px)");
+    const sync = () => { setPerView(wide.matches ? 3 : 1); setIndex(0); };
+    sync();
+    wide.addEventListener("change", sync);
+    return () => wide.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setPlaying(!preference.matches);
+    sync();
+    preference.addEventListener("change", sync);
+    return () => preference.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!playing || hovered || focused) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) setIndex((current) => (current + 1) % slides.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [playing, hovered, focused, slides.length]);
+
+  function go(next: number) {
+    setIndex((next + slides.length) % slides.length);
+    setPlaying(false);
+  }
 
   return (
     <section
-      ref={ref}
-      data-tone="dark"
-      aria-label="momen. — Tailored heritage. Modern men."
-      className="relative h-[100svh] min-h-[560px] overflow-hidden bg-night text-bone"
+      className="relative h-[min(860px,calc(100svh-4.5rem))] min-h-130 overflow-hidden bg-[#c9c6c3] text-white"
+      aria-roledescription="carousel" aria-label="momen. campaign"
+      onPointerEnter={(event) => event.pointerType === "mouse" && setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
+      onTouchStart={(event) => { touchStart.current = event.touches[0].clientX; }}
+      onTouchEnd={(event) => {
+        if (touchStart.current === null) return;
+        const delta = event.changedTouches[0].clientX - touchStart.current;
+        touchStart.current = null;
+        if (Math.abs(delta) > 50) go(index + (delta < 0 ? 1 : -1));
+      }}
     >
-      <m.div className="absolute inset-0" style={{ y: imageY, scale: imageScale }}>
-        <m.div className="absolute -inset-6" style={{ x: driftX, y: driftY }}>
-          {HERO_VIDEO ? (
-            <video
-              className="h-full w-full object-cover"
-              src={HERO_VIDEO}
-              poster={MEDIA.hero.src}
-              autoPlay
-              muted
-              loop
-              playsInline
-              aria-hidden
-            />
-          ) : (
-            <Image
-              src={MEDIA.hero.src}
-              alt={MEDIA.hero.alt}
-              fill
-              preload
-              sizes="100vw"
-              className="object-cover object-[50%_30%]"
-            />
-          )}
-        </m.div>
-      </m.div>
+      <h1 className="sr-only">momen. Ankara, aso-oke and linen from Lagos</h1>
+      {slides.map((panels, i) => (
+        <div key={i} aria-hidden={i !== index} inert={i !== index} role="group" aria-roledescription="slide" aria-label={`${i + 1} of ${slides.length}`}
+          className={`absolute inset-0 grid grid-cols-1 gap-px transition-opacity duration-1000 ease-out motion-reduce:transition-none md:grid-cols-3 ${i === index ? "opacity-100" : "opacity-0"}`}>
+          {panels.map((shot, p) => (
+            <Link key={`${shot.name}-${p}`} href={shot.href} className={`group relative overflow-hidden ${p > 0 ? "hidden md:block" : ""}`}>
+              <Image src={shot.src} alt={shot.alt} fill
+                loading={i === 0 ? "eager" : undefined} fetchPriority={i === 0 && p === 0 ? "high" : undefined}
+                sizes="(min-width: 768px) 34vw, 100vw"
+                className="object-cover transition-transform duration-[1.4s] group-hover:scale-[1.03]" style={{ objectPosition: shot.pos }} />
+            </Link>
+          ))}
+        </div>
+      ))}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-56 bg-linear-to-t from-night/70 to-transparent" />
 
-      {/* Legibility scrim: keeps ivory type above AA over any photograph. */}
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,17,14,0.55)_0%,rgba(18,17,14,0.1)_30%,rgba(18,17,14,0.2)_55%,rgba(18,17,14,0.85)_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(18,17,14,0.6)_0%,rgba(18,17,14,0.25)_45%,transparent_70%)]" />
-
-      <m.div
-        className="relative flex h-full flex-col justify-end px-5 pb-24 sm:px-10 sm:pb-28 lg:px-16"
-        style={{ y: textY, opacity: fade }}
-      >
-        <m.p
-          className="label mb-6 text-bone/75"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: play ? 1 : 0 }}
-          transition={{ duration: 1, ease: EASE_HOUSE, delay: 0.1 }}
-        >
-          The house of momen. — Lagos
-        </m.p>
-        <SplitText
-          as="h1"
-          text={"Tailored heritage.\nModern men."}
-          trigger="manual"
-          play={play}
-          delay={0.2}
-          stagger={0.09}
-          className="display max-w-[14ch] text-[clamp(3.2rem,11vw,10.5rem)] italic text-bone"
-        />
-        <m.p
-          className="mt-8 max-w-sm text-sm leading-relaxed text-bone/80 sm:text-base"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: play ? 1 : 0, y: play ? 0 : 16 }}
-          transition={{ duration: 1.1, ease: EASE_HOUSE, delay: 0.8 }}
-        >
-          African menswear, cut in Lagos for the man who carries both his history and his future well.
-        </m.p>
-      </m.div>
-
-      {/* A quiet scroll cue, not a call to action. */}
-      <m.div
-        aria-hidden
-        className="absolute bottom-7 right-5 flex items-center gap-3 sm:right-10 lg:right-16"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: play ? 1 : 0 }}
-        transition={{ delay: 1.3, duration: 1 }}
-      >
-        <span className="label text-bone/60">Scroll</span>
-        <span className="relative block h-12 w-px overflow-hidden bg-bone/20">
-          <span className="absolute inset-x-0 top-0 h-1/2 animate-[scrollcue_2.2s_cubic-bezier(0.76,0,0.24,1)_infinite] bg-bone" />
-        </span>
-      </m.div>
+      <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-end justify-between gap-4 px-5 pb-6 sm:px-10 sm:pb-8">
+        <div className="flex flex-wrap gap-3">
+          <Link href="/shop" className="bg-ivory px-6 py-3.5 text-sm font-medium text-ink hover:bg-terracotta hover:text-ivory">Shop Ready-to-Wear</Link>
+          <Link href="/made-to-measure" className="border border-white/70 px-6 py-3.5 text-sm font-medium text-white hover:border-white hover:bg-white/10">Explore Bespoke</Link>
+        </div>
+        <div className="flex items-center gap-1">
+          {slides.map((_, i) => (
+            <button key={i} type="button" aria-label={`Show slide ${i + 1}`} aria-pressed={i === index}
+              onClick={() => go(i)} className="grid h-9 place-items-center px-1.5">
+              <span aria-hidden className={`block h-0.5 rounded-full transition-all duration-500 ${i === index ? "w-10 bg-white" : "w-5 bg-white/50 hover:bg-white/80"}`} />
+            </button>
+          ))}
+          <button type="button" onClick={() => go(index - 1)} aria-label="Previous slide" className="ml-2 grid size-10 place-items-center rounded-full border border-white/50 hover:bg-white/15">
+            <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M15 6l-6 6 6 6" /></svg>
+          </button>
+          <button type="button" onClick={() => go(index + 1)} aria-label="Next slide" className="grid size-10 place-items-center rounded-full border border-white/50 hover:bg-white/15">
+            <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+          <button type="button" onClick={() => setPlaying((value) => !value)} className="ml-1 min-w-14 rounded px-2 py-2 text-sm hover:bg-white/15">
+            {playing ? "Pause" : "Play"}
+          </button>
+        </div>
+      </div>
     </section>
   );
 }

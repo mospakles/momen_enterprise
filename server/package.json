@@ -20,6 +20,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
+    "db:campaign": "ts-node prisma/scripts/import-campaign.ts",
+    "db:retire-old": "ts-node prisma/scripts/retire-old-catalogue.ts",
+    "db:policies": "ts-node prisma/scripts/publish-policies.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {
@@ -64,10 +67,8 @@
     "jest": "^29.5.0",
     "prettier": "^3.0.0",
     "prisma": "^6.19.3",
-    "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.1.0",
-    "ts-loader": "^9.4.3",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.1.3"

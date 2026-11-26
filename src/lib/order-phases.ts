@@ -4,7 +4,6 @@
 import type { Order, OrderStage } from "./types";
 
 export const PHASES = ["Confirmed", "In production", "Shipped", "Delivered"] as const;
-export type Phase = (typeof PHASES)[number];
 
 const PHASE_OF: Record<OrderStage, number> = {
   "Order Placed": 0,

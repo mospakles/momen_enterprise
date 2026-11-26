@@ -6,7 +6,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-export interface CheckoutPrefs {
+interface CheckoutPrefs {
   couponCode?: string;
   giftWrap?: boolean;
   giftMessage?: string;

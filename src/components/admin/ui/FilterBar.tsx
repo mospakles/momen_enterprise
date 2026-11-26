@@ -53,7 +53,7 @@ export function FilterBar({ children }: { children: React.ReactNode }) {
 
 export type DateRangeKey = "today" | "7d" | "30d" | "3m" | "12m" | "custom";
 
-export interface DateRange {
+interface DateRange {
   key: DateRangeKey;
   from: Date;
   to: Date;

@@ -128,7 +128,7 @@ export function EmptyState({ title, description, action }: { title: string; desc
   );
 }
 
-export function Skeleton({ className = "" }: { className?: string }) {
+function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`shimmer rounded-sm bg-ivory-deep ${className}`} />;
 }
 

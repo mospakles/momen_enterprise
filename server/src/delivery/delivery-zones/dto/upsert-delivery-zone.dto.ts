@@ -20,6 +20,12 @@ export class UpsertDeliveryZoneDto {
   @IsString({ each: true })
   countries!: string[];
 
+  @ApiProperty({ type: [String], required: false, description: 'States this zone covers; empty means the whole country' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  states?: string[];
+
   @ApiProperty() @IsNumber() @Min(0) standardFee!: number;
   @ApiProperty({ default: 0 }) @IsNumber() @Min(0) expressFee!: number;
   @ApiProperty({ required: false })

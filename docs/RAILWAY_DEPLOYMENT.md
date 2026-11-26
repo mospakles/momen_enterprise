@@ -131,3 +131,76 @@ When switching to live payments, first complete Paystack activation, replace
 only `PAYSTACK_SECRET_KEY` with the `sk_live_...` value, and configure the live
 callback and webhook fields separately. Run one low-value real transaction
 before opening checkout to customers.
+
+## 5. Going live on momenclothing.com
+
+Use one registrable domain for both services so session cookies are
+first-party (Safari and Chrome block third-party cookies):
+
+| Service      | Custom domain               |
+|--------------|-----------------------------|
+| Storefront   | `momenclothing.com` (and `www.momenclothing.com` redirecting to it) |
+| API          | `api.momenclothing.com`     |
+
+Add each custom domain under the service's **Settings → Networking**, then
+create the DNS records Railway shows at your registrar (a CNAME, or ALIAS/ANAME
+for the bare domain if the registrar supports it). Railway issues the HTTPS
+certificates automatically once DNS resolves.
+
+**API (`momen-api`) variables for production:**
+
+```dotenv
+NODE_ENV=production
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+JWT_ACCESS_SECRET=[openssl rand -base64 48]
+JWT_ACCESS_TTL=15m
+CORS_ORIGIN=https://momenclothing.com,https://www.momenclothing.com
+FRONTEND_URL=https://momenclothing.com
+AUTH_COOKIE_SAME_SITE=lax
+TRUST_PROXY=1
+PAYSTACK_SECRET_KEY=[sk_live_... once Paystack activates the account]
+PAYSTACK_CALLBACK_URL=https://momenclothing.com/checkout/payment-callback
+RESEND_API_KEY=[from resend.com after verifying momenclothing.com]
+EMAIL_FROM=momen. <hello@momenclothing.com>
+SUPPORT_EMAIL=hello@momenclothing.com
+```
+
+`TRUST_PROXY` is the number of proxies in front of the API: 1 on Railway, 2 if
+Cloudflare also proxies `api.momenclothing.com`. If it is wrong, every shopper
+shares one rate limit and checkout starts failing under load.
+
+With `NODE_ENV=production` the API refuses to start if any required value is
+missing or still a placeholder, and the log says which one.
+
+**Storefront (`momen_enterprise`) variables:**
+
+```dotenv
+NEXT_PUBLIC_API_URL=https://api.momenclothing.com/api
+NEXT_PUBLIC_SITE_URL=https://momenclothing.com
+# Optional, faster server-side reads over Railway's private network:
+API_INTERNAL_URL=http://${{momen-api.RAILWAY_PRIVATE_DOMAIN}}:${{momen-api.PORT}}/api
+```
+
+Only the service whose `NEXT_PUBLIC_SITE_URL` is exactly
+`https://momenclothing.com` is opened to search engines; any staging service
+serves `Disallow: /` in robots.txt. Both public variables are baked in at build
+time, so redeploy after changing them.
+
+**Paystack live mode:** set the live Callback URL to
+`https://momenclothing.com/checkout/payment-callback` and the live Webhook URL
+to `https://api.momenclothing.com/api/payments/webhooks/paystack`.
+
+**Catalogue on a fresh database:** after the first deploy and the admin seed
+(section 1), load the menswear range from a Railway shell on `momen-api`:
+
+```bash
+node dist/prisma/scripts/add-menswear.js
+```
+
+It also links each bespoke style (Agbada, Kaftans, Jalabia, Shirts, Trousers)
+to its measurement set. Its prices are placeholders: review every price in
+Admin → Products before launch.
+
+**After going live:** submit `https://momenclothing.com/sitemap.xml` in Google
+Search Console, and paste a product link into WhatsApp to confirm the preview
+shows the product photo and name.

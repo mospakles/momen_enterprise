@@ -4,7 +4,7 @@
 // response shape later — the field names intentionally mirror what a REST/DB
 // resource would look like.
 
-import type { Address, MeasurementProfile, PublishStatus, SEO } from "@/lib/types";
+import type { Address, PublishStatus, SEO } from "@/lib/types";
 
 /* ───────────────────────── Identity, roles & access ───────────────────────── */
 
@@ -91,8 +91,6 @@ export interface Customer {
 
 /* ───────────────────────────── Payments & refunds ───────────────────────────── */
 
-export type PaymentStatus = "successful" | "pending" | "failed" | "cancelled" | "refunded" | "partially_refunded";
-
 export interface PaymentProviderConfig {
   id: string;
   provider: "Paystack" | "Flutterwave" | "Stripe" | "Bank Transfer";
@@ -147,6 +145,8 @@ export interface DeliveryZone {
   id: string;
   name: string;
   countries: string[];
+  /** States this zone covers; empty means the whole country. */
+  states: string[];
   standardFee: number;
   expressFee: number;
   freeDeliveryThreshold?: number;
@@ -417,6 +417,3 @@ export interface SystemHealthCheck {
 
 /* ───────────────────────────── Measurement / customization libraries ───────────────────────────── */
 
-export interface MeasurementProfileWithCustomer extends MeasurementProfile {
-  customerName?: string;
-}

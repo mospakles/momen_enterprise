@@ -7,14 +7,16 @@
 
 import { Portal } from "@/components/ui/Portal";
 import Image from "next/image";
+import SmartImage from "@/components/ui/SmartImage";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, m } from "motion/react";
-import { useCart, CART_ADDED_EVENT } from "@/lib/cart-context";
+import { useCart, CART_ADDED_EVENT, MADE_TO_ORDER_MAX_QTY, isMadePerOrder, isSizeSoldOut, maxQuantityFor, type CartAddedDetail } from "@/lib/cart-context";
 import { useUI } from "@/lib/ui-context";
 import { useDeliverySettings } from "@/lib/delivery";
 import { useCheckoutPrefs } from "@/lib/checkout-prefs";
+import { useCustomerAuth } from "@/lib/customer-auth-context";
 import { apiRequest } from "@/lib/api";
 import { formatNaira } from "@/lib/format";
 import { itemFromProduct, track } from "@/lib/analytics";
@@ -22,11 +24,12 @@ import { trapFocus, useDialog } from "@/lib/a11y";
 import { useScrollLock } from "@/lib/motion/hooks";
 import { EASE_HOUSE } from "@/lib/motion/ease";
 import type { CartItem } from "@/lib/types";
+import { MEDIA } from "@/components/journey/media";
+import { placeholderFor } from "@/lib/brand-images";
+import { effectivePrice, needsMeasurements, wasPrice } from "@/lib/product-utils";
+import { toast } from "@/lib/toast";
+import MeasurementStatus from "./MeasurementStatus";
 
-const needsMeasurements = (item: CartItem) =>
-  item.product.productionType === "made-to-measure" &&
-  !(item.customOrder && item.size !== "Made-to-Measure") &&
-  (!item.measurement || item.measurement.mode === "pending");
 
 export default function BagDrawer() {
   const { bagOpen, openBag, closeBag } = useUI();
@@ -48,11 +51,12 @@ export default function BagDrawer() {
   });
   useEffect(() => {
     const onAdded = (e: Event) => {
-      const id = (e as CustomEvent<{ id: string }>).detail.id;
+      const { id, silent } = (e as CustomEvent<CartAddedDetail>).detail;
       setJustAdded(id);
       const line = itemsRef.current.find((i) => i.id === id);
-      if (line) track("add_to_cart", { items: [itemFromProduct(line.product, line)], value: line.product.price * line.quantity });
-      if (!window.location.pathname.startsWith("/checkout")) openBag();
+      if (line) track("add_to_cart", { items: [itemFromProduct(line.product, line)], value: effectivePrice(line.product) * line.quantity });
+      // "Buy now" adds silently and goes straight to checkout.
+      if (!silent && !window.location.pathname.startsWith("/checkout")) openBag();
     };
     window.addEventListener(CART_ADDED_EVENT, onAdded);
     return () => window.removeEventListener(CART_ADDED_EVENT, onAdded);
@@ -195,6 +199,12 @@ export default function BagDrawer() {
                         muted={!freeDelivery}
                       />
                     </dl>
+                    {items.some(needsMeasurements) && (
+                      <p role="status" className="mt-4 text-xs text-error">
+                        {items.filter(needsMeasurements).length === 1 ? "One piece needs" : `${items.filter(needsMeasurements).length} pieces need`} your
+                        measurements before payment — add them from the piece above.
+                      </p>
+                    )}
                     <button
                       type="button"
                       onClick={checkout}
@@ -226,9 +236,13 @@ export default function BagDrawer() {
 function BagLine({ item, highlight, onRemove }: { item: CartItem; highlight: boolean; onRemove: () => void }) {
   const { updateQuantity, updateItem, toggleWishlist, isWishlisted } = useCart();
   const { product } = item;
-  const unit = product.price + (item.customizationCost ?? 0);
+  const unit = effectivePrice(product) + (item.customizationCost ?? 0);
+  const was = wasPrice(product);
   const editable = !item.customOrder;
-  const mtmWarning = needsMeasurements(item);
+  const max = item.customOrder ? MADE_TO_ORDER_MAX_QTY : maxQuantityFor(product, item.size);
+  const atCap = item.quantity >= max;
+  const capNote = !atCap ? null : item.customOrder || isMadePerOrder(product) ? `Up to ${max} per order` : `Only ${max} available`;
+  const pathname = usePathname();
 
   return (
     <m.li
@@ -240,14 +254,22 @@ function BagLine({ item, highlight, onRemove }: { item: CartItem; highlight: boo
       className={`flex gap-4 overflow-hidden border-b border-line py-5 transition-colors duration-1000 ${highlight ? "bg-bone/70" : ""}`}
     >
       <Link href={`/product/${product.slug}`} className="relative h-32 w-24 shrink-0 overflow-hidden bg-bone">
-        <Image src={product.images[0]} alt={product.name} fill sizes="96px" className="object-cover" />
+        <SmartImage src={product.images[0]} alt={product.name} fill sizes="96px" placeholder={placeholderFor(product.images[0])} className="object-cover" />
       </Link>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-3">
           <Link href={`/product/${product.slug}`} className="display text-lg leading-tight hover:text-terracotta">
             {product.name}
           </Link>
-          <p className="shrink-0 text-sm">{formatNaira(unit * item.quantity)}</p>
+          <p className="shrink-0 text-right text-sm">
+            {formatNaira(unit * item.quantity)}
+            {was !== undefined && (
+              <span className="block text-xs text-ink/40 line-through">
+                <span className="sr-only">Was </span>
+                {formatNaira((was + (item.customizationCost ?? 0)) * item.quantity)}
+              </span>
+            )}
+          </p>
         </div>
 
         {editable ? (
@@ -260,9 +282,14 @@ function BagLine({ item, highlight, onRemove }: { item: CartItem; highlight: boo
                   onChange={(e) => updateItem(item.id, { size: e.target.value })}
                   className="border-b border-line bg-transparent py-0.5 pr-1 text-ink outline-none focus:border-ink"
                 >
-                  {product.sizes.map((s) => (
-                    <option key={s}>{s}</option>
-                  ))}
+                  {product.sizes.map((s) => {
+                    const out = isSizeSoldOut(product, s) && s !== item.size;
+                    return (
+                      <option key={s} value={s} disabled={out}>
+                        {out ? `${s} — sold out` : s}
+                      </option>
+                    );
+                  })}
                 </select>
               </label>
             ) : (
@@ -295,11 +322,7 @@ function BagLine({ item, highlight, onRemove }: { item: CartItem; highlight: boo
           </p>
         )}
 
-        {mtmWarning && (
-          <Link href={item.customOrder ? `/customize/${product.slug}` : `/product/${product.slug}`} className="mt-2 text-xs text-error underline underline-offset-2">
-            Measurements needed — add them now
-          </Link>
-        )}
+        <MeasurementStatus item={item} back={pathname} className="mt-2" />
 
         <div className="mt-auto flex items-center justify-between pt-3">
           <div className="flex items-center border border-line">
@@ -318,8 +341,9 @@ function BagLine({ item, highlight, onRemove }: { item: CartItem; highlight: boo
             <button
               type="button"
               aria-label={`Increase quantity of ${product.name}`}
+              disabled={atCap}
               onClick={() => updateQuantity(item.id, item.quantity + 1)}
-              className="h-8 w-8 text-ink/70 hover:text-ink"
+              className="h-8 w-8 text-ink/70 hover:text-ink disabled:opacity-30"
             >
               +
             </button>
@@ -331,6 +355,7 @@ function BagLine({ item, highlight, onRemove }: { item: CartItem; highlight: boo
               onClick={() => {
                 if (!isWishlisted(product.id)) toggleWishlist(product.id);
                 onRemove();
+                toast("Saved for later", { description: `${product.name} is in your wishlist.` });
               }}
             >
               Save for later
@@ -340,6 +365,7 @@ function BagLine({ item, highlight, onRemove }: { item: CartItem; highlight: boo
             </button>
           </div>
         </div>
+        {capNote && <p className="mt-1.5 text-[11px] text-terracotta" role="status">{capNote}</p>}
       </div>
     </m.li>
   );
@@ -462,15 +488,18 @@ function Extras({
 }
 
 function EmptyBag({ onClose }: { onClose: () => void }) {
+  // Guests have a local wishlist page; the account tab is behind sign-in.
+  const { currentUser } = useCustomerAuth();
   return (
     <div className="flex flex-1 flex-col">
       <div className="relative mx-6 mt-6 aspect-[4/3] overflow-hidden bg-bone">
         <Image
-          src="/images/brand/kaftan4.jpg"
+          src={MEDIA.emptyBag.src}
           alt=""
+          placeholder={placeholderFor(MEDIA.emptyBag.src)}
           fill
           sizes="420px"
-          className="object-cover object-top"
+          className="object-cover object-[50%_25%]"
         />
       </div>
       <div className="px-6 py-8">
@@ -480,7 +509,7 @@ function EmptyBag({ onClose }: { onClose: () => void }) {
           <Link href="/shop" onClick={onClose} className="bg-ink px-6 py-4 text-center text-sm tracking-wide text-ivory transition-colors hover:bg-terracotta">
             Enter the collection
           </Link>
-          <Link href="/account?tab=Wishlist" onClick={onClose} className="border border-line px-6 py-4 text-center text-sm tracking-wide hover:border-ink">
+          <Link href={currentUser ? "/account?tab=Wishlist" : "/wishlist"} onClick={onClose} className="border border-line px-6 py-4 text-center text-sm tracking-wide hover:border-ink">
             View your wishlist
           </Link>
         </div>

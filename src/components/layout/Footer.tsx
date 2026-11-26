@@ -1,6 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { MEDIA } from "@/components/journey/media";
+import { placeholderFor } from "@/lib/brand-images";
 import { FormEvent, useState } from "react";
 import { m } from "motion/react";
 import { apiRequest } from "@/lib/api";
@@ -13,19 +16,19 @@ const COLUMNS = [
   {
     title: "Shop",
     links: [
-      { href: "/shop", label: "All pieces" },
-      { href: "/collections", label: "Collections" },
-      { href: "/collections/new-arrivals", label: "New arrivals" },
-      { href: "/accessories", label: "Accessories" },
+      { href: "/shop", label: "Shop Ready-to-Wear" },
       { href: "/made-to-measure", label: "Bespoke" },
+      { href: "/collections", label: "Collections" },
+      { href: "/lookbook", label: "Lookbook" },
+      { href: "/shop?category=fila", label: "Fila" },
+      { href: "/measurements", label: "Size & measurement guide" },
     ],
   },
   {
     title: "The house",
     links: [
-      { href: "/about", label: "About momen." },
+      { href: "/about", label: "About" },
       { href: "/journal", label: "Journal" },
-      { href: "/measurements", label: "Measure at home" },
       { href: "/contact", label: "Contact" },
     ],
   },
@@ -36,7 +39,6 @@ const COLUMNS = [
       { href: "/shipping-policy", label: "Delivery" },
       { href: "/returns-policy", label: "Returns & exchanges" },
       { href: "/account", label: "Your account" },
-      { href: "/admin/login", label: "Admin login" },
     ],
   },
 ];
@@ -60,6 +62,9 @@ export default function Footer() {
             <p className="label text-sand">Join the house</p>
             <h2 className="display mt-5 max-w-[16ch] text-[clamp(2.2rem,4vw,3.5rem)]">New cloth, first fittings, quiet notes from Lagos.</h2>
             <JoinForm />
+            <div className="relative mt-12 hidden aspect-[16/9] max-w-md overflow-hidden sm:block">
+              <Image src={MEDIA.footer.src} alt={MEDIA.footer.alt} fill sizes="28rem" placeholder={placeholderFor(MEDIA.footer.src)} className="object-cover opacity-90" />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 lg:col-span-6 lg:col-start-7">

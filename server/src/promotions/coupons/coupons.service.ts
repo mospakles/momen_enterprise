@@ -11,11 +11,59 @@ import { computeCouponDiscount } from './coupon-validation.util';
 import type { CouponValidationContext } from './coupon-validation.util';
 import type { UpsertCouponDto } from './dto/upsert-coupon.dto';
 import type { ValidateCouponDto } from './dto/validate-coupon.dto';
+import { WELCOME_CODE } from '../../common/storefront-offer';
 
 export interface CouponValidationResult {
   couponId: string;
   code: string;
   discountAmount: number;
+}
+
+/** One mailbox, however it's written: lower case, no "+tag", and for Gmail
+ * no dots (a.b+promo@gmail.com and ab@googlemail.com are the same inbox). */
+export function normalizeEmail(email: string) {
+  const [local = '', domain = ''] = email.trim().toLowerCase().split('@');
+  const base = local.split('+')[0];
+  return domain === 'gmail.com' || domain === 'googlemail.com'
+    ? `${base.replace(/\./g, '')}@gmail.com`
+    : `${base}@${domain}`;
+}
+
+/** The last ten digits, so +234 803…, 234803… and 0803… match. */
+export function normalizePhone(phone?: string) {
+  const digits = (phone ?? '').replace(/\D/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : undefined;
+}
+
+/** True when this person has no earlier order that's paid or still awaiting
+ * payment. Failed and cancelled attempts don't count, so a customer whose
+ * first payment didn't go through keeps the welcome offer. The same mailbox
+ * under a "+tag" or Gmail dots, or the same phone number, counts as the same
+ * person. */
+export async function isFirstOrder(
+  db: Pick<Prisma.TransactionClient, '$queryRaw'>,
+  customerEmail: string,
+  customerId?: string,
+  phone?: string,
+) {
+  const email = normalizeEmail(customerEmail);
+  const phoneKey = normalizePhone(phone) ?? null;
+  const rows = await db.$queryRaw<{ id: string }[]>`
+    SELECT "id" FROM "Order"
+    WHERE ("paymentStatus" IN ('paid', 'refunded', 'partially_refunded')
+           OR ("paymentStatus" = 'pending' AND "status" <> 'Cancelled'))
+      AND (
+        (CASE WHEN split_part(lower("customerEmail"), '@', 2) IN ('gmail.com', 'googlemail.com')
+              THEN replace(split_part(split_part(lower("customerEmail"), '@', 1), '+', 1), '.', '') || '@gmail.com'
+              ELSE split_part(split_part(lower("customerEmail"), '@', 1), '+', 1) || '@' || split_part(lower("customerEmail"), '@', 2)
+         END) = ${email}
+        OR "customerId" = ${customerId ?? null}
+        OR (${phoneKey}::text IS NOT NULL
+            AND length(regexp_replace(coalesce("addressSnapshot"->>'phone', ''), '\D', '', 'g')) >= 10
+            AND right(regexp_replace("addressSnapshot"->>'phone', '\D', '', 'g'), 10) = ${phoneKey})
+      )
+    LIMIT 1`;
+  return rows.length === 0;
 }
 
 @Injectable()
@@ -81,14 +129,15 @@ export class CouponsService {
   async validate(
     code: string,
     context: Omit<CouponValidationContext, 'customerRedemptionCount'>,
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<CouponValidationResult> {
-    const coupon = await this.prisma.coupon.findUnique({
+    const coupon = await db.coupon.findUnique({
       where: { code: code.trim().toUpperCase() },
     });
     if (!coupon) throw new BadRequestException('Invalid coupon code');
 
     const customerRedemptionCount = context.customerId
-      ? await this.prisma.couponRedemption.count({
+      ? await db.couponRedemption.count({
           where: { couponId: coupon.id, customerId: context.customerId },
         })
       : 0;
@@ -100,6 +149,20 @@ export class CouponsService {
     return { couponId: coupon.id, code: coupon.code, discountAmount };
   }
 
+  async automaticWelcome(
+    tx: Prisma.TransactionClient,
+    context: Pick<CouponValidationContext, 'isFirstOrder' | 'subtotal' | 'items' | 'customerId'>,
+  ) {
+    if (!context.isFirstOrder || context.subtotal <= 0) return undefined;
+    try {
+      return await this.validate(WELCOME_CODE, { ...context, guestFirstOrder: !context.customerId }, tx);
+    } catch (error) {
+      // The welcome offer is optional when it has expired or been disabled.
+      if (!(error instanceof BadRequestException)) throw error;
+      return undefined;
+    }
+  }
+
   /** Checkout-preview entry point — resolves each item's live unit price
    * and collection membership itself (from ProductsService) so the frontend
    * doesn't have to duplicate pricing logic just to show a discount
@@ -108,6 +171,7 @@ export class CouponsService {
   async previewValidate(
     dto: ValidateCouponDto,
     customerId: string | undefined,
+    customerEmail?: string,
   ): Promise<CouponValidationResult> {
     const items = await Promise.all(
       dto.items.map(async (item) => {
@@ -122,13 +186,13 @@ export class CouponsService {
       }),
     );
 
-    const isFirstOrder = customerId
-      ? (await this.prisma.order.count({ where: { customerId } })) === 0
+    const firstOrder = customerId && customerEmail
+      ? await isFirstOrder(this.prisma, customerEmail, customerId)
       : false;
 
     return this.validate(dto.code, {
       customerId,
-      isFirstOrder,
+      isFirstOrder: firstOrder,
       subtotal: dto.subtotal,
       items,
     });
