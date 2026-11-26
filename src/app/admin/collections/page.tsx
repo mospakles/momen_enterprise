@@ -14,7 +14,7 @@ function genId() {
   return `col-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
-const emptyCollection = (): Collection => ({
+const emptyCollection = (sortOrder: number): Collection => ({
   id: "",
   slug: "",
   name: "",
@@ -23,7 +23,7 @@ const emptyCollection = (): Collection => ({
   productSlugs: [],
   publishStatus: "draft",
   expressEligible: true,
-  sortOrder: 0,
+  sortOrder,
   seo: {},
 });
 
@@ -136,7 +136,7 @@ function CollectionDrawer({
   onCancel: () => void;
   onSave: (c: Collection) => void;
 }) {
-  const [form, setForm] = useState<Collection>(collection ?? { ...emptyCollection(), sortOrder: nextSortOrder });
+  const [form, setForm] = useState<Collection>(() => collection ?? emptyCollection(nextSortOrder));
 
   function set<K extends keyof Collection>(key: K, value: Collection[K]) {
     setForm((f) => ({ ...f, [key]: value }));
