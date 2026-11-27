@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAdminStore } from "@/lib/admin/store";
-import { bespokeSlug, campaignPhoto, campaignPrice, campaignSizes, offeredColours, type CampaignStyle } from "@/lib/campaign-catalogue";
+import { bespokeSlug, campaignPhoto, campaignPrice, campaignSizes, casualsCollection, offeredColours, type CampaignStyle } from "@/lib/campaign-catalogue";
 import { formatNaira } from "@/lib/format";
 import { Gallery, type Media } from "./pdp/Gallery";
 import { WelcomeNote } from "@/components/layout/WelcomeOffer";
@@ -20,6 +20,9 @@ export default function CampaignStyleDetail({ style, madeToMeasure }: { style: C
   const sizes = campaignSizes(style, madeToMeasure);
   const media: Media[] = colour.photos.map((photo) => ({ type: "image", src: campaignPhoto(photo) }));
   const email = systemSettings.general.supportEmail || "hello@momenclothing.com";
+  const parent = style.collection === "casuals" ? casualsCollection : madeToMeasure
+    ? { href: "/made-to-measure", name: "Bespoke" }
+    : { href: "/shop", name: "Ready-to-Wear" };
   const subject = madeToMeasure ? `Bespoke order: ${style.name}` : `Order: ${style.name}`;
   const enquiry = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(madeToMeasure
     ? `Hello momen.,\n\nI'd like to order ${style.name}${colour.illustration && colours.length === 1 ? "" : ` in ${colour.name}`}, made to my measurements.${colour.photos.length > 1 ? "\n\nThe look I like: " : ""}`
@@ -29,7 +32,7 @@ export default function CampaignStyleDetail({ style, madeToMeasure }: { style: C
   return (
     <div className="mx-auto max-w-[1600px] px-5 pb-16 pt-7 sm:px-10 lg:pt-10">
       <nav aria-label="Breadcrumb" className="mb-6 text-sm">
-        <Link href={madeToMeasure ? "/made-to-measure" : "/shop"} className="underline underline-offset-4">{madeToMeasure ? "Bespoke" : "Ready-to-Wear"}</Link>
+        <Link href={parent.href} className="underline underline-offset-4">{parent.name}</Link>
       </nav>
       <div className="grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:gap-14">
         <div>

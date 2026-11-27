@@ -124,7 +124,7 @@ export default function AboutPage() {
           <h2 className="display text-[clamp(2rem,3.6vw,3.2rem)]">Make a piece your own</h2>
           <Reveal>
             <p className="mt-6 text-sm leading-relaxed text-ink/70">
-              Explore our bespoke kaftan, jalabia, two-piece set, linen tee with aso-oke detailing and fila. Choose a style and tell us how you’d like it to fit.
+              Explore our bespoke agbada, senator, kaftan, jalabia and two-piece sets. Choose a style and tell us how you’d like it to fit.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link href="/made-to-measure" className="bg-ink px-6 py-3.5 text-sm tracking-wide text-ivory transition-colors hover:bg-terracotta">
