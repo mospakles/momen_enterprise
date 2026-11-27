@@ -9,13 +9,15 @@ export function CampaignRange({
   styles,
   products = [],
   madeToMeasure = false,
+  columns = 4,
 }: {
   styles: readonly CampaignStyle[];
   products?: readonly Product[];
   madeToMeasure?: boolean;
+  columns?: 3 | 4;
 }) {
   return (
-    <ul className="grid grid-cols-2 gap-x-4 gap-y-9 sm:gap-x-6 lg:grid-cols-4">
+    <ul className={`grid grid-cols-2 gap-x-4 gap-y-9 sm:gap-x-6 ${columns === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
       {styles.flatMap((style) => {
         const slug = campaignProductSlug(style, madeToMeasure);
         const product = findCampaignProduct(products, slug);
@@ -34,7 +36,7 @@ export function CampaignRange({
                     src={campaignPhoto(colour.photos[0])}
                     alt={`${style.name}${multi ? ` in ${colour.name}` : ""}`}
                     fill
-                    sizes="(min-width: 1024px) 25vw, 50vw"
+                    sizes={columns === 3 ? "(min-width: 1024px) 33vw, 50vw" : "(min-width: 1024px) 25vw, 50vw"}
                     className="object-cover object-[50%_30%] transition-transform duration-500 group-hover:scale-105"
                   />
                   {colour.illustration && (

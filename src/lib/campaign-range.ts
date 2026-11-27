@@ -12,6 +12,7 @@ export interface CampaignStyle {
   name: string;
   description: string;
   garment: "top" | "trouser" | "set" | "agbada" | "accessory";
+  collection?: "casuals";
   readyToWear: boolean;
   bespoke: boolean;
   readyPrice?: number;
@@ -92,17 +93,32 @@ export const campaignRange: readonly CampaignStyle[] = [
     colours: [{ name: "Ivory", hex: "#e5ddc6", photos: ["ivory-textured-set-front", "ivory-textured-set-side", "ivory-textured-polo-detail", "ivory-textured-polo-back", "ivory-textured-set-portrait"] }],
   },
   {
-    slug: "linen-two-piece", name: "Linen Two-Piece", garment: "set", readyToWear: false, bespoke: true, bespokeStartingPrice: 40000,
-    description: "A linen shirt with matching trousers or shorts: camp collar, band collar or classic. Made to your measurements in your choice of linen and colour.",
+    slug: "linen-two-piece-shorts", name: "Linen Two-Piece Shorts", garment: "set", collection: "casuals", readyToWear: false, bespoke: true, bespokeStartingPrice: 40000,
+    description: "A linen shirt with shorts in matching or contrasting colours. Cut to your measurements in your choice of linen.",
+    colours: [
+      illustrated(LOOKS, "#a97768",
+        "linen-short-set-rose", "linen-shirt-ivory-navy-shorts", "linen-short-set-sage",
+        "linen-shirt-rose-navy-shorts", "twopiece-short-white", "linen-short-set-midnight",
+        "linen-shirt-sand-navy-shorts", "linen-short-set-mocha", "linen-shirt-midnight-ivory-shorts"),
+    ],
+  },
+  {
+    slug: "linen-two-piece-alternating-colours", name: "Linen Two-Piece · Alternating Colours", garment: "set", collection: "casuals", readyToWear: false, bespoke: true, bespokeStartingPrice: 40000,
+    description: "A linen shirt and full-length trousers in two different colours. Choose the pairing and we’ll cut the set to your measurements.",
+    colours: [
+      illustrated(LOOKS, "#858d79",
+        "linen-shirt-sage-ivory-trousers", "linen-shirt-terracotta-ivory-trousers", "linen-shirt-midnight-sand-trousers",
+        "linen-shirt-ivory-mocha-trousers", "linen-shirt-rose-charcoal-trousers", "twopiece-long-olive"),
+    ],
+  },
+  {
+    slug: "linen-two-piece", name: "Linen Two-Piece · Same Colour", garment: "set", collection: "casuals", readyToWear: false, bespoke: true, bespokeStartingPrice: 40000,
+    description: "A linen shirt and full-length trousers in the same colour. Choose a camp collar, band collar or classic collar and we’ll cut the set to your measurements.",
     colours: [
       illustrated(LOOKS, "#d8c3a0",
-        "camp-collar-set-ivory", "linen-shirt-sage-ivory-trousers", "camp-collar-set-midnight", "linen-short-set-rose",
-        "linen-shirt-terracotta-ivory-trousers", "camp-collar-set-mint", "twopiece-long-onyx", "linen-shirt-rose-navy-shorts",
-        "camp-collar-set-mocha", "linen-short-set-sage", "linen-shirt-midnight-sand-trousers", "camp-collar-set-olive",
-        "twopiece-short-white", "linen-shirt-ivory-mocha-trousers", "camp-collar-set-rose", "linen-short-set-midnight",
-        "linen-shirt-sand-navy-shorts", "camp-collar-set-onyx", "twopiece-long-olive", "linen-shirt-rose-charcoal-trousers",
-        "camp-collar-set-ivory-alt", "linen-short-set-mocha", "linen-shirt-midnight-ivory-shorts", "camp-collar-set-olive-alt",
-        "linen-shirt-ivory-navy-shorts"),
+        "camp-collar-set-ivory", "camp-collar-set-midnight", "camp-collar-set-mint", "camp-collar-set-mocha",
+        "camp-collar-set-olive", "camp-collar-set-rose", "camp-collar-set-onyx", "twopiece-long-onyx",
+        "camp-collar-set-ivory-alt", "camp-collar-set-olive-alt"),
     ],
   },
   {

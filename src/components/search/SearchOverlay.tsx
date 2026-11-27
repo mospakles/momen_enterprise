@@ -7,7 +7,7 @@ import { useUI } from "@/lib/ui-context";
 import { Portal } from "@/components/ui/Portal";
 import { trapFocus, useDialog } from "@/lib/a11y";
 import { useScrollLock } from "@/lib/motion/hooks";
-import { campaignPhoto, campaignRange, matchesCampaignStyle } from "@/lib/campaign-catalogue";
+import { campaignPhoto, campaignRange, casualsCollection, matchesCampaignStyle } from "@/lib/campaign-catalogue";
 
 export default function SearchOverlay() {
   const { searchOpen, closeSearch } = useUI();
@@ -48,7 +48,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
                     className="object-cover object-[50%_28%] transition-transform group-hover:scale-105" />
                 </div>
                 <p className="mt-2 font-display text-lg">{style.name}</p>
-                <p className="text-sm text-ink/65">{style.readyToWear && style.bespoke ? "Ready-to-Wear & Bespoke" : style.readyToWear ? "Ready-to-Wear" : "Bespoke"}</p>
+                <p className="text-sm text-ink/65">{style.collection === "casuals" ? casualsCollection.name : style.readyToWear && style.bespoke ? "Ready-to-Wear & Bespoke" : style.readyToWear ? "Ready-to-Wear" : "Bespoke"}</p>
               </Link>
             </li>
           ))}
