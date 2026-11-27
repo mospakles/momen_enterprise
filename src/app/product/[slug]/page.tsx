@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { SITE_NAME, SITE_URL, absoluteUrl, getProduct, getProductResult, plainText } from "@/lib/site";
 import { effectivePrice } from "@/lib/product-utils";
 import PhotoStrip from "@/components/campaign/PhotoStrip";
-import { campaignPhoto, campaignRange, findCampaignStyle } from "@/lib/campaign-catalogue";
+import { campaignPhoto, campaignRange, findCampaignStyle, isCampaignProduct } from "@/lib/campaign-catalogue";
 import { shotsForStyle } from "@/lib/campaign-shots";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const style = findCampaignStyle(slug);
   const product = await getProduct(slug);
-  if (style && (!product || effectivePrice(product) <= 0)) {
+  if (style && (!product || !isCampaignProduct(product))) {
     const image = absoluteUrl(campaignPhoto(style.colours[0].photos[0]));
     return {
       title: style.name,
@@ -49,9 +49,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
   const { data: product, missing } = await getProductResult(slug);
-  if (missing && !findCampaignStyle(slug)) notFound();
+  const style = findCampaignStyle(slug);
+  if (missing && !style) notFound();
   // Product structured data, so Google can show price and availability.
-  const jsonLd = product && effectivePrice(product) > 0 && {
+  const jsonLd = product && (style ? isCampaignProduct(product) : effectivePrice(product) > 0) && {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
@@ -71,7 +72,7 @@ export default async function ProductPage({ params }: Props) {
     <>
       {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />}
       <ProductPageClient />
-      <PhotoStrip title="Complete the look" shots={lookFor(findCampaignStyle(slug)?.slug)} className="mt-10 border-t border-line" />
+      <PhotoStrip title="Complete the look" shots={lookFor(style?.slug)} className="mt-10 border-t border-line" />
     </>
   );
 }

@@ -3,7 +3,7 @@ export interface CampaignColour {
   hex: string;
   photos: readonly [string, ...string[]];
   /** Shown with an AI style illustration, not a campaign photograph. These
-   * colours are offered through Bespoke only and stay out of the lookbook. */
+   * images stay out of the lookbook. */
   illustration?: boolean;
 }
 
@@ -93,29 +93,29 @@ export const campaignRange: readonly CampaignStyle[] = [
     colours: [{ name: "Ivory", hex: "#e5ddc6", photos: ["ivory-textured-set-front", "ivory-textured-set-side", "ivory-textured-polo-detail", "ivory-textured-polo-back", "ivory-textured-set-portrait"] }],
   },
   {
-    slug: "linen-two-piece-shorts", name: "Linen Two-Piece Shorts", garment: "set", collection: "casuals", readyToWear: false, bespoke: true, bespokeStartingPrice: 40000,
-    description: "A linen shirt with shorts in matching or contrasting colours. Cut to your measurements in your choice of linen.",
+    slug: "linen-two-piece-shorts", name: "Linen Two-Piece Shorts", garment: "set", collection: "casuals", readyToWear: true, bespoke: false, readyPrice: 40000,
+    description: "A casual linen shirt and shorts set with matching and contrasting colour combinations.",
     colours: [
-      illustrated(LOOKS, "#a97768",
+      illustrated("Style references", "#a97768",
         "linen-short-set-rose", "linen-shirt-ivory-navy-shorts", "linen-short-set-sage",
         "linen-shirt-rose-navy-shorts", "twopiece-short-white", "linen-short-set-midnight",
         "linen-shirt-sand-navy-shorts", "linen-short-set-mocha", "linen-shirt-midnight-ivory-shorts"),
     ],
   },
   {
-    slug: "linen-two-piece-alternating-colours", name: "Linen Two-Piece · Alternating Colours", garment: "set", collection: "casuals", readyToWear: false, bespoke: true, bespokeStartingPrice: 40000,
-    description: "A linen shirt and full-length trousers in two different colours. Choose the pairing and we’ll cut the set to your measurements.",
+    slug: "linen-two-piece-alternating-colours", name: "Linen Two-Piece · Alternating Colours", garment: "set", collection: "casuals", readyToWear: true, bespoke: false, readyPrice: 40000,
+    description: "A casual linen shirt and full-length trousers in two different colours.",
     colours: [
-      illustrated(LOOKS, "#858d79",
+      illustrated("Style references", "#858d79",
         "linen-shirt-sage-ivory-trousers", "linen-shirt-terracotta-ivory-trousers", "linen-shirt-midnight-sand-trousers",
         "linen-shirt-ivory-mocha-trousers", "linen-shirt-rose-charcoal-trousers", "twopiece-long-olive"),
     ],
   },
   {
-    slug: "linen-two-piece", name: "Linen Two-Piece · Same Colour", garment: "set", collection: "casuals", readyToWear: false, bespoke: true, bespokeStartingPrice: 40000,
-    description: "A linen shirt and full-length trousers in the same colour. Choose a camp collar, band collar or classic collar and we’ll cut the set to your measurements.",
+    slug: "linen-two-piece", name: "Linen Two-Piece · Same Colour", garment: "set", collection: "casuals", readyToWear: true, bespoke: false, readyPrice: 40000,
+    description: "A casual linen shirt and full-length trousers in the same colour.",
     colours: [
-      illustrated(LOOKS, "#d8c3a0",
+      illustrated("Style references", "#d8c3a0",
         "camp-collar-set-ivory", "camp-collar-set-midnight", "camp-collar-set-mint", "camp-collar-set-mocha",
         "camp-collar-set-olive", "camp-collar-set-rose", "camp-collar-set-onyx", "twopiece-long-onyx",
         "camp-collar-set-ivory-alt", "camp-collar-set-olive-alt"),
@@ -148,9 +148,11 @@ export const campaignRange: readonly CampaignStyle[] = [
 ];
 
 export const readyToWear = campaignRange.filter((style) => style.readyToWear);
-/** Colours to offer: illustrated colours are Bespoke only. */
+/** Keep illustrated extras off photographed Ready-to-Wear listings. Styles
+ * with no campaign photography use their illustrated references instead. */
 export const offeredColours = (style: CampaignStyle, madeToMeasure: boolean) =>
-  madeToMeasure ? style.colours : style.colours.filter((colour) => !colour.illustration);
+  madeToMeasure || style.colours.every((colour) => colour.illustration)
+    ? style.colours : style.colours.filter((colour) => !colour.illustration);
 export const bespoke = campaignRange.filter((style) => style.bespoke);
 
 export const bespokeSlug = (style: CampaignStyle) => style.readyToWear ? `${style.slug}-bespoke` : style.slug;

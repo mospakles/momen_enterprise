@@ -8,7 +8,7 @@ import FilterDrawer from "@/components/shop/FilterDrawer";
 import PhotoBanner from "@/components/campaign/PhotoBanner";
 import { shots } from "@/lib/campaign-shots";
 import { useAdminStore } from "@/lib/admin/store";
-import { campaignSizes, findCampaignProduct, matchesCampaignStyle, readyToWear } from "@/lib/campaign-catalogue";
+import { campaignSizes, casuals, findCampaignProduct, matchesCampaignStyle, readyToWear } from "@/lib/campaign-catalogue";
 import { activeCount, applyQuery, facets, parseQuery, serializeQuery, SORTS, type ShopQuery } from "@/lib/shop-filters";
 import { normalise } from "@/lib/search";
 import type { Category } from "@/lib/types";
@@ -16,7 +16,7 @@ import type { Category } from "@/lib/types";
 const legacyGroups: Record<string, string[]> = {
   pants: ["ankara-pants", "aso-oke-patchwork-pants"],
   shirts: ["vintage-shirt", "linen-tee-aso-oke"],
-  "casual-wear": ["two-piece"],
+  "casual-wear": ["two-piece", ...casuals.map((style) => style.slug)],
   caps: ["fila"],
   accessories: ["fila"],
 };
@@ -30,7 +30,7 @@ export default function ShopPage() {
   return (
     <>
       <PhotoBanner shot={shots("patterned-trousers-trio")[0]} title="Ready-to-Wear">
-        Explore Ankara pants, aso-oke patchwork, jalabia, two-piece sets, vintage shirts, linen tees and fila.
+        Explore Ankara pants, aso-oke patchwork, jalabia, linen two-pieces, vintage shirts, linen tees and fila.
       </PhotoBanner>
       <div className="mx-auto max-w-[1600px] px-5 py-9 sm:px-10 lg:py-12">
         <Suspense fallback={<CampaignRange styles={readyToWear} />}>

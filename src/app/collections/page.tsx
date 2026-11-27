@@ -8,11 +8,11 @@ export default function CollectionsPage() {
   return (
     <div className="mx-auto max-w-[1600px] px-5 py-11 sm:px-10 lg:py-16">
       <h1 className="display text-5xl sm:text-6xl">Collections</h1>
-      <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
         {campaignCollections.map((collection) => (
           <Link key={collection.slug} href={collection.href} className="group block bg-bone">
             <div className="relative aspect-[5/4] overflow-hidden">
-              <Image src={collection.image} alt="" fill sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+              <Image src={collection.image} alt="" fill sizes="(min-width: 768px) 50vw, 100vw"
                 className="object-cover object-[50%_28%] transition-transform duration-500 group-hover:scale-105" />
             </div>
             <div className="p-6 lg:p-8">

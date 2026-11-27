@@ -6,9 +6,7 @@ import PhotoStrip from "@/components/campaign/PhotoStrip";
 import { CampaignRange } from "@/components/collection/CampaignRange";
 import { shots } from "@/lib/campaign-shots";
 import { useAdminStore } from "@/lib/admin/store";
-import { bespoke, campaignPhoto, casuals, casualsCollection } from "@/lib/campaign-catalogue";
-
-const mainStyles = bespoke.filter((style) => style.collection !== "casuals");
+import { bespoke, campaignPhoto } from "@/lib/campaign-catalogue";
 
 export default function MadeToMeasurePage() {
   const { products } = useAdminStore();
@@ -28,14 +26,7 @@ export default function MadeToMeasurePage() {
         </div>
       </header>
       <h2 className="display mb-6 text-3xl">Choose your style</h2>
-      <CampaignRange styles={mainStyles} products={products} madeToMeasure />
-      <section aria-labelledby="bespoke-casuals" className="mt-14">
-        <div className="mb-6 flex flex-wrap items-baseline justify-between gap-3">
-          <h2 id="bespoke-casuals" className="display text-3xl">Casuals</h2>
-          <Link href={casualsCollection.href} className="border-b border-current pb-1 text-sm font-medium">View the Casuals collection</Link>
-        </div>
-        <CampaignRange styles={casuals} products={products} madeToMeasure columns={3} />
-      </section>
+      <CampaignRange styles={bespoke} products={products} madeToMeasure />
       <div className="-mx-5 mt-14 sm:-mx-10">
         <PhotoStrip title="Made for the occasion" linkHref="/lookbook" shots={shots(
           "blue-geometric-set-portrait", "burgundy-robe-full-length", "blue-geometric-set-front",
