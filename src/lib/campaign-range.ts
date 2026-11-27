@@ -44,7 +44,7 @@ const LOOKS = "Your choice of fabric";
 
 export const campaignRange: readonly CampaignStyle[] = [
   {
-    slug: "ankara-pants", name: "Ankara Pants", garment: "trouser", readyToWear: true, bespoke: true, readyPrice: 25000,
+    slug: "ankara-pants", name: "Ankara Pants", garment: "trouser", readyToWear: true, bespoke: false, readyPrice: 25000,
     description: "Geometric Ankara prints with contrasting cuffs and side panels. Explore three different treatments in the campaign gallery.",
     colours: [
       { name: "Cobalt and stripe", hex: "#25388b", photos: ["cobalt-striped-cuff-trousers-front", "cobalt-striped-cuff-trousers-side", "cobalt-striped-cuff-trousers-styled", "cobalt-striped-cuff-trousers-detail", ...ankaraGroupShots] },
@@ -114,12 +114,12 @@ export const campaignRange: readonly CampaignStyle[] = [
     ],
   },
   {
-    slug: "linen-tee-aso-oke", name: "Linen Tee with Aso-oke Detailing", garment: "top", readyToWear: true, bespoke: true, readyPrice: 25000,
+    slug: "linen-tee-aso-oke", name: "Linen Tee with Aso-oke Detailing", garment: "top", readyToWear: true, bespoke: false, readyPrice: 25000,
     description: "An ivory linen tee with diagonal burgundy and grey aso-oke panels across the front.",
     colours: [{ name: "Ivory and burgundy", hex: "#7e354c", photos: ["ivory-woven-panel-shirt-front", "ivory-woven-panel-shirt-detail", "ivory-woven-panel-shirt-side"] }],
   },
   {
-    slug: "fila", name: "Fila", garment: "accessory", readyToWear: true, bespoke: true, readyPrice: 10000,
+    slug: "fila", name: "Fila", garment: "accessory", readyToWear: true, bespoke: false, readyPrice: 10000,
     description: "A traditional Yoruba cap, photographed in plain and striped finishes.",
     colours: [
       { name: "Blue", hex: "#267acf", photos: ["blue-cap-detail"] },

@@ -16,7 +16,7 @@ export default function MadeToMeasurePage() {
         <div className="flex flex-col justify-center px-6 py-9 sm:px-10 lg:p-14">
           <h1 className="display text-5xl sm:text-6xl">Bespoke</h1>
           <p className="mt-4 max-w-md text-base leading-relaxed text-ink/75">
-            Choose an agbada, senator, kaftan, jalabia, two-piece set, Ankara pants, linen tee with aso-oke detailing or fila. We’ll help you confirm the measurements and details for your piece.
+            Choose an agbada, senator, kaftan, jalabia, two-piece set or linen two-piece. We’ll help you confirm the measurements and details for your piece.
           </p>
           <Link href="/measurements" className="mt-5 self-start border-b border-current pb-1 text-sm font-medium">View the measurement guide</Link>
         </div>
@@ -29,8 +29,8 @@ export default function MadeToMeasurePage() {
       <CampaignRange styles={bespoke} products={products} madeToMeasure />
       <div className="-mx-5 mt-14 sm:-mx-10">
         <PhotoStrip title="Made for the occasion" linkHref="/lookbook" shots={shots(
-          "blue-geometric-set-portrait", "burgundy-robe-full-length", "ivory-woven-panel-shirt-detail", "blue-geometric-set-front",
-          "burgundy-robe-detail", "ivory-textured-set-portrait", "burgundy-striped-cap-profile", "blue-geometric-set-full-length", "ivory-and-blue-sets",
+          "blue-geometric-set-portrait", "burgundy-robe-full-length", "blue-geometric-set-front",
+          "burgundy-robe-detail", "ivory-textured-set-portrait", "blue-geometric-set-full-length", "ivory-and-blue-sets",
         )} className="py-0 lg:py-0" />
       </div>
     </div>

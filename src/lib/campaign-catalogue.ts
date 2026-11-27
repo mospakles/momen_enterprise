@@ -30,5 +30,5 @@ export function findCampaignProduct(products: readonly Product[], slug: string) 
 
 export const campaignCollections = [
   { slug: "ready-to-wear", name: "Ready-to-Wear", href: "/shop", image: campaignPhoto("cobalt-trousers-duo-side"), description: "Ankara pants, aso-oke patchwork, jalabia, two-piece sets, vintage shirts, linen tees and fila." },
-  { slug: "bespoke", name: "Bespoke", href: "/made-to-measure", image: campaignPhoto("blue-geometric-set-seated"), description: "Agbada, senator, kaftans, jalabia, two-piece sets, Ankara pants, linen tees with aso-oke detailing and fila, made to your measurements." },
+  { slug: "bespoke", name: "Bespoke", href: "/made-to-measure", image: campaignPhoto("blue-geometric-set-seated"), description: "Agbada, senator, kaftans, jalabia and two-piece sets made to your measurements." },
 ] as const;
